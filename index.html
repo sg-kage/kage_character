@@ -16,8 +16,9 @@
         .attr-btn { margin-right: 6px; margin-bottom: 6px; border: none; border-radius: 6px; padding: 0.5em 1.1em; font-size: 1em; cursor: pointer; font-weight: bold;}
         .attr-btn.active { color: #fff !important; box-shadow: 0 0 6px #fff8; }
         #sort-btn { background: #888; color: #fff; border: none; border-radius: 6px; padding: 0.5em 1.1em; cursor: pointer; font-weight: bold;}
-        #list { width: 100%; height: 50vh; max-height: 400px; font-size: 1em; border-radius: 6px; background: #444; color: #fff; padding: 0.2em 0.4em; overflow-y: auto; margin: 0; }
-        #detail { margin-top: 0.5em; background: #333; color: #fff; border-radius: 8px; padding: 1em; min-height: 200px; box-shadow: 0 2px 8px #0007; font-size: 1.03em; }
+        #hit-count { margin-bottom: 0.3em; font-size: 1em; color: #fff; font-weight: bold; }
+        #list { width: 100%; height: 50vh; max-height: 400px; font-size: 0.9em; border-radius: 6px; background: #444; color: #fff; padding: 0.2em 0.4em; overflow-y: auto; margin: 0; }
+        #detail { margin-top: 0.5em; background: #333; color: #fff; border-radius: 8px; padding: 1em; min-height: 200px; box-shadow: 0 2px 8px #0007; font-size: 0.9em; }
         @media (max-width: 700px) {
             #container { flex-direction: column; }
             #side, #main { min-width: unset; }
@@ -41,6 +42,7 @@
             <input id="filter" type="text" placeholder="フィルター（スペース区切り）">
             <div id="attribute-btns"></div>
             <button id="sort-btn" aria-pressed="false">ポジ順</button>
+            <div id="hit-count"></div> <!-- ★ここを追加 -->
             <ul id="list"></ul>
         </div>
         <div id="main">
@@ -130,6 +132,11 @@
                 filtered.sort((a, b) => (parseInt(a.position) || 999) - (parseInt(b.position) || 999));
             }
             lastFiltered = filtered;
+
+            // ★ ヒット件数を表示
+            const hitCount = document.getElementById('hit-count');
+            hitCount.textContent = `ヒット件数: ${filtered.length}件`;
+
             list.innerHTML = "";
             filtered.forEach((char, idx) => {
                 const li = document.createElement('li');
