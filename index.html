@@ -6,23 +6,36 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <style>
         body { background: #2E2E2E; color: #D3D3D3; font-family: 'Segoe UI', 'Meiryo', sans-serif; margin: 0; }
-        h2 { margin: 0.6em 0 0.4em 0; font-size: 1.4em; }
-        #container { display: flex; gap: 1em; max-width: 900px; margin: auto; padding: 1em; flex-wrap: wrap; }
+        h2 { margin: 0.6em 0 0.4em 0; font-size: 1.4em; text-align: center;}
+        #container { display: flex; gap: 1em;margin: auto; padding: 1em; flex-wrap: wrap; }
         #side { min-width: 190px; flex: 1; }
         #main { flex: 2; min-width: 260px; }
         #filter, #attribute-btns, #sort-btn { margin: 0.3em 0; }
         #filter { width: 90%; font-size: 1em; margin-right: 0.5em; }
         #attribute-btns { margin-bottom: 0.5em; }
         .attr-btn { margin-right: 6px; margin-bottom: 6px; border: none; border-radius: 6px; padding: 0.5em 1.1em; font-size: 1em; cursor: pointer; font-weight: bold; color: #000 !important;}
-        .attr-btn.active { color: #fff !important; box-shadow: 0 0 6px #fff8; }
+        .attr-btn.active { filter: brightness(100%); }
         #sort-btn { background: #888; color: #fff; border: none; border-radius: 6px; padding: 0.5em 1.1em; cursor: pointer; font-weight: bold;}
         #hit-count { margin-bottom: 0.3em; font-size: 1em; color: #fff; font-weight: bold; }
         #list { width: 100%; height: 50vh; max-height: 400px; font-size: 0.9em; border-radius: 6px; background: #444; color: #fff; padding: 0.2em 0.4em; overflow-y: auto; margin: 0; }
-        #detail { margin-top: 0.5em; background: #333; color: #fff; border-radius: 8px; padding: 1em; min-height: 200px; box-shadow: 0 2px 8px #0007; font-size: 0.9em; }
+        #detail { 
+            margin-top: 0.5em; 
+            background: #333; 
+            color: #fff; 
+            border-radius: 8px; 
+            padding: 1em; 
+            min-height: 200px; 
+            box-shadow: 0 2px 8px #0007; 
+            font-size: 0.9em; 
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
         @media (max-width: 700px) {
             #container { flex-direction: column; }
-            #side, #main { min-width: unset; }
+            #side, #main { min-width: unset; width: 100%; }
             #list { height: 200px; }
+            #detail { min-width: unset; width: 100%; }
         }
         .char-title { font-size: 1.3em; font-weight: bold; margin-bottom: 0.3em; color: #FFD700; }
         .char-label { color: #ddd; }
@@ -42,7 +55,7 @@
             <input id="filter" type="text" placeholder="フィルター（スペース区切り）">
             <div id="attribute-btns"></div>
             <button id="sort-btn" aria-pressed="false">ポジ順</button>
-            <div id="hit-count"></div> <!-- ★ここを追加 -->
+            <div id="hit-count"></div>
             <ul id="list"></ul>
         </div>
         <div id="main">
