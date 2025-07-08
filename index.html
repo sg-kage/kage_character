@@ -7,16 +7,51 @@
     <style>
         body { background: #2E2E2E; color: #D3D3D3; font-family: 'Segoe UI', 'Meiryo', sans-serif; margin: 0; }
         h2 { margin: 0.6em 0 0.4em 0; font-size: 1.4em; text-align: center;}
-        #container { display: flex; gap: 1em;margin: auto; padding: 1em; flex-wrap: wrap; }
+        #container { display: flex; gap: 1em; margin: auto; padding: 1em; flex-wrap: wrap; }
         #side { min-width: 190px; flex: 1; }
         #main { flex: 2; min-width: 260px; }
-        #filter, #attribute-btns, #sort-btn { margin: 0.3em 0; }
+        #filter, #attribute-row { margin: 0.3em 0; }
         #filter { width: 90%; font-size: 1em; margin-right: 0.5em; }
-        #attribute-btns { margin-bottom: 0.5em; }
-        .attr-btn { margin-right: 6px; margin-bottom: 6px; border: none; border-radius: 6px; padding: 0.5em 1.1em; font-size: 1em; cursor: pointer; font-weight: bold; color: #000 !important;}
-        .attr-btn.active { filter: brightness(100%); }
-        #sort-btn { background: #888; color: #fff; border: none; border-radius: 6px; padding: 0.5em 1.1em; cursor: pointer; font-weight: bold;}
-        #hit-count { margin-bottom: 0.3em; font-size: 1em; color: #fff; font-weight: bold; }
+        #attribute-row { display: flex; gap: 0.5em; align-items: center; margin-bottom: 0.5em; }
+        #attribute-btns { display: flex; gap: 0.5em; }
+        .attr-btn {
+            margin: 0;
+            border: none;
+            border-radius: 6px;
+            padding: 0.5em 1.1em;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            color: #000 !important;
+            transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+        }
+        #hit-row {
+            display: flex;
+            align-items: center;
+            gap: 0.8em;
+            margin-bottom: 0.3em;
+        }
+        #hit-count {
+            font-size: 1em;
+            color: #fff;
+            font-weight: bold;
+        }
+        #sort-btn {
+            background: #888;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 0.25em 0.9em;
+            cursor: pointer;
+            font-weight: normal;
+            font-size: 1em;
+            transition: background 0.15s, color 0.15s;
+            margin-left: 0;
+        }
+        #sort-btn[aria-pressed="true"] {
+            background: orange;
+            color: #333;
+        }
         #list { width: 100%; height: 50vh; max-height: 400px; font-size: 0.9em; border-radius: 6px; background: #444; color: #fff; padding: 0.2em 0.4em; overflow-y: auto; margin: 0; }
         #detail { 
             margin-top: 0.5em; 
@@ -36,6 +71,8 @@
             #side, #main { min-width: unset; width: 100%; }
             #list { height: 200px; }
             #detail { min-width: unset; width: 100%; }
+            #attribute-row { flex-direction: column; gap: 0; align-items: flex-start; }
+            #hit-row { flex-direction: column; align-items: flex-start; gap: 0.2em; }
         }
         .char-title { font-size: 1.3em; font-weight: bold; margin-bottom: 0.3em; color: #FFD700; }
         .char-label { color: #ddd; }
@@ -46,7 +83,6 @@
         ul#list { list-style: none; padding: 0; margin: 0; }
         ul#list li { padding: 0.2em 0.4em; cursor: pointer; border-radius: 4px; }
         ul#list li:hover { background: #666; }
-        /* 作成者リンク用スタイル */
         .creator-link {
             display: block;
             text-align: center;
@@ -61,7 +97,6 @@
         .creator-link a:hover {
             text-decoration: underline;
         }
-        /* 利用規約モーダル */
         #terms-modal-bg {
             display: none;
             position: fixed; top:0; left:0; width:100vw; height:100vh;
@@ -93,7 +128,6 @@
         }
         #terms-modal button#agree-btn { background: #4CAF50; color: #fff; }
         #terms-modal button#deny-btn { background: #F44336; color: #fff; }
-        /* オリジナル利用規約抜粋モーダル */
         #original-terms-modal-bg {
             display: none;
             position: fixed; top:0; left:0; width:100vw; height:100vh;
@@ -155,7 +189,6 @@
             <button id="deny-btn" type="button">いいえ</button>
         </div>
     </div>
-
     <!-- オリジナル利用規約抜粋モーダル -->
     <div id="original-terms-modal-bg">
         <div id="original-terms-modal">
@@ -167,14 +200,17 @@
             <button id="close-original-terms-btn" type="button">閉じる</button>
         </div>
     </div>
-
     <h2>カゲマス キャラ一覧</h2>
     <div id="container">
         <div id="side">
             <input id="filter" type="text" placeholder="フィルター（スペース区切り）">
-            <div id="attribute-btns"></div>
-            <button id="sort-btn" aria-pressed="false">ポジ順</button>
-            <div id="hit-count"></div>
+            <div id="attribute-row">
+                <div id="attribute-btns"></div>
+            </div>
+            <div id="hit-row">
+                <span id="hit-count"></span>
+                <button id="sort-btn" aria-pressed="false">ポジ順</button>
+            </div>
             <ul id="list"></ul>
         </div>
         <div id="main">
@@ -183,7 +219,7 @@
     </div>
     <div class="creator-link">
         作成者: <a href="https://x.com/kagenotify" target="_blank" rel="noopener">kagenotify（X／旧Twitter）</a><br>
-        Discord鯖: <a href="https://discord.gg/8BvXNbQ362" target="_blank" rel="noopener">陰マス通知</a>
+        Discord鯖: <a href="http://discord.gg/SfMWv5UPad" target="_blank" rel="noopener">陰マス通知</a>
     </div>
     <script>
         // ==== 利用規約モーダル ====
@@ -191,7 +227,6 @@
         const modalBg = document.getElementById("terms-modal-bg");
         const agreeBtn = document.getElementById("agree-btn");
         const denyBtn = document.getElementById("deny-btn");
-
         function showModal() {
             modalBg.style.display = "flex";
             document.body.style.overflow = "hidden";
@@ -204,19 +239,16 @@
             modalBg.innerHTML = '<div id="terms-modal"><p style="text-align:left;padding:2em 0 2em 0.5em;">いいえが選択されました、ご利用いただけません。</p></div>';
             document.body.style.overflow = "hidden";
         }
-
         if (localStorage.getItem(TERMS_KEY) === "true") {
             hideModal();
         } else {
             showModal();
         }
-
         agreeBtn.addEventListener("click", () => {
             localStorage.setItem(TERMS_KEY, "true");
             hideModal();
         });
         denyBtn.addEventListener("click", denyModal);
-
         // ==== オリジナル利用規約抜粋モーダル ====
         const showOriginalTermsBtn = document.getElementById('show-original-terms-btn');
         const originalTermsModalBg = document.getElementById('original-terms-modal-bg');
@@ -229,7 +261,6 @@
             originalTermsModalBg.style.display = 'none';
             document.body.style.overflow = '';
         });
-        // 背景クリックで閉じる
         originalTermsModalBg.addEventListener('click', function(e) {
             if (e.target === originalTermsModalBg) {
                 originalTermsModalBg.style.display = 'none';
@@ -237,53 +268,65 @@
             }
         });
 
-        // ==== ここからキャラ一覧の既存スクリプト ====
+        // ==== キャラ一覧の既存スクリプト ====
         let characters = [];
         let positionSorted = false;
-        let activeAttributes = new Set();
         let lastFiltered = [];
         let selectedIdx = 0;
 
         // 属性ボタン
-        const attributes = { "赤": "#FF6347", "青": "#1E90FF", "緑": "#32CD32", "黄": "#FFD700" };
+        const attributes = {
+            "赤": "#FF6347",
+            "緑": "#32CD32",
+            "黄": "#FFD700",
+            "青": "#1E90FF"
+        };
         const attrBtns = document.getElementById('attribute-btns');
-        for (const [attr, color] of Object.entries(attributes)) {
+        let excludedAttrs = new Set();
+
+        // ボタン生成
+        for (const attr of ["赤", "緑", "黄", "青"]) {
             const btn = document.createElement('button');
             btn.textContent = attr;
-            btn.className = 'attr-btn';
-            btn.style.background = color;
-            btn.onclick = () => toggleAttr(attr, btn, color);
+            btn.className = "attr-btn";
+            btn.style.background = attributes[attr];
+            btn.onclick = () => {
+                if (excludedAttrs.has(attr)) {
+                    excludedAttrs.delete(attr);
+                } else {
+                    excludedAttrs.add(attr);
+                }
+                updateAttrBtnColors();
+                updateList(true);
+            };
             attrBtns.appendChild(btn);
         }
+
+        function updateAttrBtnColors() {
+            for (const attr of ["赤", "緑", "黄", "青"]) {
+                const btn = Array.from(attrBtns.children).find(b => b.textContent === attr);
+                if (!btn) continue;
+                if (excludedAttrs.has(attr)) {
+                    btn.style.background = "#fff";
+                } else {
+                    btn.style.background = attributes[attr];
+                }
+            }
+        }
+        updateAttrBtnColors();
 
         // ポジ順ボタン
         const sortBtn = document.getElementById('sort-btn');
         sortBtn.onclick = () => {
             positionSorted = !positionSorted;
-            sortBtn.style.background = positionSorted ? "#2E2E2E" : "#888";
-            sortBtn.style.color = positionSorted ? "#FFD700" : "#fff";
             sortBtn.setAttribute("aria-pressed", positionSorted ? "true" : "false");
             updateList(true);
         };
-
-        function toggleAttr(attr, btn, color) {
-            if (activeAttributes.has(attr)) {
-                activeAttributes.delete(attr);
-                btn.classList.remove('active');
-                btn.style.background = color;
-            } else {
-                activeAttributes.add(attr);
-                btn.classList.add('active');
-                btn.style.background = "#555";
-            }
-            updateList(true);
-        }
 
         document.getElementById('filter').addEventListener('input', function() {
             updateList(true);
         });
 
-        // キーワードを強調（配列や文字列どちらにも対応）
         function highlightText(text, keywords) {
             if (Array.isArray(text)) {
                 return text.map(t => highlightText(t, keywords)).join('<br>');
@@ -299,7 +342,6 @@
             return result;
         }
 
-        // 配列向け（各要素に highlightText を掛けて整形）
         function addSpaces(arr, filter) {
             return (arr||[]).map(item => '　' + highlightText(item, filter)).join('<br>');
         }
@@ -311,17 +353,19 @@
             let filtered = characters.filter(char =>
                 filter.every(k => k === "" || JSON.stringify(char).toLowerCase().includes(k))
             );
-            if (activeAttributes.size > 0) {
+            // 除外属性フィルタ（複数可・全部白ならフィルタ解除）
+            if (excludedAttrs.size > 0 && excludedAttrs.size < 4) {
                 filtered = filtered.filter(char =>
-                    Array.from(activeAttributes).some(attr => char.attribute && char.attribute.startsWith(attr))
+                    !(char.attribute && excludedAttrs.has(char.attribute))
                 );
             }
+            // 全部白（全部除外）ならフィルタ解除＝全件表示
+            // ボタン状態は白のまま
             if (positionSorted) {
                 filtered.sort((a, b) => (parseInt(a.position) || 999) - (parseInt(b.position) || 999));
             }
             lastFiltered = filtered;
 
-            // ★ ヒット件数を表示
             const hitCount = document.getElementById('hit-count');
             hitCount.textContent = `ヒット件数: ${filtered.length}件`;
 
@@ -361,7 +405,6 @@
                 if (!val || !filter.length) return val;
                 return highlightText(val, filter);
             }
-            // name を属性色で表示
             const attrColor = attributes[char.attribute] || "#fff";
             detail.innerHTML = `
                 <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
@@ -380,7 +423,6 @@
             `;
         }
 
-        // キーボード操作
         document.addEventListener('keydown', function(e) {
             if (!lastFiltered.length) return;
             if (e.key === 'ArrowDown') {
@@ -401,7 +443,6 @@
             return document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k);
         }
 
-        // キャラデータ読み込み
         async function loadCharacters() {
             try {
                 const resp = await fetch('characters/all_characters.json');
@@ -415,7 +456,6 @@
                 document.getElementById('detail').innerText = "キャラクターデータの取得に失敗しました";
             }
         }
-
         loadCharacters();
     </script>
 </body>
