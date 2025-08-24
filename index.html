@@ -37,9 +37,65 @@
         #list { width: 100%; height: 50vh; max-height: 400px; font-size: 0.9em; border-radius: 6px; background: #444; color: #fff; padding: 0.2em 0.4em; overflow-y: auto; margin: 0; }
         #detail { margin-top: 0.5em; background: #333; color: #fff; border-radius: 8px; padding: 1em; min-height: 200px; box-shadow: 0 2px 8px #0007; font-size: 0.9em; width: 100%; max-width: 100%; box-sizing: border-box; }
         @media (max-width: 700px) { #container { flex-direction: column; } #side, #main { min-width: unset; width: 100%; } #list { height: 200px; } #detail { min-width: unset; width: 100%; } #attribute-row { flex-direction: column; gap: 0; align-items: flex-start; } #hit-row { flex-direction: column; align-items: flex-start; gap: 0.2em; } }
-        .char-title { font-size: 1.3em; font-weight: bold; margin-bottom: 0.3em; color: #FFD700; }
-        .char-label { color: #ddd; }
-        .char-value { color: #fff; }
+        .char-title { font-size: 1.3em; font-weight: bold; margin-bottom: 0.3em; color: #FFD700; text-align: center;}
+        /* ここから詳細表示の見やすい改良 */
+        .char-detail-wrap {
+            background: #282828;
+            border-radius: 10px;
+            padding: 1em 1.4em 1.2em 1.4em;
+            margin-bottom: 0.5em;
+        }
+        .char-basic {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8em 1.5em;
+            margin-bottom: 1.2em;
+        }
+        .char-basic-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5em;
+            min-width: 120px;
+        }
+        .char-label {
+            font-weight: bold;
+            color: #FFD700;
+            min-width: 4em;
+            font-size: 1em;
+        }
+        .char-value {
+            background: #444;
+            border-radius: 5px;
+            padding: 0.1em 0.7em;
+            color: #fff;
+            font-size: 1em;
+            display: inline-block;
+        }
+        .attr-red { background: #FF6347 !important; color: #222 !important; }
+        .attr-green { background: #32CD32 !important; color: #222 !important;}
+        .attr-yellow { background: #FFD700 !important; color: #222 !important;}
+        .attr-blue { background: #1E90FF !important; color: #fff !important;}
+        .char-section {
+            margin-bottom: 1em;
+            background: #353535;
+            border-radius: 7px;
+            padding: 0.7em 1em 0.4em 1em;
+            box-shadow: 0 2px 8px #0005;
+        }
+        .char-section-title {
+            font-weight: bold;
+            color: #7ad5ff;
+            margin-bottom: 0.45em;
+            font-size: 1.08em;
+            border-left: 4px solid #7ad5ff;
+            padding-left: 0.5em;
+        }
+        .char-section-content {
+            color: #fff;
+            line-height: 1.6;
+            font-size: 0.98em;
+        }
+        /* ここまで詳細表示の見やすい改良 */
         .highlight { background: #555 !important; }
         .hit { color: #FF4444; font-weight: bold; }
         li.selected { background: #555; }
@@ -49,7 +105,6 @@
         .creator-link { display: block; text-align: center; margin: 2.5em 0 1.2em 0; font-size: 1em; }
         .creator-link a { color: #1E90FF; text-decoration: none; font-weight: bold; }
         .creator-link a:hover { text-decoration: underline; }
-        /* 利用規約モーダル等は省略、既存のまま */
     </style>
 </head>
 <body>
@@ -58,7 +113,6 @@
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
 
-    <!-- 以下は既存コンテンツ（モーダル・キャラクターリスト等）そのまま -->
     <h2>カゲマス図鑑</h2>
     <div id="container">
         <div id="side">
@@ -82,14 +136,12 @@
     </div>
 
     <script>
-        // ==== GA4 設定例（G-F61RJCR09R）====
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
         gtag('config', 'G-F61RJCR09R');
     </script>
 
-    <!-- 以下キャラクターリスト読み込みスクリプトは既存のまま -->
     <script>
         let characters = [];
         let positionSorted = false;
@@ -116,6 +168,13 @@
 
         function highlightText(text, keywords){ if(Array.isArray(text)){ return text.map(t=>highlightText(t,keywords)).join('<br>'); } if(typeof text!=="string") return text; let result=text; keywords.forEach(k=>{ if(k&&result.toLowerCase().includes(k)){ const regexp=new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'); result=result.replace(regexp,m=>`<span class="hit">${m}</span>`); } }); return result; }
         function addSpaces(arr, filter){ return (arr||[]).map(item=>'　'+highlightText(item,filter)).join('<br>'); }
+        function attributeClass(attr) {
+            if (attr === "赤") return "attr-red";
+            if (attr === "緑") return "attr-green";
+            if (attr === "黄") return "attr-yellow";
+            if (attr === "青") return "attr-blue";
+            return "";
+        }
 
         function updateList(resetSelect=false){
             const list = document.getElementById('list');
@@ -132,21 +191,53 @@
         }
 
         function highlightSelected(){ document.querySelectorAll('#list li').forEach((li,idx)=>{ li.classList.toggle('selected', idx===selectedIdx); }); }
-        function showDetail(char, filter=[]){ const detail=document.getElementById('detail'); if(!char){ detail.textContent="該当キャラクターがありません。"; return; } function highlightDetail(val){ if(!val||!filter.length) return val; return highlightText(val,filter); } const attrColor=attributes[char.attribute]||"#fff"; detail.innerHTML=`
-            <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
-            <span class="char-label">■属性:</span> <span class="char-value">${highlightDetail(char.attribute)}</span>　
-            <span class="char-label">■ロール:</span> <span class="char-value">${highlightDetail(char.role)}</span>　
-            <span class="char-label">■ポジション:</span> <span class="char-value">${highlightDetail(char.position)}</span><br>
-            <span class="char-label">■グループ:</span> <span class="char-value">${(char.group||[]).map(g=>highlightDetail(g)).join(', ')}</span><br>
-            <span class="char-label">■コンボ:</span> <span class="char-value">${highlightDetail(char.combo)}</span><br>
-            <span class="char-label">■覚醒:</span> <span class="char-value">${highlightDetail(char.arousal)}</span><br>
-            <span class="char-label">■特殊:</span><br>${addSpaces(char.traits,filter)}<br>
-            <span class="char-label">■特技1:</span><br>${addSpaces(char.skill1,filter)}<br>
-            <span class="char-label">■特技2:</span><br>${addSpaces(char.skill2,filter)}<br>
-            <span class="char-label">■奥義:</span><br>${addSpaces(char.ultimate,filter)}<br>
-            <span class="char-label">■魔道具1:</span><br>${addSpaces(char.magic_item1,filter)}<br>
-            <span class="char-label">■魔道具2:</span><br>${addSpaces(char.magic_item2,filter)}<br>
-        `;}
+
+        function showDetail(char, filter=[]){
+            const detail=document.getElementById('detail');
+            if(!char){
+                detail.textContent="該当キャラクターがありません。";
+                return;
+            }
+            function highlightDetail(val){ if(!val||!filter.length) return val; return highlightText(val,filter); }
+            const attrColor=attributes[char.attribute]||"#fff";
+            detail.innerHTML=`
+                <div class="char-detail-wrap">
+                  <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
+                  <div class="char-basic">
+                    <div class="char-basic-item"><span class="char-label">属性</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
+                    <div class="char-basic-item"><span class="char-label">ロール</span><span class="char-value">${highlightDetail(char.role)}</span></div>
+                    <div class="char-basic-item"><span class="char-label">ポジション</span><span class="char-value">${highlightDetail(char.position)}</span></div>
+                    <div class="char-basic-item"><span class="char-label">グループ</span><span class="char-value">${(char.group||[]).map(g=>highlightDetail(g)).join(', ')}</span></div>
+                    <div class="char-basic-item"><span class="char-label">コンボ</span><span class="char-value">${highlightDetail(char.combo)}</span></div>
+                    <div class="char-basic-item"><span class="char-label">覚醒</span><span class="char-value">${highlightDetail(char.arousal)}</span></div>
+                  </div>
+                  <div class="char-section">
+                    <div class="char-section-title">特殊</div>
+                    <div class="char-section-content">${addSpaces(char.traits,filter)}</div>
+                  </div>
+                  <div class="char-section">
+                    <div class="char-section-title">特技1</div>
+                    <div class="char-section-content">${addSpaces(char.skill1,filter)}</div>
+                  </div>
+                  <div class="char-section">
+                    <div class="char-section-title">特技2</div>
+                    <div class="char-section-content">${addSpaces(char.skill2,filter)}</div>
+                  </div>
+                  <div class="char-section">
+                    <div class="char-section-title">奥義</div>
+                    <div class="char-section-content">${addSpaces(char.ultimate,filter)}</div>
+                  </div>
+                  <div class="char-section">
+                    <div class="char-section-title">魔道具1</div>
+                    <div class="char-section-content">${addSpaces(char.magic_item1,filter)}</div>
+                  </div>
+                  <div class="char-section">
+                    <div class="char-section-title">魔道具2</div>
+                    <div class="char-section-content">${addSpaces(char.magic_item2,filter)}</div>
+                  </div>
+                </div>
+            `;
+        }
 
         document.addEventListener('keydown', function(e){ if(!lastFiltered.length) return; if(e.key==='ArrowDown'){ selectedIdx=Math.min(selectedIdx+1,lastFiltered.length-1); showDetail(lastFiltered[selectedIdx], getCurrentFilter()); highlightSelected(); e.preventDefault(); } if(e.key==='ArrowUp'){ selectedIdx=Math.max(selectedIdx-1,0); showDetail(lastFiltered[selectedIdx], getCurrentFilter()); highlightSelected(); e.preventDefault(); } });
         function getCurrentFilter(){ return document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k); }
