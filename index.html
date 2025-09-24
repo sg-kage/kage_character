@@ -6,17 +6,6 @@
     <link rel="icon" href="image/kage.png" type="image/png">
     <title>カゲマス図鑑</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
-
-    <!-- Google Tag Manager -->
-    <script>
-    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-XXXXXXX');
-    </script>
-    <!-- End Google Tag Manager -->
-
     <style>
         body { background: #2E2E2E; color: #D3D3D3; font-family: 'Segoe UI', 'Meiryo', sans-serif; margin: 0; }
         h2 { margin: 0.6em 0 0.4em 0; font-size: 1.4em; text-align: center;}
@@ -45,9 +34,6 @@
         .attr-green { background: #32CD32 !important; color: #222 !important; }
         .attr-yellow { background: #FFD700 !important; color: #222 !important; }
         .attr-blue { background: #1E90FF !important; color: #fff !important; }
-        .char-section { margin-bottom: 0.5em; background: #353535; border-radius: 7px; padding: 0.5em; box-shadow: 0 2px 8px #0005; }
-        .char-section-title { font-weight: bold; color: #7ad5ff; margin-bottom: 0; font-size: 1em; border-left: 4px solid #7ad5ff; padding-left: 0.5em; }
-        .char-section-content { color: #fff; line-height: 1.6; font-size: 0.98em; }
         .highlight { background: #555 !important; }
         .hit { color: #FF4444; font-weight: bold; }
         li.selected { background: #555; }
@@ -63,14 +49,36 @@
         #terms-modal, #original-terms-modal { background: #333; color: #fff; padding: 1.5em; border-radius: 10px; max-width: 600px; width: 90%; box-sizing: border-box; text-align: center; }
         #terms-modal-text { margin-bottom: 1em; text-align: left; }
         #terms-modal button, #original-terms-modal button { margin-top: 0.5em; padding: 0.5em 1em; border: none; border-radius: 5px; cursor: pointer; }
+
+        /* ===== タブUI追加 ===== */
+        .tabs-wrap { margin: 0 0 1.3em 0; }
+        .tabs-buttons {
+            display: flex; gap: 0.8em; margin-bottom: 1.1em; justify-content: center;
+        }
+        .tabs-btn {
+            background: #353535; color: #AEE7FE; font-weight: bold;
+            font-size: 1.05em; padding: 0.45em 2.2em; border: none;
+            border-radius: 2em 2em 0 0; box-shadow: 0 2px 12px #0004;
+            cursor: pointer; outline: none; transition: all 0.14s;
+            position: relative; top: 3px;
+        }
+        .tabs-btn.active {
+            background: linear-gradient(90deg,#2bc6ff 0%,#7ad5ff 100%);
+            color: #222; box-shadow: 0 2px 16px #58e1ff66;
+            top: 0;
+        }
+        .char-section { margin-bottom: 0.7em; background: #353535; border-radius: 7px; padding: 0.5em; box-shadow: 0 2px 8px #0005; }
+        .char-section-title { font-weight: bold; color: #7ad5ff; margin-bottom: 0; font-size: 1em; border-left: 4px solid #7ad5ff; padding-left: 0.5em; }
+        .char-section-content { color: #fff; line-height: 1.6; font-size: 0.98em; }
+        .effect-label { display:inline-block; font-size: 0.97em; font-weight:bold; border-radius:4px; padding:0.08em 0.65em; margin-right:0.5em; margin-bottom:0.16em;}
+        .normal-label { background: #ff9800; color: #222;}
+        .awakened-label { background: #ff9800; color: #222;}
+        @media (max-width: 700px) {
+            .tabs-content-area { flex-direction: column; gap: 0.6em;}
+        }
     </style>
 </head>
 <body>
-    <!-- Google Tag Manager (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-XXXXXXX"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-    <!-- End Google Tag Manager (noscript) -->
-
     <!-- 利用規約モーダル -->
     <div id="terms-modal-bg">
         <div id="terms-modal">
@@ -103,7 +111,6 @@
             <button id="close-original-terms-btn" type="button">閉じる</button>
         </div>
     </div>
-
     <h2>カゲマス図鑑</h2>
     <div id="container">
         <div id="side">
@@ -121,12 +128,10 @@
             <div id="detail"></div>
         </div>
     </div>
-
     <div class="creator-link">
         作成者: <a href="https://x.com/kagenotify" target="_blank" rel="noopener">kagenotify（X／旧Twitter）</a><br>
         Discord鯖: <a href="http://discord.gg/SfMWv5UPad" target="_blank" rel="noopener">陰マス通知</a>
     </div>
-
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
@@ -179,16 +184,14 @@
                 document.body.style.overflow = '';
             }
         });
-
-        // ==== ここからキャラクターリスト JS（以前学習済みのまま） ====
         let characters = [];
         let positionSorted = false;
         let lastFiltered = [];
         let selectedIdx = 0;
-
         const attributes = {"赤": "#FF6347", "緑": "#32CD32", "黄": "#FFD700", "青": "#1E90FF"};
         const attrBtns = document.getElementById('attribute-btns');
         let excludedAttrs = new Set();
+        let tabMode = 0; // 0:比較(両方), 1:覚醒前, 2:覚醒後
 
         for (const attr of ["赤","緑","黄","青"]) {
             const btn = document.createElement('button');
@@ -201,7 +204,6 @@
 
         const sortBtn = document.getElementById('sort-btn');
         sortBtn.onclick = () => { positionSorted = !positionSorted; sortBtn.setAttribute("aria-pressed", positionSorted?"true":"false"); updateList(true); };
-
         document.getElementById('filter').addEventListener('input', function(){ updateList(true); });
 
         function highlightText(text, keywords){ if(Array.isArray(text)){ return text.map(t=>highlightText(t,keywords)).join('<br>'); } if(typeof text!=="string") return text; let result=text; keywords.forEach(k=>{ if(k&&result.toLowerCase().includes(k)){ const regexp=new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'); result=result.replace(regexp,m=>`<span class="hit">${m}</span>`); } }); return result; }
@@ -213,7 +215,46 @@
             if (attr === "青") return "attr-blue";
             return "";
         }
-
+　　　　function comboBlock(combo, filter=[]) {
+　　　　  if (Array.isArray(combo)) {
+　　　　    return combo.map(row => {
+　　　　      if (typeof row === 'object') {
+　　　　        return `<div class="combo-row">
+　　　　          ${row.name ? `<b>${highlightText(row.name, filter)}</b><br>` : ""}
+　　　　          <span class="combo-effect">${highlightText(row.effect ?? '', filter)}</span>
+　　　　        </div>`;
+　　　　      } else if (typeof row === 'string') {
+　　　　        return `<div class="combo-row"><span class="combo-effect">${highlightText(row, filter)}</span></div>`;
+　　　　      } else {
+　　　　        return "";
+　　　　      }
+　　　　    }).join('');
+　　　　  } else if (typeof combo === 'object') {
+　　　　    return Object.entries(combo).map(([name, effect]) =>
+　　　　      `<div class="combo-row"><b>${highlightText(name, filter)}</b><br><span class="combo-effect">${highlightText(effect, filter)}</span></div>`
+　　　　    ).join('');
+　　　　  } else if (typeof combo === 'string') {
+　　　　    if (combo.match(/【/)) {
+　　　　      return combo
+　　　　        .split(/[\n\r]+/)
+　　　　        .map(line => line.trim())
+　　　　        .filter(line => line)
+　　　　        .map(line => {
+　　　　          const m = line.match(/^【(.+?)】(.*)$/);
+　　　　          if (m) {
+　　　　            return `<div class="combo-row"><b>【${highlightText(m[1], filter)}】</b><br><span class="combo-effect">${highlightText(m[2].trim(), filter)}</span></div>`;
+　　　　          } else {
+　　　　            return `<div class="combo-row"><span class="combo-effect">${highlightText(line, filter)}</span></div>`;
+　　　　          }
+　　　　        })
+　　　　        .join('');
+　　　　    } else {
+　　　　      return `<div class="combo-row"><span class="combo-effect">${highlightText(combo, filter)}</span></div>`;
+　　　　    }
+　　　　  } else {
+　　　　    return "";
+　　　　  }
+　　　　}
         function updateList(resetSelect=false){
             const list = document.getElementById('list');
             const filterInput = document.getElementById('filter').value;
@@ -224,11 +265,58 @@
             lastFiltered=filtered;
             const hitCount=document.getElementById('hit-count'); hitCount.textContent=`ヒット件数: ${filtered.length}件`;
             list.innerHTML="";
-            filtered.forEach((char,idx)=>{ const li=document.createElement('li'); li.innerHTML=highlightText(char.name,filter); li.onclick=()=>{ showDetail(char,filter); selectedIdx=idx; highlightSelected(); }; list.appendChild(li); });
-            if(filtered.length){ if(resetSelect) selectedIdx=0; if(selectedIdx<0||selectedIdx>=filtered.length) selectedIdx=0; showDetail(filtered[selectedIdx],filter); highlightSelected(); } else{ showDetail(null); }
+            filtered.forEach((char,idx)=>{ const li=document.createElement('li'); li.innerHTML=highlightText(char.name,filter); li.onclick=()=>{ tabMode=0; showDetail(char,filter); selectedIdx=idx; highlightSelected(); }; list.appendChild(li); });
+            if(filtered.length){ if(resetSelect) selectedIdx=0; if(selectedIdx<0||selectedIdx>=filtered.length) selectedIdx=0; tabMode=0; showDetail(filtered[selectedIdx],filter); highlightSelected(); } else{ showDetail(null); }
+        }
+        function highlightSelected(){ document.querySelectorAll('#list li').forEach((li,idx)=>{ li.classList.toggle('selected', idx===selectedIdx); }); }
+
+        // 覚醒前後ラベル付きで両方並べる
+        function skillBlockBothInline(arr, filter) {
+            if (!Array.isArray(arr) || arr.length === 0) return "";
+            return arr.map(skill => {
+                if (typeof skill === "object" && "title" in skill) {
+                    return `<div style="margin-bottom:0.7em;">
+                        <b>${highlightText(skill.title, filter)}</b><br>
+                        <span class="effect-label normal-label">覚醒前</span>${highlightText(skill.normal, filter)}<br>
+                        <span class="effect-label awakened-label">覚醒後</span>${highlightText(skill.awakened, filter)}
+                    </div>`;
+                } else if (typeof skill === "string") {
+                    return `<div>${highlightText(skill, filter)}</div>`;
+                } else {
+                    return "";
+                }
+            }).join("");
+        }
+        // 覚醒前のみ/覚醒後のみ
+        function skillBlockCompare(arr, filter, type) {
+            if (!Array.isArray(arr) || arr.length === 0) return "";
+            return arr.map(skill => {
+                if (typeof skill === "object" && "title" in skill) {
+                    let effect = (type === 0) ? skill.normal : skill.awakened;
+                    return `<b>${highlightText(skill.title, filter)}</b><br>${highlightText(effect, filter)}`;
+                } else if (typeof skill === "string") {
+                    return highlightText(skill, filter);
+                } else {
+                    return "";
+                }
+            }).map(s => "　" + s).join("<br>");
         }
 
-        function highlightSelected(){ document.querySelectorAll('#list li').forEach((li,idx)=>{ li.classList.toggle('selected', idx===selectedIdx); }); }
+        function showTabs(char, filter) {
+            const detail = document.getElementById('detail');
+            detail.prepend(document.createRange().createContextualFragment(`
+                <div class="tabs-wrap" id="detail-tabs">
+                    <div class="tabs-buttons">
+                        <button class="tabs-btn${tabMode===0?' active':''}" id="tab-both">比較</button>
+                        <button class="tabs-btn${tabMode===1?' active':''}" id="tab-normal">覚醒前</button>
+                        <button class="tabs-btn${tabMode===2?' active':''}" id="tab-awakened">覚醒後</button>
+                    </div>
+                </div>
+            `));
+            document.getElementById('tab-both').onclick = ()=>{ tabMode=0; showDetail(char, filter); };
+            document.getElementById('tab-normal').onclick = ()=>{ tabMode=1; showDetail(char, filter); };
+            document.getElementById('tab-awakened').onclick = ()=>{ tabMode=2; showDetail(char, filter); };
+        }
 
         function showDetail(char, filter=[]){
             const detail=document.getElementById('detail');
@@ -238,7 +326,17 @@
             }
             function highlightDetail(val){ if(!val||!filter.length) return val; return highlightText(val,filter); }
             const attrColor=attributes[char.attribute]||"#fff";
-            detail.innerHTML=`
+            let mainContent = "";
+            if(tabMode===0) {
+                // 比較（両方）モード：1パネルに覚醒前後を並記
+                function bothPanel(title, arr, filter) {
+                    return `
+                    <div class="char-section">
+                        <div class="char-section-title">${title}</div>
+                        <div class="char-section-content">${skillBlockBothInline(arr, filter)}</div>
+                    </div>`;
+                }
+                mainContent = `
                 <div class="char-detail-wrap">
                   <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
                   <div class="char-basic">
@@ -246,40 +344,58 @@
                     <div class="char-basic-item"><span class="char-label">ロール</span><span class="char-value">${highlightDetail(char.role)}</span></div>
                     <div class="char-basic-item"><span class="char-label">ポジション</span><span class="char-value">${highlightDetail(char.position)}</span></div>
                     <div class="char-basic-item"><span class="char-label">グループ</span><span class="char-value">${(char.group||[]).map(g=>highlightDetail(g)).join(', ')}</span></div>
-                    <div class="char-basic-item"><span class="char-label">コンボ</span><span class="char-value">${highlightDetail(char.combo)}</span></div>
+                    <div class="char-section">
+                      <div class="char-section-title">コンボ</div>
+                      <div class="char-section-content">${comboBlock(char.combo, filter)}</div>
+                    </div>
                     <div class="char-basic-item"><span class="char-label">覚醒</span><span class="char-value">${highlightDetail(char.arousal)}</span></div>
                   </div>
-                  <div class="char-section">
-                    <div class="char-section-title">特殊</div>
-                    <div class="char-section-content">${addSpaces(char.traits,filter)}</div>
-                  </div>
-                  <div class="char-section">
-                    <div class="char-section-title">特技1</div>
-                    <div class="char-section-content">${addSpaces(char.skill1,filter)}</div>
-                  </div>
-                  <div class="char-section">
-                    <div class="char-section-title">特技2</div>
-                    <div class="char-section-content">${addSpaces(char.skill2,filter)}</div>
-                  </div>
-                  <div class="char-section">
-                    <div class="char-section-title">奥義</div>
-                    <div class="char-section-content">${addSpaces(char.ultimate,filter)}</div>
-                  </div>
-                  <div class="char-section">
-                    <div class="char-section-title">魔道具1</div>
-                    <div class="char-section-content">${addSpaces(char.magic_item1,filter)}</div>
-                  </div>
-                  <div class="char-section">
-                    <div class="char-section-title">魔道具2</div>
-                    <div class="char-section-content">${addSpaces(char.magic_item2,filter)}</div>
-                  </div>
+                  ${bothPanel("特殊", char.traits, filter)}
+                  ${bothPanel("特技1", char.skill1, filter)}
+                  ${bothPanel("特技2", char.skill2, filter)}
+                  ${bothPanel("奥義", char.ultimate, filter)}
+                  ${bothPanel("魔道具1", char.magic_item1, filter)}
+                  ${bothPanel("魔道具2", char.magic_item2, filter)}
                 </div>
-            `;
+                `;
+            }else{
+                // 覚醒前 or 覚醒後のみ
+                function singlePanel(title, arr, type) {
+                    return `
+                    <div class="char-section">
+                        <div class="char-section-title">${title}</div>
+                        <div class="char-section-content">${skillBlockCompare(arr, filter, type)}</div>
+                    </div>`;
+                }
+                const type = tabMode===1 ? 0 : 1;
+                mainContent = `
+                <div class="char-detail-wrap">
+                  <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
+                  <div class="char-basic">
+                    <div class="char-basic-item"><span class="char-label">属性</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
+                    <div class="char-basic-item"><span class="char-label">ロール</span><span class="char-value">${highlightDetail(char.role)}</span></div>
+                    <div class="char-basic-item"><span class="char-label">ポジション</span><span class="char-value">${highlightDetail(char.position)}</span></div>
+                    <div class="char-basic-item"><span class="char-label">グループ</span><span class="char-value">${(char.group||[]).map(g=>highlightDetail(g)).join(', ')}</span></div>
+                    <div class="char-section">
+                      <div class="char-section-title">コンボ</div>
+                      <div class="char-section-content">${comboBlock(char.combo, filter)}</div>
+                    </div>
+                    <div class="char-basic-item"><span class="char-label">覚醒</span><span class="char-value">${highlightDetail(char.arousal)}</span></div>
+                  </div>
+                  ${singlePanel("特殊", char.traits, type)}
+                  ${singlePanel("特技1", char.skill1, type)}
+                  ${singlePanel("特技2", char.skill2, type)}
+                  ${singlePanel("奥義", char.ultimate, type)}
+                  ${singlePanel("魔道具1", char.magic_item1, type)}
+                  ${singlePanel("魔道具2", char.magic_item2, type)}
+                </div>
+                `;
+            }
+            detail.innerHTML = mainContent;
+            showTabs(char, filter);
         }
-
-        document.addEventListener('keydown', function(e){ if(!lastFiltered.length) return; if(e.key==='ArrowDown'){ selectedIdx=Math.min(selectedIdx+1,lastFiltered.length-1); showDetail(lastFiltered[selectedIdx], getCurrentFilter()); highlightSelected(); e.preventDefault(); } if(e.key==='ArrowUp'){ selectedIdx=Math.max(selectedIdx-1,0); showDetail(lastFiltered[selectedIdx], getCurrentFilter()); highlightSelected(); e.preventDefault(); } });
+        document.addEventListener('keydown', function(e){ if(!lastFiltered.length) return; if(e.key==='ArrowDown'){ selectedIdx=Math.min(selectedIdx+1,lastFiltered.length-1); tabMode=0; showDetail(lastFiltered[selectedIdx], getCurrentFilter()); highlightSelected(); e.preventDefault(); } if(e.key==='ArrowUp'){ selectedIdx=Math.max(selectedIdx-1,0); tabMode=0; showDetail(lastFiltered[selectedIdx], getCurrentFilter()); highlightSelected(); e.preventDefault(); } });
         function getCurrentFilter(){ return document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k); }
-
         async function loadCharacters(){ try{ const resp=await fetch('characters/all_characters.json'); if(resp.ok){ characters=await resp.json(); updateList(true); } else{ document.getElementById('detail').innerText="キャラクターデータの取得に失敗しました"; } } catch(e){ document.getElementById('detail').innerText="キャラクターデータの取得に失敗しました"; } }
         loadCharacters();
     </script>
