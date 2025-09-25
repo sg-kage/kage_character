@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <link rel="apple-touch-icon" href="image/kage.png">
+    <link rel="icon" href="image/kage.png" type="image/png">
+    <title>カゲマス図鑑</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta property="og:title" content="キャラクター図鑑">
+    <meta property="og:description" content="陰の実力者になりたくて！ キャラクター図鑑です。">
+    <meta property="og:image" content="https://sg-kage.github.io/kage_character/image/thumbnail.png">
+    <meta property="og:url" content="https://sg-kage.github.io/kage_character/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@kagenotify">
+    <style>
+        body { background: #2E2E2E; color: #D3D3D3; font-family: 'Segoe UI', 'Meiryo', sans-serif; margin: 0; }
+        h2 { margin: 0.6em 0 0.4em 0; font-size: 1.4em; text-align: center;}
+        #container { display: flex; gap: 1em; margin: auto; padding: 1em; flex-wrap: wrap; }
+        #side { min-width: 190px; flex: 1; }
+        #main { flex: 2; min-width: 260px; }
+        #filter, #attribute-row { margin: 0.3em 0; }
+        #filter { width: 90%; font-size: 1em; margin-right: 0.5em; }
+        #attribute-row { display: flex; gap: 0.5em; align-items: center; margin-bottom: 0.5em; }
+        #attribute-btns { display: flex; gap: 0.5em; }
+        .attr-btn { margin: 0; border: none; border-radius: 6px; padding: 0.5em 1.1em; font-size: 1em; font-weight: bold; cursor: pointer; color: #000 !important; transition: background 0.15s, color 0.15s, box-shadow 0.15s; }
+        #hit-row { display: flex; align-items: center; gap: 0.8em; margin-bottom: 0.3em; }
+        #hit-count { font-size: 1em; color: #fff; font-weight: bold; }
+        #sort-btn { background: #888; color: #fff; border: none; border-radius: 6px; padding: 0.25em 0.9em; cursor: pointer; font-weight: normal; font-size: 1em; transition: background 0.15s, color 0.15s; margin-left: 0; }
+        #sort-btn[aria-pressed="true"] { background: orange; color: #333; }
+        #list { width: 100%; height: 50vh; max-height: 400px; font-size: 0.9em; border-radius: 6px; background: #444; color: #fff; padding: 0.2em 0.4em; overflow-y: auto; margin: 0; }
+        #detail { margin-top: 0.5em; background: #333; color: #fff; border-radius: 8px; padding: 1em; min-height: 200px; box-shadow: 0 2px 8px #0007; font-size: 0.9em; width: 100%; max-width: 100%; box-sizing: border-box; }
+        @media (max-width: 700px) { #container { flex-direction: column; } #side, #main { min-width: unset; width: 100%; } #list { height: 200px; } #detail { min-width: unset; width: 100%; } #attribute-row { flex-direction: column; gap: 0; align-items: flex-start; } #hit-row { flex-direction: column; align-items: flex-start; gap: 0.2em; } }
+        .char-title { font-size: 1.3em; font-weight: bold; margin-bottom: 0.3em; color: #FFD700; text-align: center;}
+        .char-detail-wrap { background: #282828; border-radius: 10px; padding: 0.5em; margin-bottom: 0.5em; }
+        .char-basic { display: flex; flex-wrap: wrap; gap: 0.8em 1.5em; margin-bottom: 1.2em; }
+        .char-basic-item { display: flex; align-items: center; gap: 0.5em; min-width: 120px; }
+        .char-label { font-weight: bold; color: #FFD700; min-width: 4em; font-size: 1em; }
+        .char-value { background: #444; border-radius: 5px; padding: 0.1em 0.7em; color: #fff; font-size: 1em; display: inline-block; }
+        .attr-red { background: #FF6347 !important; color: #222 !important; }
+        .attr-green { background: #32CD32 !important; color: #222 !important; }
+        .attr-yellow { background: #FFD700 !important; color: #222 !important; }
+        .attr-blue { background: #1E90FF !important; color: #fff !important; }
+        .highlight { background: #555 !important; }
+        .hit { color: #FF4444; font-weight: bold; }
+        li.selected { background: #555; }
+        ul#list { list-style: none; padding: 0; margin: 0; }
+        ul#list li { padding: 0.2em 0.4em; cursor: pointer; border-radius: 4px; }
+        ul#list li:hover { background: #666; }
+        .creator-link { display: block; text-align: center; margin: 2.5em 0 1.2em 0; font-size: 1em; }
+        .creator-link a { color: #1E90FF; text-decoration: none; font-weight: bold; }
+        .creator-link a:hover { text-decoration: underline; }
+
+        /* ===== 利用規約モーダルCSS ===== */
+        #terms-modal-bg, #original-terms-modal-bg { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.75); justify-content: center; align-items: center; z-index: 9999; }
+        #terms-modal, #original-terms-modal { background: #333; color: #fff; padding: 1.5em; border-radius: 10px; max-width: 600px; width: 90%; box-sizing: border-box; text-align: center; }
+        #terms-modal-text { margin-bottom: 1em; text-align: left; }
+        #terms-modal button, #original-terms-modal button { margin-top: 0.5em; padding: 0.5em 1em; border: none; border-radius: 5px; cursor: pointer; }
+
+        /* ===== タブUI追加 ===== */
+        .tabs-wrap { margin: 0 0 1.3em 0; }
+        .tabs-buttons {
+            display: flex; gap: 0.8em; margin-bottom: 1.1em; justify-content: center;
+        }
+        .tabs-btn {
+            background: #353535; color: #AEE7FE; font-weight: bold;
+            font-size: 1.05em; padding: 0.45em 2.2em; border: none;
+            border-radius: 2em 2em 0 0; box-shadow: 0 2px 12px #0004;
+            cursor: pointer; outline: none; transition: all 0.14s;
+            position: relative; top: 3px;
+        }
+        .tabs-btn.active {
+            background: linear-gradient(90deg,#2bc6ff 0%,#7ad5ff 100%);
+            color: #222; box-shadow: 0 2px 16px #58e1ff66;
+            top: 0;
+        }
+        .char-section { margin-bottom: 0.7em; background: #353535; border-radius: 7px; padding: 0.5em; box-shadow: 0 2px 8px #0005; }
+        .char-section-title { font-weight: bold; color: #7ad5ff; margin-bottom: 0; font-size: 1em; border-left: 4px solid #7ad5ff; padding-left: 0.5em; }
+        .char-section-content { color: #fff; line-height: 1.6; font-size: 0.98em; }
+        .effect-label { display:inline-block; font-size: 0.97em; font-weight:bold; border-radius:4px; padding:0.08em 0.65em; margin-right:0.5em; margin-bottom:0.16em;}
+        .normal-label { background: #ff9800; color: #222;}
+        .awakened-label { background: #ff9800; color: #222;}
+        @media (max-width: 700px) {
+            .tabs-content-area { flex-direction: column; gap: 0.6em;}
+        }
+    </style>
+</head>
+<body>
+    <!-- 利用規約モーダル -->
+    <div id="terms-modal-bg">
+        <div id="terms-modal">
+            <div id="terms-modal-text">
+                健全なプレイヤーのみ使用可能です。<br>
+                （<a href="https://aiming-inc.com/ja/tos/" target="_blank" rel="noopener">Aiming</a>の利用規約を遵守してください）<br><br>
+                最低限以下に該当する行為をしていない、<br>または過去にしていないことが条件です<br><br>
+                ・チート行為<br>
+                ・グリッチ行為<br>　（例：意図的なギルメンの入れ替えによる加算）<br>
+                ・サブアカウントの使用<br>
+                ・金銭のやり取り<br>
+                ・外部ツールを使ったデータ取得<br><br>
+                <button id="show-original-terms-btn" type="button">オリジナル利用規約抜粋を見る</button>
+                <br>
+                これらに該当しませんか？
+            </div>
+            <button id="agree-btn" type="button">はい</button>
+            <button id="deny-btn" type="button">いいえ</button>
+        </div>
+    </div>
+
+    <!-- オリジナル利用規約抜粋モーダル -->
+    <div id="original-terms-modal-bg">
+        <div id="original-terms-modal">
+            <b>【オリジナル利用規約抜粋】</b><br>
+            ・利用者は、一つのゲームサーバーにつき<span style="color:#d32f2f; font-weight:bold;">プレイヤー名・IDを複数設定し、又は、プレイヤーデータを複数作成・管理してはならない</span>ものとします。<br><br>
+            ・ゲームポイント、又は本サービス内のアイテム等を<span style="color:#d32f2f; font-weight:bold;">現金ないし商品券等金銭的価値を有する物、本サービス外のポイント・アイテム等と交換する行為、及び当該行為を勧誘・宣伝・告知・斡旋</span>する行為。<br><br>
+            ・<span style="color:#d32f2f; font-weight:bold;">プログラム等の改変、リバースエンジニアリング、解析、ユーティリティの作成、頒布、利用等</span>の行為。<br><br>
+            ・本サービスにおいて使用されているソフトウェア及びデータの全部若しくは一部を個別に許可される範囲を超えて<span style="color:#d32f2f; font-weight:bold;">解析、複製、複写、修正、追加、改変及び二次利用</span>する行為。<br>
+            <button id="close-original-terms-btn" type="button">閉じる</button>
+        </div>
+    </div>
+    <h2>カゲマス図鑑</h2>
+    <div id="container">
+        <div id="side">
+            <input id="filter" type="text" placeholder="フィルター（スペース区切り）">
+            <div id="attribute-row">
+                <div id="attribute-btns"></div>
+            </div>
+            <div id="hit-row">
+                <span id="hit-count"></span>
+                <button id="sort-btn" aria-pressed="false">ポジ順</button>
+            </div>
+            <ul id="list"></ul>
+        </div>
+        <div id="main">
+            <div id="detail"></div>
+        </div>
+    </div>
+    <div class="creator-link">
+        作成者: <a href="https://x.com/kagenotify" target="_blank" rel="noopener">kagenotify（X／旧Twitter）</a><br>
+        Discord鯖: <a href="http://discord.gg/SfMWv5UPad" target="_blank" rel="noopener">陰マス通知</a>
+    </div>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-F61RJCR09R');
+
+        // ==== 利用規約モーダル ====
+        const TERMS_KEY = "kageCharacterTermsAgreed";
+        const modalBg = document.getElementById("terms-modal-bg");
+        const agreeBtn = document.getElementById("agree-btn");
+        const denyBtn = document.getElementById("deny-btn");
+        function showModal() {
+            modalBg.style.display = "flex";
+            document.body.style.overflow = "hidden";
+        }
+        function hideModal() {
+            modalBg.style.display = "none";
+            document.body.style.overflow = "";
+        }
+        function denyModal() {
+            modalBg.innerHTML = '<div id="terms-modal"><p style="text-align:left;padding:2em 0 2em 0.5em;">いいえが選択されました、ご利用いただけません。</p></div>';
+            document.body.style.overflow = "hidden";
+        }
+        if (localStorage.getItem(TERMS_KEY) === "true") {
+            hideModal();
+        } else {
+            showModal();
+        }
+        agreeBtn.addEventListener("click", () => {
+            localStorage.setItem(TERMS_KEY, "true");
+            hideModal();
+        });
+        denyBtn.addEventListener("click", denyModal);
+
+        // ==== オリジナル利用規約抜粋モーダル ====
+        const showOriginalTermsBtn = document.getElementById('show-original-terms-btn');
+        const originalTermsModalBg = document.getElementById('original-terms-modal-bg');
+        const closeOriginalTermsBtn = document.getElementById('close-original-terms-btn');
+        showOriginalTermsBtn.addEventListener('click', function() {
+            originalTermsModalBg.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        });
+        closeOriginalTermsBtn.addEventListener('click', function() {
+            originalTermsModalBg.style.display = 'none';
+            document.body.style.overflow = '';
+        });
+        originalTermsModalBg.addEventListener('click', function(e) {
+            if (e.target === originalTermsModalBg) {
+                originalTermsModalBg.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        });
+        let characters = [];
+        let positionSorted = false;
+        let lastFiltered = [];
+        let selectedIdx = 0;
+        const attributes = {"赤": "#FF6347", "緑": "#32CD32", "黄": "#FFD700", "青": "#1E90FF"};
+        const attrBtns = document.getElementById('attribute-btns');
+        let excludedAttrs = new Set();
+        let tabMode = 0; // 0:比較(両方), 1:覚醒前, 2:覚醒後
+
+        for (const attr of ["赤","緑","黄","青"]) {
+            const btn = document.createElement('button');
+            btn.textContent = attr; btn.className = "attr-btn"; btn.style.background = attributes[attr];
+            btn.onclick = () => { excludedAttrs.has(attr)?excludedAttrs.delete(attr):excludedAttrs.add(attr); updateAttrBtnColors(); updateList(true); };
+            attrBtns.appendChild(btn);
+        }
+        function updateAttrBtnColors() { for (const attr of ["赤","緑","黄","青"]) { const btn = Array.from(attrBtns.children).find(b => b.textContent===attr); if(!btn) continue; btn.style.background = excludedAttrs.has(attr)?"#fff":attributes[attr]; } }
+        updateAttrBtnColors();
+
+        const sortBtn = document.getElementById('sort-btn');
+        sortBtn.onclick = () => { positionSorted = !positionSorted; sortBtn.setAttribute("aria-pressed", positionSorted?"true":"false"); updateList(true); };
+        document.getElementById('filter').addEventListener('input', function(){ updateList(true); });
+
+        function highlightText(text, keywords){ if(Array.isArray(text)){ return text.map(t=>highlightText(t,keywords)).join('<br>'); } if(typeof text!=="string") return text; let result=text; keywords.forEach(k=>{ if(k&&result.toLowerCase().includes(k)){ const regexp=new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'); result=result.replace(regexp,m=>`<span class="hit">${m}</span>`); } }); return result; }
+        function addSpaces(arr, filter){ return (arr||[]).map(item=>'　'+highlightText(item,filter)).join('<br>'); }
+        function attributeClass(attr) {
+            if (attr === "赤") return "attr-red";
+            if (attr === "緑") return "attr-green";
+            if (attr === "黄") return "attr-yellow";
+            if (attr === "青") return "attr-blue";
+            return "";
+        }
+　　　　function comboBlock(combo, filter=[]) {
+　　　　  if (Array.isArray(combo)) {
+　　　　    return combo.map(row => {
+　　　　      if (typeof row === 'object') {
+　　　　        return `<div class="combo-row">
+　　　　          ${row.name ? `<b>${highlightText(row.name, filter)}</b><br>` : ""}
+　　　　          <span class="combo-effect">${highlightText(row.effect ?? '', filter)}</span>
+　　　　        </div>`;
+　　　　      } else if (typeof row === 'string') {
+　　　　        return `<div class="combo-row"><span class="combo-effect">${highlightText(row, filter)}</span></div>`;
+　　　　      } else {
+　　　　        return "";
+　　　　      }
+　　　　    }).join('');
+　　　　  } else if (typeof combo === 'object') {
+　　　　    return Object.entries(combo).map(([name, effect]) =>
+　　　　      `<div class="combo-row"><b>${highlightText(name, filter)}</b><br><span class="combo-effect">${highlightText(effect, filter)}</span></div>`
+　　　　    ).join('');
+　　　　  } else if (typeof combo === 'string') {
+　　　　    if (combo.match(/【/)) {
+　　　　      return combo
+　　　　        .split(/[\n\r]+/)
+　　　　        .map(line => line.trim())
+　　　　        .filter(line => line)
+　　　　        .map(line => {
+　　　　          const m = line.match(/^【(.+?)】(.*)$/);
+　　　　          if (m) {
+　　　　            return `<div class="combo-row"><b>【${highlightText(m[1], filter)}】</b><br><span class="combo-effect">${highlightText(m[2].trim(), filter)}</span></div>`;
+　　　　          } else {
+　　　　            return `<div class="combo-row"><span class="combo-effect">${highlightText(line, filter)}</span></div>`;
+　　　　          }
+　　　　        })
+　　　　        .join('');
+　　　　    } else {
+　　　　      return `<div class="combo-row"><span class="combo-effect">${highlightText(combo, filter)}</span></div>`;
+　　　　    }
+　　　　  } else {
+　　　　    return "";
+　　　　  }
+　　　　}
+        function updateList(resetSelect=false){
+            const list = document.getElementById('list');
+            const filterInput = document.getElementById('filter').value;
+            const filter = filterInput.toLowerCase().split(/[ 　]+/).filter(k=>k);
+            let filtered = characters.filter(char=>filter.every(k=>k===""||JSON.stringify(char).toLowerCase().includes(k)));
+            if(excludedAttrs.size>0 && excludedAttrs.size<4){ filtered=filtered.filter(char=>!(char.attribute&&excludedAttrs.has(char.attribute))); }
+            if(positionSorted){ filtered.sort((a,b)=>(parseInt(a.position)||999)-(parseInt(b.position)||999)); }
+            lastFiltered=filtered;
+            const hitCount=document.getElementById('hit-count'); hitCount.textContent=`ヒット件数: ${filtered.length}件`;
+            list.innerHTML="";
+            filtered.forEach((char,idx)=>{ const li=document.createElement('li'); li.innerHTML=highlightText(char.name,filter); li.onclick=()=>{ tabMode=0; showDetail(char,filter); selectedIdx=idx; highlightSelected(); }; list.appendChild(li); });
+            if(filtered.length){ if(resetSelect) selectedIdx=0; if(selectedIdx<0||selectedIdx>=filtered.length) selectedIdx=0; tabMode=0; showDetail(filtered[selectedIdx],filter); highlightSelected(); } else{ showDetail(null); }
+        }
+        function highlightSelected(){ document.querySelectorAll('#list li').forEach((li,idx)=>{ li.classList.toggle('selected', idx===selectedIdx); }); }
+
+        // 覚醒前後ラベル付きで両方並べる
+        function skillBlockBothInline(arr, filter) {
+            if (!Array.isArray(arr) || arr.length === 0) return "";
+            return arr.map(skill => {
+                if (typeof skill === "object" && "title" in skill) {
+                    return `<div style="margin-bottom:0.7em;">
+                        <b>${highlightText(skill.title, filter)}</b><br>
+                        <span class="effect-label normal-label">覚醒前</span>${highlightText(skill.normal, filter)}<br>
+                        <span class="effect-label awakened-label">覚醒後</span>${highlightText(skill.awakened, filter)}
+                    </div>`;
+                } else if (typeof skill === "string") {
+                    return `<div>${highlightText(skill, filter)}</div>`;
+                } else {
+                    return "";
+                }
+            }).join("");
+        }
+        // 覚醒前のみ/覚醒後のみ
+        function skillBlockCompare(arr, filter, type) {
+            if (!Array.isArray(arr) || arr.length === 0) return "";
+            return arr.map(skill => {
+                if (typeof skill === "object" && "title" in skill) {
+                    let effect = (type === 0) ? skill.normal : skill.awakened;
+                    return `<b>${highlightText(skill.title, filter)}</b><br>${highlightText(effect, filter)}`;
+                } else if (typeof skill === "string") {
+                    return highlightText(skill, filter);
+                } else {
+                    return "";
+                }
+            }).map(s => "　" + s).join("<br>");
+        }
+
+        function showTabs(char, filter) {
+            const detail = document.getElementById('detail');
+            detail.prepend(document.createRange().createContextualFragment(`
+                <div class="tabs-wrap" id="detail-tabs">
+                    <div class="tabs-buttons">
+                        <button class="tabs-btn${tabMode===0?' active':''}" id="tab-both">比較</button>
+                        <button class="tabs-btn${tabMode===1?' active':''}" id="tab-normal">覚醒前</button>
+                        <button class="tabs-btn${tabMode===2?' active':''}" id="tab-awakened">覚醒後</button>
+                    </div>
+                </div>
+            `));
+            document.getElementById('tab-both').onclick = ()=>{ tabMode=0; showDetail(char, filter); };
+            document.getElementById('tab-normal').onclick = ()=>{ tabMode=1; showDetail(char, filter); };
+            document.getElementById('tab-awakened').onclick = ()=>{ tabMode=2; showDetail(char, filter); };
+        }
+
+        function showDetail(char, filter=[]){
+            const detail=document.getElementById('detail');
+            if(!char){
+                detail.textContent="該当キャラクターがありません。";
+                return;
+            }
+            function highlightDetail(val){ if(!val||!filter.length) return val; return highlightText(val,filter); }
+            const attrColor=attributes[char.attribute]||"#fff";
+            let mainContent = "";
+            if(tabMode===0) {
+                // 比較（両方）モード：1パネルに覚醒前後を並記
+                function bothPanel(title, arr, filter) {
+                    return `
+                    <div class="char-section">
+                        <div class="char-section-title">${title}</div>
+                        <div class="char-section-content">${skillBlockBothInline(arr, filter)}</div>
+                    </div>`;
+                }
+                mainContent = `
+                <div class="char-detail-wrap">
+                  <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
+                  <div class="char-basic">
+                    <div class="char-basic-item"><span class="char-label">属性</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
+                    <div class="char-basic-item"><span class="char-label">ロール</span><span class="char-value">${highlightDetail(char.role)}</span></div>
+                    <div class="char-basic-item"><span class="char-label">ポジション</span><span class="char-value">${highlightDetail(char.position)}</span></div>
+                    <div class="char-basic-item"><span class="char-label">グループ</span><span class="char-value">${(char.group||[]).map(g=>highlightDetail(g)).join(', ')}</span></div>
+                    <div class="char-section">
+                      <div class="char-section-title">コンボ</div>
+                      <div class="char-section-content">${comboBlock(char.combo, filter)}</div>
+                    </div>
+                    <div class="char-basic-item"><span class="char-label">覚醒</span><span class="char-value">${highlightDetail(char.arousal)}</span></div>
+                  </div>
+                  ${bothPanel("特殊", char.traits, filter)}
+                  ${bothPanel("特技1", char.skill1, filter)}
+                  ${bothPanel("特技2", char.skill2, filter)}
+                  ${bothPanel("奥義", char.ultimate, filter)}
+                  ${bothPanel("魔道具1", char.magic_item1, filter)}
+                  ${bothPanel("魔道具2", char.magic_item2, filter)}
+                </div>
+                `;
+            }else{
+                // 覚醒前 or 覚醒後のみ
+                function singlePanel(title, arr, type) {
+                    return `
+                    <div class="char-section">
+                        <div class="char-section-title">${title}</div>
+                        <div class="char-section-content">${skillBlockCompare(arr, filter, type)}</div>
+                    </div>`;
+                }
+                const type = tabMode===1 ? 0 : 1;
+                mainContent = `
+                <div class="char-detail-wrap">
+                  <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
+                  <div class="char-basic">
+                    <div class="char-basic-item"><span class="char-label">属性</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
+                    <div class="char-basic-item"><span class="char-label">ロール</span><span class="char-value">${highlightDetail(char.role)}</span></div>
+                    <div class="char-basic-item"><span class="char-label">ポジション</span><span class="char-value">${highlightDetail(char.position)}</span></div>
+                    <div class="char-basic-item"><span class="char-label">グループ</span><span class="char-value">${(char.group||[]).map(g=>highlightDetail(g)).join(', ')}</span></div>
+                    <div class="char-section">
+                      <div class="char-section-title">コンボ</div>
+                      <div class="char-section-content">${comboBlock(char.combo, filter)}</div>
+                    </div>
+                    <div class="char-basic-item"><span class="char-label">覚醒</span><span class="char-value">${highlightDetail(char.arousal)}</span></div>
+                  </div>
+                  ${singlePanel("特殊", char.traits, type)}
+                  ${singlePanel("特技1", char.skill1, type)}
+                  ${singlePanel("特技2", char.skill2, type)}
+                  ${singlePanel("奥義", char.ultimate, type)}
+                  ${singlePanel("魔道具1", char.magic_item1, type)}
+                  ${singlePanel("魔道具2", char.magic_item2, type)}
+                </div>
+                `;
+            }
+            detail.innerHTML = mainContent;
+            showTabs(char, filter);
+        }
+        document.addEventListener('keydown', function(e){ if(!lastFiltered.length) return; if(e.key==='ArrowDown'){ selectedIdx=Math.min(selectedIdx+1,lastFiltered.length-1); tabMode=0; showDetail(lastFiltered[selectedIdx], getCurrentFilter()); highlightSelected(); e.preventDefault(); } if(e.key==='ArrowUp'){ selectedIdx=Math.max(selectedIdx-1,0); tabMode=0; showDetail(lastFiltered[selectedIdx], getCurrentFilter()); highlightSelected(); e.preventDefault(); } });
+        function getCurrentFilter(){ return document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k); }
+        async function loadCharacters(){ try{ const resp=await fetch('characters/all_characters.json'); if(resp.ok){ characters=await resp.json(); updateList(true); } else{ document.getElementById('detail').innerText="キャラクターデータの取得に失敗しました"; } } catch(e){ document.getElementById('detail').innerText="キャラクターデータの取得に失敗しました"; } }
+        loadCharacters();
+    </script>
+</body>
+</html>
