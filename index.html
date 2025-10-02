@@ -227,10 +227,7 @@
 　　　　  if (Array.isArray(combo)) {
 　　　　    return combo.map(row => {
 　　　　      if (typeof row === 'object') {
-　　　　        return `<div class="combo-row">
-　　　　          ${row.name ? `<b>${highlightText(row.name, filter)}</b><br>` : ""}
-　　　　          <span class="combo-effect">${highlightText(row.effect ?? '', filter)}</span>
-　　　　        </div>`;
+　　　　        return `<div class="combo-row">${row.name ? `<b>${highlightText(row.name, filter)}</b><br>` : ""}<span class="combo-effect">${highlightText(row.effect ?? '', filter)}</span></div>`;
 　　　　      } else if (typeof row === 'string') {
 　　　　        return `<div class="combo-row"><span class="combo-effect">${highlightText(row, filter)}</span></div>`;
 　　　　      } else {
