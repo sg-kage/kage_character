@@ -198,7 +198,7 @@
         let selectedIdx = 0;
         const attributes = {"赤": "#FF6347", "緑": "#32CD32", "黄": "#FFD700", "青": "#1E90FF"};
         const attrBtns = document.getElementById('attribute-btns');
-        let excludedAttrs = new Set();
+        let excludedAttrs = new Set(["赤", "緑", "黄", "青"]);
         let tabMode = 0; // 0:比較(両方), 1:覚醒前, 2:覚醒後
 
         for (const attr of ["赤","緑","黄","青"]) {
