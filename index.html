@@ -223,43 +223,43 @@
             if (attr === "青") return "attr-blue";
             return "";
         }
-　　　　function comboBlock(combo, filter=[]) {
-　　　　  if (Array.isArray(combo)) {
-　　　　    return combo.map(row => {
-　　　　      if (typeof row === 'object') {
-　　　　        return `<div class="combo-row">${row.name ? `<b>${highlightText(row.name, filter)}</b><br>` : ""}<span class="combo-effect">${highlightText(row.effect ?? '', filter)}</span></div>`;
-　　　　      } else if (typeof row === 'string') {
-　　　　        return `<div class="combo-row"><span class="combo-effect">${highlightText(row, filter)}</span></div>`;
-　　　　      } else {
-　　　　        return "";
-　　　　      }
-　　　　    }).join('');
-　　　　  } else if (typeof combo === 'object') {
-　　　　    return Object.entries(combo).map(([name, effect]) =>
-　　　　      `<div class="combo-row"><b>${highlightText(name, filter)}</b><br><span class="combo-effect">${highlightText(effect, filter)}</span></div>`
-　　　　    ).join('');
-　　　　  } else if (typeof combo === 'string') {
-　　　　    if (combo.match(/【/)) {
-　　　　      return combo
-　　　　        .split(/[\n\r]+/)
-　　　　        .map(line => line.trim())
-　　　　        .filter(line => line)
-　　　　        .map(line => {
-　　　　          const m = line.match(/^【(.+?)】(.*)$/);
-　　　　          if (m) {
-　　　　            return `<div class="combo-row"><b>【${highlightText(m[1], filter)}】</b><br><span class="combo-effect">${highlightText(m[2].trim(), filter)}</span></div>`;
-　　　　          } else {
-　　　　            return `<div class="combo-row"><span class="combo-effect">${highlightText(line, filter)}</span></div>`;
-　　　　          }
-　　　　        })
-　　　　        .join('');
-　　　　    } else {
-　　　　      return `<div class="combo-row"><span class="combo-effect">${highlightText(combo, filter)}</span></div>`;
-　　　　    }
-　　　　  } else {
-　　　　    return "";
-　　　　  }
-　　　　}
+    function comboBlock(combo, filter=[]) {
+      if (Array.isArray(combo)) {
+        return combo.map(row => {
+          if (typeof row === 'object') {
+            return `<div class="combo-row">${row.name ? `<b>${highlightText(row.name, filter)}</b><br>` : ""}<span class="combo-effect">${highlightText(row.effect ?? '', filter)}</span></div>`;
+          } else if (typeof row === 'string') {
+            return `<div class="combo-row"><span class="combo-effect">${highlightText(row, filter)}</span></div>`;
+          } else {
+            return "";
+          }
+        }).join('');
+      } else if (typeof combo === 'object') {
+        return Object.entries(combo).map(([name, effect]) =>
+          `<div class="combo-row"><b>${highlightText(name, filter)}</b><br><span class="combo-effect">${highlightText(effect, filter)}</span></div>`
+        ).join('');
+      } else if (typeof combo === 'string') {
+        if (combo.match(/【/)) {
+          return combo
+            .split(/[\n\r]+/)
+            .map(line => line.trim())
+            .filter(line => line)
+            .map(line => {
+              const m = line.match(/^【(.+?)】(.*)$/);
+              if (m) {
+                return `<div class="combo-row"><b>【${highlightText(m[1], filter)}】</b><br><span class="combo-effect">${highlightText(m[2].trim(), filter)}</span></div>`;
+              } else {
+                return `<div class="combo-row"><span class="combo-effect">${highlightText(line, filter)}</span></div>`;
+              }
+            })
+            .join('');
+        } else {
+          return `<div class="combo-row"><span class="combo-effect">${highlightText(combo, filter)}</span></div>`;
+        }
+      } else {
+        return "";
+      }
+    }
         function updateList(resetSelect=false){
             const list = document.getElementById('list');
             const filterInput = document.getElementById('filter').value;
@@ -277,6 +277,8 @@
 
         // 覚醒前後ラベル付きで両方並べる
         function skillBlockBothInline(arr, filter) {
+            if (!arr) return "";                  // null/undefined は空
+            if (!Array.isArray(arr)) arr = [arr]; // 文字列なら配列化
             if (!Array.isArray(arr) || arr.length === 0) return "";
             return arr.map(skill => {
                 if (typeof skill === "object" && "title" in skill) {
@@ -294,6 +296,8 @@
         }
         // 覚醒前のみ/覚醒後のみ
         function skillBlockCompare(arr, filter, type) {
+            if (!arr) return "";
+            if (!Array.isArray(arr)) arr = [arr]; // 文字列なら配列化
             if (!Array.isArray(arr) || arr.length === 0) return "";
             return arr.map(skill => {
                 if (typeof skill === "object" && "title" in skill) {
@@ -358,7 +362,9 @@
                   ${bothPanel("特殊", char.traits, filter)}
                   ${bothPanel("特技1", char.skill1, filter)}
                   ${bothPanel("特技2", char.skill2, filter)}
+                  ${bothPanel("究極奥義", char.ex_ultimate || [], filter)}
                   ${bothPanel("奥義", char.ultimate, filter)}
+                  ${bothPanel("通常攻撃", char.normal_attack || [], filter)}
                   ${bothPanel("魔道具1", char.magic_item1, filter)}
                   ${bothPanel("魔道具2", char.magic_item2, filter)}
                 </div>
@@ -390,7 +396,9 @@
                   ${singlePanel("特殊", char.traits, type)}
                   ${singlePanel("特技1", char.skill1, type)}
                   ${singlePanel("特技2", char.skill2, type)}
+                  ${singlePanel("究極奥義", char.ex_ultimate || [], type)}
                   ${singlePanel("奥義", char.ultimate, type)}
+                  ${singlePanel("通常攻撃", char.normal_attack || [], type)}
                   ${singlePanel("魔道具1", char.magic_item1, type)}
                   ${singlePanel("魔道具2", char.magic_item2, type)}
                 </div>
