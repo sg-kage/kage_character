@@ -277,40 +277,59 @@
 
         // 覚醒前後ラベル付きで両方並べる
         function skillBlockBothInline(arr, filter) {
-            if (!arr) return "";                  // null/undefined は空
-            if (!Array.isArray(arr)) arr = [arr]; // 文字列なら配列化
-            if (!Array.isArray(arr) || arr.length === 0) return "";
+            if (!arr) return "";
+            if (!Array.isArray(arr)) arr = [arr];
             return arr.map(skill => {
-                if (typeof skill === "object" && "title" in skill) {
-                    return `<div style="margin-bottom:0.7em;">
-                        <b>${highlightText(skill.title, filter)}</b><br>
-                        <span class="effect-label normal-label">覚醒前</span>${highlightText(skill.normal, filter)}<br>
-                        <span class="effect-label awakened-label">覚醒後</span>${highlightText(skill.awakened, filter)}
-                    </div>`;
-                } else if (typeof skill === "string") {
-                    return `<div>${highlightText(skill, filter)}</div>`;
-                } else {
-                    return "";
+                if (typeof skill === "object") {
+                    // --- 新形式 {normal, awakened} ---
+                    if (skill.normal || skill.awakened) {
+                        return `<div style="margin-bottom:0.7em;">
+                            ${skill.normal ? `<span class="effect-label normal-label">通常</span>${highlightText(skill.normal, filter)}<br>` : ""}
+                            ${skill.awakened ? `<span class="effect-label awakened-label">覚醒</span>${highlightText(skill.awakened, filter)}` : ""}
+                        </div>`;
+                    }
+                    // --- 旧形式 {title, normal, awakened} ---
+                    if ("title" in skill) {
+                        return `<div style="margin-bottom:0.7em;">
+                            <b>${highlightText(skill.title, filter)}</b><br>
+                            <span class="effect-label normal-label">覚醒前</span>${highlightText(skill.normal, filter)}<br>
+                            <span class="effect-label awakened-label">覚醒後</span>${highlightText(skill.awakened, filter)}
+                        </div>`;
+                    }
                 }
+                if (typeof skill === "string") {
+                    return `<div>${highlightText(skill, filter)}</div>`;
+                }
+                return "";
             }).join("");
         }
-        // 覚醒前のみ/覚醒後のみ
+        // 覚醒前のみ / 覚醒後のみ表示
         function skillBlockCompare(arr, filter, type) {
             if (!arr) return "";
             if (!Array.isArray(arr)) arr = [arr]; // 文字列なら配列化
-            if (!Array.isArray(arr) || arr.length === 0) return "";
+            if (arr.length === 0) return "";
+        
             return arr.map(skill => {
-                if (typeof skill === "object" && "title" in skill) {
-                    let effect = (type === 0) ? skill.normal : skill.awakened;
-                    return `<b>${highlightText(skill.title, filter)}</b><br>${highlightText(effect, filter)}`;
-                } else if (typeof skill === "string") {
+                // 文字列の場合
+                if (typeof skill === "string") {
                     return highlightText(skill, filter);
-                } else {
-                    return "";
                 }
+        
+                // 旧形式 {title, normal, awakened} の場合
+                if ("title" in skill) {
+                    const effect = type === 0 ? skill.normal : skill.awakened;
+                    return `<b>${highlightText(skill.title, filter)}</b><br>${highlightText(effect, filter)}`;
+                }
+        
+                // 新形式 {normal, awakened} の場合
+                if (skill.normal || skill.awakened) {
+                    const effect = type === 0 ? skill.normal : skill.awakened;
+                    return effect ? highlightText(effect, filter) : "";
+                }
+        
+                return "";
             }).map(s => "　" + s).join("<br>");
         }
-
         function showTabs(char, filter) {
             const detail = document.getElementById('detail');
             detail.prepend(document.createRange().createContextualFragment(`
