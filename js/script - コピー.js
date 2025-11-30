@@ -119,7 +119,10 @@ function skillBlockBothInline(arr, filter=[]) {
 
     return arr.map(skill => {
         if (typeof skill === "object") {
+            // 共通スキル名を取得
             const skillName = skill.title || skill.name || "";
+
+            // 通常と覚醒の内容
             const normalText = skill.normal ? `<span class="effect-label normal-label">通常</span>${highlightText(skill.normal, filter)}` : "";
             const awakenedText = skill.awakened ? `<span class="effect-label awakened-label">覚醒</span>${highlightText(skill.awakened, filter)}` : "";
 
@@ -133,6 +136,7 @@ function skillBlockBothInline(arr, filter=[]) {
         return "";
     }).join("");
 }
+
 
 function skillBlockCompare(arr, filter=[], type=0) {
     if (!arr) return "";
@@ -169,6 +173,7 @@ function showDetail(char, filter=[]) {
     function highlightDetail(val){ if(!val||!filter.length) return val; return highlightText(val,filter); }
     const attrColor=attributes[char.attribute]||"#fff";
 
+    // ==== キャラ画像取得（最大2枚） ====
     function getCharImages(name) {
         const base = "image/characters/";
         return [
@@ -180,7 +185,7 @@ function showDetail(char, filter=[]) {
     const images = getCharImages(char.name);
     let imageHtml = "";
     
-    if (showImages) {
+    if (showImages) {  // ← 画像 ON のときだけ表示
         imageHtml = `<div class="char-image-container">` +
             images.map(img => `<img src="${img}" alt="${char.name}" class="char-image" onerror="this.style.display='none';">`).join("") +
             `</div>`;
@@ -240,15 +245,28 @@ function showDetail(char, filter=[]) {
     showTabs(char, filter);
 }
 
-// ==== リスト更新（キャッシュ版検索） ====
+// ==== リスト更新 ====
 function updateList(resetSelect=false) {
     const list = document.getElementById('list');
     const filter = document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k);
-
-    // ---------- キャッシュ版検索 ----------
-    let filtered = characters.filter(char =>
-        filter.every(k => k === "" || char._search.includes(k))
-    );
+    //let filtered = characters.filter(char=>filter.every(k=>k===""||JSON.stringify(char).toLowerCase().includes(k)));
+    let filtered = characters.filter(char => {
+        // ---------- 新しい検索: name + aliases ----------
+        let searchTarget = char.name.toLowerCase();
+        if (char.aliases && Array.isArray(char.aliases)) {
+            searchTarget += " " + char.aliases.join(" ").toLowerCase();
+        }
+    
+        // ---------- 元の検索: JSON 全体 ----------
+        let jsonString = JSON.stringify(char).toLowerCase();
+    
+        // ---------- 両方 OK（どちらでもヒットすれば通す） ----------
+        return filter.every(k =>
+            k === "" ||
+            searchTarget.includes(k) ||  // 新しい検索
+            jsonString.includes(k)       // 元の検索（従来機能）
+        );
+    });
 
     if(excludedAttrs.size>0 && excludedAttrs.size<4) filtered = filtered.filter(c => !(c.attribute && excludedAttrs.has(c.attribute)));
     if(positionSorted) filtered.sort((a,b)=>(parseInt(a.position)||999)-(parseInt(b.position)||999));
@@ -286,22 +304,12 @@ document.addEventListener('keydown', function(e){
 
 function getCurrentFilter(){ return document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k); }
 
-// ==== データ読み込み（キャッシュ生成付き） ====
+// ==== データ読み込み ====
 async function loadCharacters() {
     try {
         const resp = await fetch('characters/all_characters.json');
         if(resp.ok){
             characters = await resp.json();
-
-            // ---------- キャッシュ生成 ----------
-            characters.forEach(char => {
-                let parts = [];
-                if (char.name) parts.push(char.name);
-                if (Array.isArray(char.aliases)) parts.push(...char.aliases);
-                parts.push(JSON.stringify(char));
-                char._search = parts.join(" ").toLowerCase();
-            });
-
             updateList(true);
         } else {
             document.getElementById('detail').innerText="キャラクターデータの取得に失敗しました";
