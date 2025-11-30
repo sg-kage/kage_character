@@ -12,6 +12,12 @@ const attributes = {"赤": "#FF6347", "緑": "#32CD32", "黄": "#FFD700", "青":
 const attrBtns = document.getElementById('attribute-btns');
 let excludedAttrs = new Set(["赤", "緑", "黄", "青"]);
 let tabMode = 0; // 0:比較, 1:覚醒前, 2:覚醒後
+let showImages = false; // ← デフォルトは画像 OFF
+
+document.getElementById("toggle-img").addEventListener("change", (e)=>{
+    showImages = e.target.checked;
+    updateList(false); // 画像ON/OFFで再描画
+});
 
 // ==== 属性ボタン作成 ====
 for (const attr of ["赤","緑","黄","青"]) {
@@ -166,12 +172,31 @@ function showDetail(char, filter=[]) {
     function highlightDetail(val){ if(!val||!filter.length) return val; return highlightText(val,filter); }
     const attrColor=attributes[char.attribute]||"#fff";
 
+    // ==== キャラ画像取得（最大2枚） ====
+    function getCharImages(name) {
+        const base = "image/characters/";
+        return [
+            base + name + ".png",
+            base + name + "_Ex.png"
+        ];
+    }
+    
+    const images = getCharImages(char.name);
+    let imageHtml = "";
+    
+    if (showImages) {  // ← 画像 ON のときだけ表示
+        imageHtml = `<div class="char-image-container">` +
+            images.map(img => `<img src="${img}" alt="${char.name}" class="char-image" onerror="this.style.display='none';">`).join("") +
+            `</div>`;
+    }
+
     let mainContent="";
     if(tabMode===0) {
         const bothPanel=(title, arr)=>`<div class="char-section"><div class="char-section-title">${title}</div><div class="char-section-content">${skillBlockBothInline(arr, filter)}</div></div>`;
         mainContent=`
         <div class="char-detail-wrap">
           <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
+          ${imageHtml}
           <div class="char-basic">
             <div class="char-basic-item"><span class="char-label">属性</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
             <div class="char-basic-item"><span class="char-label">ロール</span><span class="char-value">${highlightDetail(char.role)}</span></div>
@@ -195,6 +220,7 @@ function showDetail(char, filter=[]) {
         mainContent=`
         <div class="char-detail-wrap">
           <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
+          ${imageHtml}
           <div class="char-basic">
             <div class="char-basic-item"><span class="char-label">属性</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
             <div class="char-basic-item"><span class="char-label">ロール</span><span class="char-value">${highlightDetail(char.role)}</span></div>

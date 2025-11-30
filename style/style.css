@@ -356,3 +356,21 @@ ul#list li:hover { background: #666; }
         gap: 0.6em;
     }
 }
+
+
+.char-title-row {
+    display: flex;
+    align-items: center; /* c’†‰›‘µ‚¦ */
+    gap: 8px; /* –¼‘O‚Æ‰æ‘œ‚ÌŠÔŠu */
+}
+
+.char-image-container {
+    display: flex;
+    justify-content: center; /* ‰¡’†‰›‘µ‚¦ */
+    gap: 4px; /* ‰æ‘œ“¯m‚ÌŠÔŠu */
+}
+
+.char-image {
+    width: 100px;
+    height: auto;
+}
