@@ -251,13 +251,21 @@ function updateList(resetSelect=false) {
     const filter = document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k);
     //let filtered = characters.filter(char=>filter.every(k=>k===""||JSON.stringify(char).toLowerCase().includes(k)));
     let filtered = characters.filter(char => {
-        // 検索対象文字列をまとめる
+        // ---------- 新しい検索: name + aliases ----------
         let searchTarget = char.name.toLowerCase();
         if (char.aliases && Array.isArray(char.aliases)) {
             searchTarget += " " + char.aliases.join(" ").toLowerCase();
         }
-        // 全キーワードが含まれるか
-        return filter.every(k => k === "" || searchTarget.includes(k));
+    
+        // ---------- 元の検索: JSON 全体 ----------
+        let jsonString = JSON.stringify(char).toLowerCase();
+    
+        // ---------- 両方 OK（どちらでもヒットすれば通す） ----------
+        return filter.every(k =>
+            k === "" ||
+            searchTarget.includes(k) ||  // 新しい検索
+            jsonString.includes(k)       // 元の検索（従来機能）
+        );
     });
 
     if(excludedAttrs.size>0 && excludedAttrs.size<4) filtered = filtered.filter(c => !(c.attribute && excludedAttrs.has(c.attribute)));
