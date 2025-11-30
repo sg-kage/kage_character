@@ -116,26 +116,27 @@ function comboBlock(combo, filter=[]) {
 function skillBlockBothInline(arr, filter=[]) {
     if (!arr) return "";
     if (!Array.isArray(arr)) arr = [arr];
+
     return arr.map(skill => {
         if (typeof skill === "object") {
-            if (skill.normal || skill.awakened) {
-                return `<div style="margin-bottom:0.7em;">
-                    ${skill.normal ? `<span class="effect-label normal-label">通常</span>${highlightText(skill.normal, filter)}<br>` : ""}
-                    ${skill.awakened ? `<span class="effect-label awakened-label">覚醒</span>${highlightText(skill.awakened, filter)}` : ""}
-                </div>`;
-            }
-            if ("title" in skill) {
-                return `<div style="margin-bottom:0.7em;">
-                    <b>${highlightText(skill.title, filter)}</b><br>
-                    <span class="effect-label normal-label">覚醒前</span>${highlightText(skill.normal, filter)}<br>
-                    <span class="effect-label awakened-label">覚醒後</span>${highlightText(skill.awakened, filter)}
-                </div>`;
-            }
+            // 共通スキル名を取得
+            const skillName = skill.title || skill.name || "";
+
+            // 通常と覚醒の内容
+            const normalText = skill.normal ? `<span class="effect-label normal-label">通常</span>${highlightText(skill.normal, filter)}` : "";
+            const awakenedText = skill.awakened ? `<span class="effect-label awakened-label">覚醒</span>${highlightText(skill.awakened, filter)}` : "";
+
+            return `<div style="margin-bottom:0.7em;">
+                ${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}
+                ${normalText}${normalText && awakenedText ? "<br>" : ""}${awakenedText}
+            </div>`;
         }
+
         if (typeof skill === "string") return `<div>${highlightText(skill, filter)}</div>`;
         return "";
     }).join("");
 }
+
 
 function skillBlockCompare(arr, filter=[], type=0) {
     if (!arr) return "";
@@ -248,7 +249,17 @@ function showDetail(char, filter=[]) {
 function updateList(resetSelect=false) {
     const list = document.getElementById('list');
     const filter = document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k);
-    let filtered = characters.filter(char=>filter.every(k=>k===""||JSON.stringify(char).toLowerCase().includes(k)));
+    //let filtered = characters.filter(char=>filter.every(k=>k===""||JSON.stringify(char).toLowerCase().includes(k)));
+    let filtered = characters.filter(char => {
+        // 検索対象文字列をまとめる
+        let searchTarget = char.name.toLowerCase();
+        if (char.aliases && Array.isArray(char.aliases)) {
+            searchTarget += " " + char.aliases.join(" ").toLowerCase();
+        }
+        // 全キーワードが含まれるか
+        return filter.every(k => k === "" || searchTarget.includes(k));
+    });
+
     if(excludedAttrs.size>0 && excludedAttrs.size<4) filtered = filtered.filter(c => !(c.attribute && excludedAttrs.has(c.attribute)));
     if(positionSorted) filtered.sort((a,b)=>(parseInt(a.position)||999)-(parseInt(b.position)||999));
     lastFiltered = filtered;
