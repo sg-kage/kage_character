@@ -293,6 +293,7 @@ document.addEventListener('keydown', function(e){
 function getCurrentFilter(){ return document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k); }
 
 // ==== データ読み込み（キャッシュ生成付き） ====
+// ==== データ読み込み（キャッシュ生成付き） ====
 async function loadCharacters() {
     try {
         const resp = await fetch('characters/all_characters.json');
@@ -307,8 +308,8 @@ async function loadCharacters() {
                 parts.push(JSON.stringify(char));
                 char._search = parts.join(" ").toLowerCase();
             });
-            updateList(true);
-            // ---- URL の ?id= を読んでキャラを自動表示 ----
+
+            // ---- URLの?IDがある場合、対象キャラを優先表示 ----
             const params = new URLSearchParams(location.search);
             const q = params.get("id");
             if (q) {
@@ -316,6 +317,13 @@ async function loadCharacters() {
                 const target = characters.find(c => c.CharacterID === targetID);
 
                 if (target) {
+                    // 除外属性で消えないようクリア
+                    excludedAttrs.clear();
+
+                    // リスト更新（対象キャラも表示される）
+                    updateList(true);
+
+                    // 対象キャラを詳細表示
                     const filter = getCurrentFilter();
                     tabMode = 0;
                     showDetail(target, filter);
@@ -326,8 +334,14 @@ async function loadCharacters() {
                         selectedIdx = idx;
                         highlightSelected();
                     }
+
+                    return; // ここで終了
                 }
             }
+
+            // URLパラメータなし or 該当キャラなしの場合は通常リスト更新
+            updateList(true);
+
         } else {
             document.getElementById('detail').innerText="キャラクターデータの取得に失敗しました";
         }
@@ -335,5 +349,6 @@ async function loadCharacters() {
         document.getElementById('detail').innerText="キャラクターデータの取得に失敗しました";
     }
 }
+
 
 loadCharacters();
