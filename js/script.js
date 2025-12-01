@@ -307,8 +307,27 @@ async function loadCharacters() {
                 parts.push(JSON.stringify(char));
                 char._search = parts.join(" ").toLowerCase();
             });
-
             updateList(true);
+            // ---- URL の ?id= を読んでキャラを自動表示 ----
+            const params = new URLSearchParams(location.search);
+            const q = params.get("id");
+            if (q) {
+                const targetID = parseInt(q, 10);
+                const target = characters.find(c => c.CharacterID === targetID);
+
+                if (target) {
+                    const filter = getCurrentFilter();
+                    tabMode = 0;
+                    showDetail(target, filter);
+
+                    // リスト選択状態の同期
+                    const idx = lastFiltered.findIndex(c => c.CharacterID === targetID);
+                    if (idx !== -1) {
+                        selectedIdx = idx;
+                        highlightSelected();
+                    }
+                }
+            }
         } else {
             document.getElementById('detail').innerText="キャラクターデータの取得に失敗しました";
         }
