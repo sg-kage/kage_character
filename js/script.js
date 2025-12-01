@@ -235,9 +235,15 @@ function showDetail(char, filter=[]) {
           ${singlePanel("魔道具2", char.magic_item2)}
         </div>`;
     }
-
     detail.innerHTML = mainContent;
     showTabs(char, filter);
+
+    // ---- URL パーマリンク更新（CharacterID 版） ----
+    if (char && char.CharacterID) {
+        const url = new URL(location);
+        url.searchParams.set("id", char.CharacterID);
+        history.replaceState({}, "", url);
+    }
 }
 
 // ==== リスト更新（キャッシュ版検索） ====
