@@ -1,8 +1,3 @@
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', 'G-F61RJCR09R');
-
 // ==== キャラクター検索用変数 ====
 let characters = [];
 let positionSorted = false;
