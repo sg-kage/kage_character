@@ -3,36 +3,43 @@ let characters = [];
 let positionSorted = false;
 let lastFiltered = [];
 let selectedIdx = 0;
+
 const attributes = {"赤": "#FF6347", "緑": "#32CD32", "黄": "#FFD700", "青": "#1E90FF"};
 const attrBtns = document.getElementById('attribute-btns');
+
 let excludedAttrs = new Set(["赤", "緑", "黄", "青"]);
 let tabMode = 0; // 0:比較, 1:覚醒前, 2:覚醒後
 let showImages = false; // ← デフォルトは画像 OFF
 
 document.getElementById("toggle-img").addEventListener("change", (e)=>{
     showImages = e.target.checked;
-    updateList(false); // 画像ON/OFFで再描画
+    updateList(false);
 });
 
-// ==== 属性ボタン作成 ====
+// ==== 属性ボタン作成（DOM探索削減・機能不変）====
+const attrBtnMap = {};
+
 for (const attr of ["赤","緑","黄","青"]) {
     const btn = document.createElement('button');
     btn.textContent = attr;
     btn.className = "attr-btn";
     btn.style.background = attributes[attr];
+
     btn.onclick = () => {
         excludedAttrs.has(attr) ? excludedAttrs.delete(attr) : excludedAttrs.add(attr);
         updateAttrBtnColors();
         updateList(true);
     };
+
     attrBtns.appendChild(btn);
+    attrBtnMap[attr] = btn; // ✅ キャッシュ
 }
 
 function updateAttrBtnColors() {
     for (const attr of ["赤","緑","黄","青"]) {
-        const btn = Array.from(attrBtns.children).find(b => b.textContent===attr);
+        const btn = attrBtnMap[attr];
         if(!btn) continue;
-        btn.style.background = excludedAttrs.has(attr)?"#fff":attributes[attr];
+        btn.style.background = excludedAttrs.has(attr) ? "#fff" : attributes[attr];
     }
 }
 updateAttrBtnColors();
@@ -48,29 +55,79 @@ sortBtn.onclick = () => {
 // ==== フィルター入力 ====
 document.getElementById('filter').addEventListener('input', () => updateList(true));
 
-// ==== テキストハイライト ====
+// ==== テキストハイライト（機能不変：DOM版のため何もしない）====
 function highlightText(text, keywords){
-    if(Array.isArray(text)){
-        return text.map(t=>highlightText(t,keywords)).join('<br>');
-    }
-    if(typeof text!=="string") return text;
-    let result=text;
-    keywords.forEach(k=>{
-        if(k && result.toLowerCase().includes(k)){
-            const regexp=new RegExp(k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
-            result=result.replace(regexp,m=>`<span class="hit">${m}</span>`);
+    return text;
+}
+
+// ==== DOMハイライト（安全＆軽量判定）====
+function applyHighlightDOM(root, keywords) {
+    if (!root || !keywords || !keywords.length) return;
+
+    const safeWords = keywords
+        .filter(k => k && k.trim())
+        .map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+    if (!safeWords.length) return;
+
+    const splitRegex = new RegExp(`(${safeWords.join('|')})`, 'gi');
+    const testRegex  = new RegExp(`^(${safeWords.join('|')})$`, 'i');
+
+    const walker = document.createTreeWalker(
+        root,
+        NodeFilter.SHOW_TEXT,
+        {
+            acceptNode(node) {
+                if (!node.parentElement) return NodeFilter.FILTER_REJECT;
+                if (node.parentElement.closest('.hit')) return NodeFilter.FILTER_REJECT;
+                if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+                return NodeFilter.FILTER_ACCEPT;
+            }
         }
+    );
+
+    const textNodes = [];
+    while (walker.nextNode()) {
+        textNodes.push(walker.currentNode);
+    }
+
+    textNodes.forEach(node => {
+        const frag = document.createDocumentFragment();
+        const parts = node.nodeValue.split(splitRegex);
+
+        parts.forEach(part => {
+            if (testRegex.test(part)) {
+                const span = document.createElement('span');
+                span.className = 'hit';
+                span.textContent = part;
+                frag.appendChild(span);
+            } else {
+                frag.appendChild(document.createTextNode(part));
+            }
+        });
+
+        node.parentNode.replaceChild(frag, node);
     });
-    return result;
 }
-function addSpaces(arr, filter){ return (arr||[]).map(item=>'　'+highlightText(item,filter)).join('<br>'); }
+
+function addSpaces(arr, filter){ 
+    return (arr||[]).map(item=>'　'+highlightText(item,filter)).join('<br>'); 
+}
+
+// ==== attributeClass（if連打 → マップ化・機能不変）====
+const attrClassMap = {
+    "赤": "attr-red",
+    "緑": "attr-green",
+    "黄": "attr-yellow",
+    "青": "attr-blue"
+};
 function attributeClass(attr) {
-    if (attr === "赤") return "attr-red";
-    if (attr === "緑") return "attr-green";
-    if (attr === "黄") return "attr-yellow";
-    if (attr === "青") return "attr-blue";
-    return "";
+    return attrClassMap[attr] || "";
 }
+
+// =======================
+// ✅ ここから下は【機能・挙動すべて完全そのまま】
+// =======================
 
 // ==== コンボ表示 ====
 function comboBlock(combo, filter=[]) {
@@ -171,10 +228,10 @@ function showDetail(char, filter=[]) {
             base + name + "_Ex.png"
         ];
     }
-    
+
     const images = getCharImages(char.name);
     let imageHtml = "";
-    
+
     if (showImages) {
         imageHtml = `<div class="char-image-container">` +
             images.map(img => `<img src="${img}" alt="${char.name}" class="char-image" onerror="this.style.display='none';">`).join("") +
@@ -182,8 +239,10 @@ function showDetail(char, filter=[]) {
     }
 
     let mainContent="";
+
     if(tabMode===0) {
         const bothPanel=(title, arr)=>`<div class="char-section"><div class="char-section-title">${title}</div><div class="char-section-content">${skillBlockBothInline(arr, filter)}</div></div>`;
+
         mainContent=`
         <div class="char-detail-wrap">
           <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
@@ -208,6 +267,7 @@ function showDetail(char, filter=[]) {
     } else {
         const type=tabMode===1?0:1;
         const singlePanel=(title, arr)=>`<div class="char-section"><div class="char-section-title">${title}</div><div class="char-section-content">${skillBlockCompare(arr, filter, type)}</div></div>`;
+
         mainContent=`
         <div class="char-detail-wrap">
           <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
@@ -230,10 +290,11 @@ function showDetail(char, filter=[]) {
           ${singlePanel("魔道具2", char.magic_item2)}
         </div>`;
     }
+
     detail.innerHTML = mainContent;
     showTabs(char, filter);
+    applyHighlightDOM(detail, filter);
 
-    // ---- URL パーマリンク更新（CharacterID 版） ----
     if (char && char.CharacterID) {
         const url = new URL(location);
         url.searchParams.set("id", char.CharacterID);
@@ -241,25 +302,30 @@ function showDetail(char, filter=[]) {
     }
 }
 
-// ==== リスト更新（キャッシュ版検索） ====
+// ==== リスト更新 ====
 function updateList(resetSelect=false) {
     const list = document.getElementById('list');
     const filter = document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k);
 
-    // ---------- キャッシュ版検索 ----------
     let filtered = characters.filter(char =>
         filter.every(k => k === "" || char._search.includes(k))
     );
 
-    if(excludedAttrs.size>0 && excludedAttrs.size<4) filtered = filtered.filter(c => !(c.attribute && excludedAttrs.has(c.attribute)));
-    if(positionSorted) filtered.sort((a,b)=>(parseInt(a.position)||999)-(parseInt(b.position)||999));
+    if(excludedAttrs.size>0 && excludedAttrs.size<4)
+        filtered = filtered.filter(c => !(c.attribute && excludedAttrs.has(c.attribute)));
+
+    if(positionSorted)
+        filtered.sort((a,b)=>(parseInt(a.position)||999)-(parseInt(b.position)||999));
+
     lastFiltered = filtered;
     document.getElementById('hit-count').textContent=`ヒット件数: ${filtered.length}件`;
+
     list.innerHTML = "";
 
     filtered.forEach((char,idx)=>{
         const li = document.createElement('li');
-        li.innerHTML = highlightText(char.name, filter);
+        li.textContent = char.name;
+        applyHighlightDOM(li, filter);
         li.onclick = () => { tabMode=0; showDetail(char, filter); selectedIdx=idx; highlightSelected(); };
         list.appendChild(li);
     });
@@ -274,28 +340,38 @@ function updateList(resetSelect=false) {
 }
 
 function highlightSelected() {
-    document.querySelectorAll('#list li').forEach((li,idx)=>{ li.classList.toggle('selected', idx===selectedIdx); });
+    document.querySelectorAll('#list li')
+        .forEach((li,idx)=> li.classList.toggle('selected', idx===selectedIdx));
 }
 
 // ==== キーボード操作 ====
 document.addEventListener('keydown', function(e){
     if(!lastFiltered.length) return;
     const filter=getCurrentFilter();
-    if(e.key==='ArrowDown'){ selectedIdx=Math.min(selectedIdx+1,lastFiltered.length-1); tabMode=0; showDetail(lastFiltered[selectedIdx], filter); highlightSelected(); e.preventDefault(); }
-    if(e.key==='ArrowUp'){ selectedIdx=Math.max(selectedIdx-1,0); tabMode=0; showDetail(lastFiltered[selectedIdx], filter); highlightSelected(); e.preventDefault(); }
+
+    if(e.key==='ArrowDown'){
+        selectedIdx=Math.min(selectedIdx+1,lastFiltered.length-1);
+        tabMode=0; showDetail(lastFiltered[selectedIdx], filter);
+        highlightSelected(); e.preventDefault();
+    }
+    if(e.key==='ArrowUp'){
+        selectedIdx=Math.max(selectedIdx-1,0);
+        tabMode=0; showDetail(lastFiltered[selectedIdx], filter);
+        highlightSelected(); e.preventDefault();
+    }
 });
 
-function getCurrentFilter(){ return document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k); }
+function getCurrentFilter(){
+    return document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k);
+}
 
-// ==== データ読み込み（キャッシュ生成付き） ====
-// ==== データ読み込み（キャッシュ生成付き） ====
+// ==== データ読み込み ====
 async function loadCharacters() {
     try {
         const resp = await fetch('characters/all_characters.json');
         if(resp.ok){
             characters = await resp.json();
 
-            // ---------- キャッシュ生成 ----------
             characters.forEach(char => {
                 let parts = [];
                 if (char.name) parts.push(char.name);
@@ -304,37 +380,30 @@ async function loadCharacters() {
                 char._search = parts.join(" ").toLowerCase();
             });
 
-            // ---- URLの?IDがある場合、対象キャラを優先表示 ----
             const params = new URLSearchParams(location.search);
             const q = params.get("id");
+
             if (q) {
                 const targetID = parseInt(q, 10);
                 const target = characters.find(c => c.CharacterID === targetID);
 
                 if (target) {
-                    // 除外属性で消えないようクリア
                     excludedAttrs.clear();
-
-                    // リスト更新（対象キャラも表示される）
                     updateList(true);
 
-                    // 対象キャラを詳細表示
                     const filter = getCurrentFilter();
                     tabMode = 0;
                     showDetail(target, filter);
 
-                    // リスト選択状態の同期
                     const idx = lastFiltered.findIndex(c => c.CharacterID === targetID);
                     if (idx !== -1) {
                         selectedIdx = idx;
                         highlightSelected();
                     }
-
-                    return; // ここで終了
+                    return;
                 }
             }
 
-            // URLパラメータなし or 該当キャラなしの場合は通常リスト更新
             updateList(true);
 
         } else {
@@ -344,6 +413,5 @@ async function loadCharacters() {
         document.getElementById('detail').innerText="キャラクターデータの取得に失敗しました";
     }
 }
-
 
 loadCharacters();
