@@ -7,7 +7,9 @@ let selectedIdx = 0;
 const attributes = {"赤": "#FF6347", "緑": "#32CD32", "黄": "#FFD700", "青": "#1E90FF"};
 const attrBtns = document.getElementById('attribute-btns');
 
-let excludedAttrs = new Set(["赤", "緑", "黄", "青"]);
+// 仕様：選択（＝フィルタ対象）を保持するセット。初期は何も選択していない
+let selectedAttrs = new Set();
+
 let tabMode = 0; // 0:比較, 1:覚醒前, 2:覚醒後
 let showImages = false; // ← デフォルトは画像 OFF
 
@@ -23,23 +25,33 @@ for (const attr of ["赤","緑","黄","青"]) {
     const btn = document.createElement('button');
     btn.textContent = attr;
     btn.className = "attr-btn";
-    btn.style.background = attributes[attr];
+
+    // 初期は白（未選択）
+    btn.style.background = "#fff";
 
     btn.onclick = () => {
-        excludedAttrs.has(attr) ? excludedAttrs.delete(attr) : excludedAttrs.add(attr);
+        if (selectedAttrs.has(attr)) {
+            selectedAttrs.delete(attr); // 選択解除（白に戻る）
+        } else {
+            selectedAttrs.add(attr); // 選択（色付き）
+        }
         updateAttrBtnColors();
         updateList(true);
     };
 
     attrBtns.appendChild(btn);
-    attrBtnMap[attr] = btn; // ✅ キャッシュ
+    attrBtnMap[attr] = btn; // キャッシュ
 }
 
 function updateAttrBtnColors() {
     for (const attr of ["赤","緑","黄","青"]) {
         const btn = attrBtnMap[attr];
         if(!btn) continue;
-        btn.style.background = excludedAttrs.has(attr) ? "#fff" : attributes[attr];
+
+        // 選択中なら属性色、未選択なら白
+        btn.style.background = selectedAttrs.has(attr)
+            ? attributes[attr]
+            : "#fff";
     }
 }
 updateAttrBtnColors();
@@ -55,7 +67,7 @@ sortBtn.onclick = () => {
 // ==== フィルター入力 ====
 document.getElementById('filter').addEventListener('input', () => updateList(true));
 
-// ==== テキストハイライト（機能不変：DOM版のため何もしない）====
+// ==== テキストハイライト（機能不変）====
 function highlightText(text, keywords){
     return text;
 }
@@ -126,7 +138,7 @@ function attributeClass(attr) {
 }
 
 // =======================
-// ✅ ここから下は【機能・挙動すべて完全そのまま】
+// ここから下は【機能・挙動すべて完全そのまま】
 // =======================
 
 // ==== コンボ表示 ====
@@ -311,8 +323,11 @@ function updateList(resetSelect=false) {
         filter.every(k => k === "" || char._search.includes(k))
     );
 
-    if(excludedAttrs.size>0 && excludedAttrs.size<4)
-        filtered = filtered.filter(c => !(c.attribute && excludedAttrs.has(c.attribute)));
+    // selectedAttrs が空 → 全表示。
+    // selectedAttrs に要素がある → 選択された属性のみ表示（OR）
+    if (selectedAttrs.size > 0) {
+        filtered = filtered.filter(c => selectedAttrs.has(c.attribute));
+    }
 
     if(positionSorted)
         filtered.sort((a,b)=>(parseInt(a.position)||999)-(parseInt(b.position)||999));
@@ -388,7 +403,8 @@ async function loadCharacters() {
                 const target = characters.find(c => c.CharacterID === targetID);
 
                 if (target) {
-                    excludedAttrs.clear();
+                    // URL指定で表示する場合は選択解除（全表示の状態）
+                    selectedAttrs.clear();
                     updateList(true);
 
                     const filter = getCurrentFilter();
