@@ -27,7 +27,7 @@ for (const attr of ["赤","緑","黄","青"]) {
     btn.className = "attr-btn";
 
     // 初期は白（未選択）
-    btn.style.background = "#fff";
+    btn.style.background = "#E0E0E0";
 
     btn.onclick = () => {
         if (selectedAttrs.has(attr)) {
@@ -51,7 +51,7 @@ function updateAttrBtnColors() {
         // 選択中なら属性色、未選択なら白
         btn.style.background = selectedAttrs.has(attr)
             ? attributes[attr]
-            : "#fff";
+            : "#E0E0E0";
     }
 }
 updateAttrBtnColors();
@@ -231,7 +231,7 @@ function showDetail(char, filter=[]) {
     if(!char){ detail.textContent="該当キャラクターがありません。"; return; }
 
     function highlightDetail(val){ if(!val||!filter.length) return val; return highlightText(val,filter); }
-    const attrColor=attributes[char.attribute]||"#fff";
+    const attrColor=attributes[char.attribute]||"#E0E0E0";
 
     function getCharImages(name) {
         const base = "image/characters/";
