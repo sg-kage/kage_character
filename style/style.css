@@ -7,11 +7,17 @@ body {
     font-family: 'Segoe UI', 'Meiryo', sans-serif;
     margin: 0;
 }
-h2 {
-    margin: 0.6em 0 0.4em 0;
-    font-size: 1.4em;
-    text-align: center;
-}
+h1 {
+    font-size: 1.2rem; /* h2よりも一回り小さく、一般的な本文より少し大きい程度 */
+    margin: 15px 0 5px 20px;
+    line-height: 1.2;
+  }
+.sub-desc {
+    font-size: 0.9rem;
+    color: #ccc;
+    /* 下の説明文も同じ分だけ左余白を増やす */
+    margin: 0 0 20px 20px;
+  }
 
 /* =====================
    Layout
