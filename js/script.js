@@ -27,7 +27,7 @@ for (const attr of ["赤","緑","黄","青"]) {
     btn.className = "attr-btn";
 
     // 初期は白（未選択）
-    btn.style.background = "#E0E0E0";
+    btn.style.background = "#666666";
 
     btn.onclick = () => {
         if (selectedAttrs.has(attr)) {
@@ -51,7 +51,7 @@ function updateAttrBtnColors() {
         // 選択中なら属性色、未選択なら白
         btn.style.background = selectedAttrs.has(attr)
             ? attributes[attr]
-            : "#E0E0E0";
+            : "#666666";
     }
 }
 updateAttrBtnColors();
