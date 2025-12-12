@@ -307,7 +307,7 @@ function showCaptureOverlay(dataUrl, filename) {
     btnWrap.style.gap = '8px';
 
     const dlBtn = document.createElement('a');
-    dlBtn.textContent = '保存（ダウンロード）';
+    dlBtn.textContent = '保存';
     dlBtn.href = dataUrl;
     dlBtn.download = filename || 'capture.png';
     dlBtn.style.background = '#4CAF50';
@@ -319,7 +319,7 @@ function showCaptureOverlay(dataUrl, filename) {
 
     // 「画像を新しいタブで開く」ボタン（ユーザーが手動で保存しやすいように）
     const openBtn = document.createElement('button');
-    openBtn.textContent = '新しいタブで開く';
+    openBtn.textContent = '新規タブで開く';
     openBtn.style.padding = '10px 14px';
     openBtn.style.borderRadius = '6px';
     openBtn.style.border = 'none';
