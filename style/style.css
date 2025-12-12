@@ -89,6 +89,12 @@ h1 {
     gap: 0.8em;
     margin-bottom: 0.3em;
 }
+
+.button-group {
+    display: flex;
+    gap: 0.8em; 
+}
+
 #hit-count {
     font-size: 1em;
     color: #E0E0E0;

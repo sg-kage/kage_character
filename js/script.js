@@ -225,7 +225,6 @@ function showTabs(char, filter) {
     document.getElementById('tab-awakened').onclick = ()=>{ tabMode=2; showDetail(char, filter); };
 }
 
-// ==== 画像キャプチャ機能の追加 ====
 // ==== 画像キャプチャ機能の追加 (修正) ====
 document.addEventListener('DOMContentLoaded', () => {
     const captureBtn = document.getElementById('capture-btn');
@@ -249,8 +248,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 // キャプチャが終わったらボタンを再表示
                 captureBtn.style.display = 'block'; 
 
-                // ★ 変更点: ダウンロード処理に切り替え ★
-
+                // ★★★ ここに iOS のタップイベントフリーズ対策を追加 ★★★
+                // 1pxスクロールさせてすぐに戻すことで、iOSに強制的な再描画を促す
+                setTimeout(() => {
+                    window.scrollBy(0, 1);
+                    window.scrollBy(0, -1);
+                }, 50);
+                // ★★★ 修正箇所終わり ★★★
+                
                 // 1. ダウンロード用のリンクを作成
                 const link = document.createElement('a');
                 
@@ -280,7 +285,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
 
 // ==== キャラクター詳細表示 ====
 function showDetail(char, filter=[]) {
