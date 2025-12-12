@@ -225,61 +225,60 @@ function showTabs(char, filter) {
     document.getElementById('tab-awakened').onclick = ()=>{ tabMode=2; showDetail(char, filter); };
 }
 
-// ==== 画像キャプチャ機能の追加 (修正) ====
+// ==== 画像キャプチャ機能の追加 (iPhone対応版) ====
 document.addEventListener('DOMContentLoaded', () => {
     const captureBtn = document.getElementById('capture-btn');
 
     if (captureBtn) {
         captureBtn.addEventListener('click', () => {
             const detailArea = document.getElementById('detail');
-            
-            // 一時的にキャプチャの邪魔になるボタン自体を非表示
-            captureBtn.style.display = 'none'; 
-            
-            // 現在表示されているキャラクター名を取得（ファイル名に使用）
+
+            // キャプチャボタンを一時的に非表示
+            captureBtn.style.display = 'none';
+
             const charNameElement = detailArea.querySelector('.char-title');
-            const charName = charNameElement ? charNameElement.textContent.trim().replace(/[\/\\?%*:|"<>]/g, '_') : 'character_detail';
+            const charName = charNameElement
+                ? charNameElement.textContent.trim().replace(/[\/\\?%*:|"<>]/g, '_')
+                : 'character_detail';
 
             html2canvas(detailArea, {
-                scale: 2, 
-                useCORS: true, 
-                allowTaint: true 
+                scale: 2,
+                useCORS: true,
+                allowTaint: true
             }).then(canvas => {
-                // キャプチャが終わったらボタンを再表示
-                captureBtn.style.display = 'block'; 
 
-                // ★★★ ここに iOS のタップイベントフリーズ対策を追加 ★★★
-                // 1pxスクロールさせてすぐに戻すことで、iOSに強制的な再描画を促す
+                // キャプチャ完了後にボタン再表示
+                captureBtn.style.display = 'block';
+
+                // iOS Safari フリーズ対策：1pxスクロールで再描画
                 setTimeout(() => {
                     window.scrollBy(0, 1);
                     window.scrollBy(0, -1);
                 }, 50);
-                // ★★★ 修正箇所終わり ★★★
-                
-                // 1. ダウンロード用のリンクを作成
-                const link = document.createElement('a');
-                
-                // 2. ファイル名を設定 (キャラクター名 + 日付)
-                // YYYYMMDD形式で日付を取得
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                const dateStr = `${year}${month}${day}`;
 
-                link.download = `kage_${charName}_${dateStr}.png`;
+                // ====== 重要：iPhone でも確実に保存できる方法 ======
+                // 新しいタブに画像を開く（iOSはdownload不可のため）
+                const imgURL = canvas.toDataURL('image/png');
 
-                // 3. 画像データを設定
-                link.href = canvas.toDataURL('image/png');
-
-                // 4. ダウンロードを実行し、リンク要素を削除
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                const win = window.open("");
+                if (win) {
+                    win.document.write(`
+                        <html>
+                            <body style="margin:0; background:#000; text-align:center;">
+                                <img src="${imgURL}" style="width:100%; height:auto;">
+                                <p style="color:#fff; font-size:18px; margin-top:10px;">
+                                    長押しで画像を保存できます
+                                </p>
+                            </body>
+                        </html>
+                    `);
+                } else {
+                    alert("ポップアップがブロックされました。ポップアップを許可してください。");
+                }
 
             }).catch(error => {
-                captureBtn.style.display = 'block'; 
-                alert("キャプチャ中にエラーが発生しました。\n(画像データサイズが大きいか、クロスオリジンの制限が原因の可能性があります)");
+                captureBtn.style.display = 'block';
+                alert("キャプチャ中にエラーが発生しました。");
                 console.error("Capture error:", error);
             });
         });
