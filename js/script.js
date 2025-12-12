@@ -225,64 +225,194 @@ function showTabs(char, filter) {
     document.getElementById('tab-awakened').onclick = ()=>{ tabMode=2; showDetail(char, filter); };
 }
 
-// ==== 画像キャプチャ機能の追加 (iPhone対応版) ====
+// ==== 画像キャプチャ機能の追加（差し替え用：画像ロード待ち + オーバーレイ表示） ====
+
+/**
+ * detail コンテナ内の img 要素がすべて load / error になるまで待つ
+ * （iOS/Safari の html2canvas における CORS/ロード問題対策）
+ */
+function waitImagesLoaded(container) {
+    const imgs = Array.from(container.querySelectorAll('img'));
+    if (!imgs.length) return Promise.resolve();
+
+    return new Promise(resolve => {
+        let count = 0;
+        const check = () => {
+            count++;
+            if (count >= imgs.length) resolve();
+        };
+        imgs.forEach(img => {
+            // 既に読み込み済み、または display:none により無視されている場合もカウントする
+            try {
+                if (img.complete) {
+                    check();
+                } else {
+                    img.addEventListener('load', check, { once: true });
+                    img.addEventListener('error', check, { once: true });
+                }
+            } catch (e) {
+                // 何かおかしくても先に進める
+                check();
+            }
+        });
+        // セーフティタイムアウト（万が一画像が永遠に終わらない場合）
+        setTimeout(resolve, 3000);
+    });
+}
+
+/**
+ * ページ内オーバーレイでキャプチャ画像を表示する
+ * - imageElem: <img>要素（canvas -> dataURL を src にセット）
+ * - filename: DL用ファイル名
+ */
+function showCaptureOverlay(dataUrl, filename) {
+    // 既にオーバーレイがあれば削除
+    const existing = document.getElementById('capture-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'capture-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.left = 0;
+    overlay.style.top = 0;
+    overlay.style.right = 0;
+    overlay.style.bottom = 0;
+    overlay.style.background = 'rgba(0,0,0,0.85)';
+    overlay.style.zIndex = 9999;
+    overlay.style.display = 'flex';
+    overlay.style.flexDirection = 'column';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.padding = '20px';
+    overlay.style.gap = '12px';
+
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.alt = 'capture';
+    img.style.maxWidth = '100%';
+    img.style.maxHeight = '80vh';
+    img.style.borderRadius = '8px';
+    img.style.boxShadow = '0 6px 24px rgba(0,0,0,0.6)';
+
+    const hint = document.createElement('div');
+    hint.style.color = '#fff';
+    hint.style.fontSize = '14px';
+    hint.style.textAlign = 'center';
+    hint.style.maxWidth = '640px';
+    hint.textContent = '※ iPhoneの方：画像を長押しして「写真に追加」してください。PCは「保存」ボタンでダウンロードできます。';
+
+    // ダウンロードボタン（PC向けの自動DL試行）
+    const btnWrap = document.createElement('div');
+    btnWrap.style.display = 'flex';
+    btnWrap.style.gap = '8px';
+
+    const dlBtn = document.createElement('a');
+    dlBtn.textContent = '保存（ダウンロード）';
+    dlBtn.href = dataUrl;
+    dlBtn.download = filename || 'capture.png';
+    dlBtn.style.background = '#4CAF50';
+    dlBtn.style.color = '#fff';
+    dlBtn.style.padding = '10px 14px';
+    dlBtn.style.borderRadius = '6px';
+    dlBtn.style.textDecoration = 'none';
+    dlBtn.style.fontWeight = '600';
+
+    // 「画像を新しいタブで開く」ボタン（ユーザーが手動で保存しやすいように）
+    const openBtn = document.createElement('button');
+    openBtn.textContent = '新しいタブで開く';
+    openBtn.style.padding = '10px 14px';
+    openBtn.style.borderRadius = '6px';
+    openBtn.style.border = 'none';
+    openBtn.style.cursor = 'pointer';
+    openBtn.style.background = '#1976D2';
+    openBtn.style.color = '#fff';
+    openBtn.onclick = () => {
+        // 新しいタブで画像単体を開く（ユーザーに長押しで保存させる用途）
+        const newWin = window.open();
+        if (newWin) {
+            newWin.document.write(`<img src="${dataUrl}" style="max-width:100%;height:auto;display:block;margin:0">`);
+        } else {
+            alert('ポップアップがブロックされました。ブラウザの設定でポップアップを許可するか、長押しで保存してください。');
+        }
+    };
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '閉じる';
+    closeBtn.style.padding = '10px 14px';
+    closeBtn.style.borderRadius = '6px';
+    closeBtn.style.border = 'none';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.style.background = '#999';
+    closeBtn.style.color = '#fff';
+    closeBtn.onclick = () => {
+        overlay.remove();
+    };
+
+    btnWrap.appendChild(dlBtn);
+    btnWrap.appendChild(openBtn);
+    btnWrap.appendChild(closeBtn);
+
+    overlay.appendChild(img);
+    overlay.appendChild(hint);
+    overlay.appendChild(btnWrap);
+
+    document.body.appendChild(overlay);
+}
+
+/* 差し替え対象：キャプチャ動作（DOMContentLoaded 内で登録する） */
 document.addEventListener('DOMContentLoaded', () => {
     const captureBtn = document.getElementById('capture-btn');
 
-    if (captureBtn) {
-        captureBtn.addEventListener('click', () => {
-            const detailArea = document.getElementById('detail');
+    if (!captureBtn) return;
 
-            // キャプチャボタンを一時的に非表示
-            captureBtn.style.display = 'none';
+    captureBtn.addEventListener('click', async () => {
+        const detailArea = document.getElementById('detail');
+        if (!detailArea) {
+            alert('詳細エリアが見つかりません。');
+            return;
+        }
 
-            const charNameElement = detailArea.querySelector('.char-title');
-            const charName = charNameElement
-                ? charNameElement.textContent.trim().replace(/[\/\\?%*:|"<>]/g, '_')
-                : 'character_detail';
+        // ボタン無効化（多重押し防止） & 見た目非表示
+        captureBtn.disabled = true;
+        captureBtn.style.opacity = '0.5';
+        captureBtn.style.pointerEvents = 'none';
 
-            html2canvas(detailArea, {
+        // キャラクター名取得（ファイル名用）
+        const charNameElement = detailArea.querySelector('.char-title');
+        const safeName = charNameElement ? charNameElement.textContent.trim().replace(/[\/\\?%*:|"<>]/g, '_') : 'character_detail';
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+        const filename = `kage_${safeName}_${dateStr}.png`;
+
+        try {
+            // 画像があればロード完了を待つ（iOSでの失敗を防ぐ）
+            await waitImagesLoaded(detailArea);
+
+            // 小さな強制再描画（iOSのレンダリング問題を緩和）
+            setTimeout(() => { window.scrollBy(0,1); window.scrollBy(0,-1); }, 50);
+
+            // html2canvas 実行
+            const canvas = await html2canvas(detailArea, {
                 scale: 2,
                 useCORS: true,
-                allowTaint: true
-            }).then(canvas => {
-
-                // キャプチャ完了後にボタン再表示
-                captureBtn.style.display = 'block';
-
-                // iOS Safari フリーズ対策：1pxスクロールで再描画
-                setTimeout(() => {
-                    window.scrollBy(0, 1);
-                    window.scrollBy(0, -1);
-                }, 50);
-
-                // ====== 重要：iPhone でも確実に保存できる方法 ======
-                // 新しいタブに画像を開く（iOSはdownload不可のため）
-                const imgURL = canvas.toDataURL('image/png');
-
-                const win = window.open("");
-                if (win) {
-                    win.document.write(`
-                        <html>
-                            <body style="margin:0; background:#000; text-align:center;">
-                                <img src="${imgURL}" style="width:100%; height:auto;">
-                                <p style="color:#fff; font-size:18px; margin-top:10px;">
-                                    長押しで画像を保存できます
-                                </p>
-                            </body>
-                        </html>
-                    `);
-                } else {
-                    alert("ポップアップがブロックされました。ポップアップを許可してください。");
-                }
-
-            }).catch(error => {
-                captureBtn.style.display = 'block';
-                alert("キャプチャ中にエラーが発生しました。");
-                console.error("Capture error:", error);
+                allowTaint: false, // allowTaint true にすると toDataURL が失敗する可能性がある
+                logging: false
             });
-        });
-    }
+
+            // dataURL を作ってオーバーレイ表示（ポップアップを使わない）
+            const dataUrl = canvas.toDataURL('image/png');
+            showCaptureOverlay(dataUrl, filename);
+
+        } catch (err) {
+            console.error('Capture error:', err);
+            alert('キャプチャ中にエラーが発生しました。コンソールログを確認してください。');
+        } finally {
+            // ボタンを復帰
+            captureBtn.disabled = false;
+            captureBtn.style.opacity = '';
+            captureBtn.style.pointerEvents = '';
+        }
+    });
 });
 
 // ==== キャラクター詳細表示 ====
