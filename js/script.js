@@ -225,11 +225,72 @@ function showTabs(char, filter) {
     document.getElementById('tab-awakened').onclick = ()=>{ tabMode=2; showDetail(char, filter); };
 }
 
+// ==== 画像キャプチャ機能の追加 ====
+// ==== 画像キャプチャ機能の追加 (修正) ====
+document.addEventListener('DOMContentLoaded', () => {
+    const captureBtn = document.getElementById('capture-btn');
+
+    if (captureBtn) {
+        captureBtn.addEventListener('click', () => {
+            const detailArea = document.getElementById('detail');
+            
+            // 一時的にキャプチャの邪魔になるボタン自体を非表示
+            captureBtn.style.display = 'none'; 
+            
+            // 現在表示されているキャラクター名を取得（ファイル名に使用）
+            const charNameElement = detailArea.querySelector('.char-title');
+            const charName = charNameElement ? charNameElement.textContent.trim().replace(/[\/\\?%*:|"<>]/g, '_') : 'character_detail';
+
+            html2canvas(detailArea, {
+                scale: 2, 
+                useCORS: true, 
+                allowTaint: true 
+            }).then(canvas => {
+                // キャプチャが終わったらボタンを再表示
+                captureBtn.style.display = 'block'; 
+
+                // ★ 変更点: ダウンロード処理に切り替え ★
+
+                // 1. ダウンロード用のリンクを作成
+                const link = document.createElement('a');
+                
+                // 2. ファイル名を設定 (キャラクター名 + 日付)
+                // YYYYMMDD形式で日付を取得
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const dateStr = `${year}${month}${day}`;
+
+                link.download = `kage_${charName}_${dateStr}.png`;
+
+                // 3. 画像データを設定
+                link.href = canvas.toDataURL('image/png');
+
+                // 4. ダウンロードを実行し、リンク要素を削除
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+            }).catch(error => {
+                captureBtn.style.display = 'block'; 
+                alert("キャプチャ中にエラーが発生しました。\n(画像データサイズが大きいか、クロスオリジンの制限が原因の可能性があります)");
+                console.error("Capture error:", error);
+            });
+        });
+    }
+});
+
+
 // ==== キャラクター詳細表示 ====
 function showDetail(char, filter=[]) {
     const detail=document.getElementById('detail');
-    if(!char){ detail.textContent="該当キャラクターがありません。"; return; }
-
+    const captureBtn = document.getElementById('capture-btn');
+    if(!char){ 
+        detail.textContent="該当キャラクターがありません。"; 
+        if(captureBtn) captureBtn.style.display = 'none'; // ★修正：キャラクター不在時はボタンを隠す
+        return; 
+    }
     function highlightDetail(val){ if(!val||!filter.length) return val; return highlightText(val,filter); }
     const attrColor=attributes[char.attribute]||"#E0E0E0";
 
@@ -306,7 +367,7 @@ function showDetail(char, filter=[]) {
     detail.innerHTML = mainContent;
     showTabs(char, filter);
     applyHighlightDOM(detail, filter);
-
+    if(captureBtn) captureBtn.style.display = 'inline-block';
     if (char && char.CharacterID) {
         const url = new URL(location);
         url.searchParams.set("id", char.CharacterID);
@@ -351,7 +412,11 @@ function updateList(resetSelect=false) {
         tabMode=0;
         showDetail(filtered[selectedIdx], filter);
         highlightSelected();
-    } else showDetail(null);
+    } else {
+        showDetail(null);
+        const captureBtn = document.getElementById('capture-btn');
+        if (captureBtn) captureBtn.style.display = 'none';
+    }
 }
 
 function highlightSelected() {
@@ -429,5 +494,8 @@ async function loadCharacters() {
         document.getElementById('detail').innerText="キャラクターデータの取得に失敗しました";
     }
 }
+
+
+
 
 loadCharacters();
