@@ -13,6 +13,38 @@ let selectedAttrs = new Set();
 let tabMode = 0; // 0:比較, 1:覚醒前, 2:覚醒後
 let showImages = false; // ← デフォルトは画像 OFF
 
+// ★ここから追加
+const roles = ["アタッカー", "タンク", "サポーター"];
+let selectedRoles = new Set();
+const roleBtnMap = {};
+const roleBtnsContainer = document.getElementById('role-btns');
+
+roles.forEach(role => {
+    const btn = document.createElement('button');
+    btn.textContent = role;
+    btn.className = "attr-btn"; // 既存のスタイルを継承
+    btn.style.background = "#444444"; // 未選択時の背景
+    btn.style.color = "#E0E0E0";       // 未選択時の文字
+    btn.onclick = () => {
+        if (selectedRoles.has(role)) selectedRoles.delete(role);
+        else selectedRoles.add(role);
+        updateRoleBtnColors();
+        updateList(true);
+    };
+    roleBtnsContainer.appendChild(btn);
+    roleBtnMap[role] = btn;
+});
+
+function updateRoleBtnColors() {
+    roles.forEach(role => {
+        const btn = roleBtnMap[role];
+        if(!btn) return;
+        btn.style.background = selectedRoles.has(role) ? "#2c5d8a" : "#444444";
+        btn.style.color = "#E0E0E0";
+        // 選択時に少しだけ枠線を光らせる（Win11風）
+        btn.style.boxShadow = selectedRoles.has(role) ? "0 0 5px rgba(44, 93, 138, 0.8)" : "none";    });
+}
+
 document.getElementById("toggle-img").addEventListener("change", (e)=>{
     showImages = e.target.checked;
     updateList(false);
@@ -521,6 +553,10 @@ function updateList(resetSelect=false) {
     // selectedAttrs に要素がある → 選択された属性のみ表示（OR）
     if (selectedAttrs.size > 0) {
         filtered = filtered.filter(c => selectedAttrs.has(c.attribute));
+    }
+
+    if (selectedRoles.size > 0) {
+        filtered = filtered.filter(c => selectedRoles.has(c.role));
     }
 
     if(positionSorted)
