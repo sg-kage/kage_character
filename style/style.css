@@ -428,3 +428,29 @@ ul#list li:hover { background: #666; }
     font-size: 0.85em;
     color: #E0E0E0 !important; /* 未選択時の文字色 */
 }
+
+/* --- レベル操作パネル内の数字の色 --- */
+#affinity-val {
+    color: #ff8c00; /* オレンジ */
+    font-weight: bold;
+}
+
+/* --- スライダーの色 --- */
+#affinity-slider {
+    accent-color: #ff8c00; /* つまみの色をオレンジに */
+}
+
+/* --- 魔道具ボタンの選択中の色 --- */
+.magic-btn.active {
+    background: #ff8c00;
+    border-color: #ff8c00;
+    color: #fff;
+}
+
+/* ★一番重要：スキル説明文の中で変化する数値の色 */
+.lv-highlight {
+    color: #ff8c00 !important; /* 絶対にオレンジにする */
+    font-weight: normal !important;
+    background: transparent;    /* 背景はなし */
+    text-shadow: none;          /* 光る演出もなし */
+}
