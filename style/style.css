@@ -498,3 +498,47 @@ li.selected {
         margin-left: 0;
     }
 }
+
+/* === トップコントロール（画像表示＆設定ボタン） === */
+#top-controls {
+  display: flex;
+  justify-content: space-between; /* 両端に配置 */
+  align-items: center;
+  margin-bottom: 10px;
+  background: #2b2b2b;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #444;
+}
+
+.img-check-label {
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.95rem;
+}
+
+#toggle-panel-btn {
+  background: #444;
+  color: #E0E0E0;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+#toggle-panel-btn:hover {
+  background: #555;
+}
+
+/* ボタンが押された状態（開いているとき） */
+#toggle-panel-btn.active {
+  background: #ff8c00;
+  border-color: #ff8c00;
+  color: #fff;
+}

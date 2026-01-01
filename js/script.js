@@ -536,3 +536,23 @@ async function loadCharacters() {
 }
 
 loadCharacters();
+
+// ==== オプションボタンの開閉処理 ====
+document.addEventListener('DOMContentLoaded', () => {
+  const toggleBtn = document.getElementById('toggle-panel-btn');
+  const panel = document.getElementById('level-control-panel');
+
+  if (toggleBtn && panel) {
+    toggleBtn.addEventListener('click', () => {
+      if (panel.style.display === 'none') {
+        // 開く
+        panel.style.display = 'block';
+        toggleBtn.classList.add('active'); // ボタンの色を変える
+      } else {
+        // 閉じる
+        panel.style.display = 'none';
+        toggleBtn.classList.remove('active');
+      }
+    });
+  }
+});
