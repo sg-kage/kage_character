@@ -257,13 +257,12 @@ h1 {
 }
 
 #list li {
-    padding: 12px 10px; /* © 0.15em ‚©‚ç‘å•‚ÉL‚°‚Ü‚µ‚½ */
+    padding: 5px 10px; /* © 0.15em ‚©‚ç‘å•‚ÉL‚°‚Ü‚µ‚½ */
     cursor: pointer;
     border-radius: 4px;
     border-bottom: 1px solid #3a3a3a;
     font-size: 1rem;    /* •¶š‚à­‚µ‘å‚«‚­“Ç‚İ‚â‚·‚­ */
 }
-
 #list li:hover {
     background: #666;
 }
