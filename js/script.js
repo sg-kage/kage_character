@@ -49,30 +49,56 @@ function updateRoleBtnColors() {
 }
 
 // ==== ★レベル操作UIの連動設定 ====
-// 親密度スライダーのリスナー
-const affinitySlider = document.getElementById('affinity-slider');
-if(affinitySlider) {
-  affinitySlider.addEventListener('input', (e) => {
-    currentAffinity = parseInt(e.target.value);
-    const display = document.getElementById('affinity-val');
-    if(display) display.textContent = currentAffinity;
-    refreshDetail();
-  });
-}
+const savedAffinity = localStorage.getItem('kage_affinity');
+const savedMagicLv = localStorage.getItem('kage_magicLv');
 
-// 魔道具Lv切り替え関数 (HTMLの onclick="setMagicLv(3)" などから呼ぶ想定)
-function setMagicLv(lv) {
-  currentMagicLv = lv;
-  // UI側のボタンのアクティブ状態を更新
-  document.querySelectorAll('.magic-btn').forEach(btn => {
+if (savedAffinity) currentAffinity = parseInt(savedAffinity);
+if (savedMagicLv) currentMagicLv = parseInt(savedMagicLv);
+
+// ページ読み込み完了時にUIに反映させる
+document.addEventListener('DOMContentLoaded', () => {
+  setAffinity(currentAffinity);
+  setMagicLv(currentMagicLv);
+});
+
+// スキルLv (親密度) 切り替え関数
+function setAffinity(lv) {
+  currentAffinity = lv;
+  localStorage.setItem('kage_affinity', lv); // ★保存
+  
+  // 数値表示更新
+  const display = document.getElementById('affinity-val');
+  if(display) display.textContent = currentAffinity;
+
+  // ボタンの色更新
+  document.querySelectorAll('.magic-btn[data-kind="affinity"]').forEach(btn => {
     btn.classList.toggle('active', parseInt(btn.dataset.lv) === lv);
   });
+  
+  refreshDetail();
+}
+
+// 魔道具Lv切り替え関数
+function setMagicLv(lv) {
+  currentMagicLv = lv;
+  localStorage.setItem('kage_magicLv', lv); // ★保存
+  
+  // 数値表示更新
+  const display = document.getElementById('magic-val');
+  if(display) display.textContent = currentMagicLv;
+  
+  // ボタンの色更新
+  document.querySelectorAll('.magic-btn[data-kind="magic"]').forEach(btn => {
+    btn.classList.toggle('active', parseInt(btn.dataset.lv) === lv);
+  });
+  
   refreshDetail();
 }
 
 function refreshDetail() {
   const filter = getCurrentFilter();
-  if(lastFiltered[selectedIdx]) {
+  // 選択中のキャラがいれば再描画して数値を反映
+  if(lastFiltered.length > 0 && lastFiltered[selectedIdx]) {
     showDetail(lastFiltered[selectedIdx], filter);
   }
 }
@@ -199,7 +225,7 @@ function comboBlock(combo, filter=[]) {
 }
 
 // ==== スキル表示 (通常・比較用) ====
-// ★修正：isMagic=trueのときは「通常」「覚醒」ラベルを出さずにそのまま表示する
+// isMagic=trueのときは「通常」「覚醒」ラベルを出さずにそのまま表示する
 function skillBlockBothInline(arr, filter=[], isMagic=false) {
   if (!arr) return "";
   if (!Array.isArray(arr)) arr = [arr];
@@ -233,7 +259,7 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
   }).join("");
 }
 
-// ★修正：isMagic=trueのときはタブ(tabType)を無視して常に同じ内容を表示する
+// isMagic=trueのときはタブ(tabType)を無視して常に同じ内容を表示する
 function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
   if (!arr) return "";
   if (!Array.isArray(arr)) arr = [arr];

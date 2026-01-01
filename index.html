@@ -17,60 +17,6 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@kagenotify">
   <link rel="stylesheet" href="style/style.css">
-  <style>
-    /* 追加のインラインスタイル（後でstyle.cssに移してもOK） */
-    #level-control-panel {
-      background: #333;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      border: 1px solid #444;
-      font-size: 0.85rem;
-    }
-    .control-label {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-      color: #ccc;
-    }
-    #affinity-val {
-      color: #FFD700;
-      font-weight: bold;
-      min-width: 1.5em;
-      display: inline-block;
-      text-align: right;
-    }
-    input[type="range"] {
-      cursor: pointer;
-    }
-    .magic-btn-group {
-      display: flex;
-      gap: 4px;
-    }
-    .magic-btn {
-      background: #444;
-      color: #eee;
-      border: 1px solid #555;
-      padding: 3px 10px;
-      cursor: pointer;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      transition: all 0.2s;
-    }
-    .magic-btn.active {
-      background: #2c5d8a;
-      border-color: #5dade2;
-      box-shadow: 0 0 5px rgba(93, 173, 226, 0.4);
-    }
-    .magic-btn:hover:not(.active) {
-      background: #555;
-    }
-    .lv-highlight {
-      color: #00ffcc;
-      font-weight: bold;
-    }
-  </style>
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-79BGMS7Q1F"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -91,22 +37,34 @@
       </label>
 
       <div id="level-control-panel">
-        <div class="control-label">
-          <span>親密度Lv: <span id="affinity-val">1</span></span>
-          <input type="range" id="affinity-slider" min="1" max="10" value="1" style="width: 60%;">
+        <div class="control-row">
+          <div class="control-label">スキルLv: <span id="affinity-val">1</span></div>
+          <div class="skill-btn-group">
+            <button class="magic-btn active" data-kind="affinity" data-lv="1" onclick="setAffinity(1)">1</button>
+            <button class="magic-btn" data-kind="affinity" data-lv="2" onclick="setAffinity(2)">2</button>
+            <button class="magic-btn" data-kind="affinity" data-lv="3" onclick="setAffinity(3)">3</button>
+            <button class="magic-btn" data-kind="affinity" data-lv="4" onclick="setAffinity(4)">4</button>
+            <button class="magic-btn" data-kind="affinity" data-lv="5" onclick="setAffinity(5)">5</button>
+            <button class="magic-btn" data-kind="affinity" data-lv="6" onclick="setAffinity(6)">6</button>
+            <button class="magic-btn" data-kind="affinity" data-lv="7" onclick="setAffinity(7)">7</button>
+            <button class="magic-btn" data-kind="affinity" data-lv="8" onclick="setAffinity(8)">8</button>
+            <button class="magic-btn" data-kind="affinity" data-lv="9" onclick="setAffinity(9)">9</button>
+            <button class="magic-btn" data-kind="affinity" data-lv="10" onclick="setAffinity(10)">10</button>
+          </div>
         </div>
-        <div class="control-label" style="margin-bottom: 0;">
-          <span>魔道具Lv:</span>
+        
+        <div class="control-row">
+          <div class="control-label">魔道具Lv: <span id="magic-val">1</span></div>
           <div class="magic-btn-group">
-            <button class="magic-btn active" data-lv="1" onclick="setMagicLv(1)">1</button>
-            <button class="magic-btn" data-lv="2" onclick="setMagicLv(2)">2</button>
-            <button class="magic-btn" data-lv="3" onclick="setMagicLv(3)">3</button>
-            <button class="magic-btn" data-lv="4" onclick="setMagicLv(4)">4</button>
-            <button class="magic-btn" data-lv="5" onclick="setMagicLv(5)">5</button>
+            <button class="magic-btn active" data-kind="magic" data-lv="1" onclick="setMagicLv(1)">1</button>
+            <button class="magic-btn" data-kind="magic" data-lv="2" onclick="setMagicLv(2)">2</button>
+            <button class="magic-btn" data-kind="magic" data-lv="3" onclick="setMagicLv(3)">3</button>
+            <button class="magic-btn" data-kind="magic" data-lv="4" onclick="setMagicLv(4)">4</button>
+            <button class="magic-btn" data-kind="magic" data-lv="5" onclick="setMagicLv(5)">5</button>
           </div>
         </div>
       </div>
-
+      
       <input id="filter" type="text" placeholder="フィルター（スペース区切り）">
       <div id="attribute-row"><div id="attribute-btns"></div></div>
       <div id="role-row" style="display:flex; gap:0.5em; margin-bottom:0.8em;">
