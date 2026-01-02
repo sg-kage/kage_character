@@ -141,7 +141,7 @@ function replaceDynamicValues(text, type) {
     }
 
     if (isInf) {
-      return `<span class="lv-highlight">${min.toFixed(2)} ～ ${max.toFixed(2)}</span>`;
+      return `<span class="lv-highlight">${min.toFixed(2)}～${max.toFixed(2)}</span>`;
     }
     return `<span class="lv-highlight">${val.toFixed(2)}</span>`;
   });
