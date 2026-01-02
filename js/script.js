@@ -1,27 +1,151 @@
-// ==== キャラクター検索用変数 ====
-let characters = [];
-let positionSorted = false;
-let lastFiltered = [];
-let selectedIdx = 0;
+/* =========================================
+   グローバル変数・設定
+   ========================================= */
+let characters = [];       // キャラクター全データ
+let positionSorted = false; // ポジション順ソートフラグ
+let lastFiltered = [];     // 最後に検索ヒットしたリスト
+let selectedIdx = 0;       // リスト内の選択位置
 
-// ★追加：レベル管理用変数
-let currentAffinity = 1; // 1～10
-let currentMagicLv = 1; // 1～5
+// レベル管理変数 (1〜10 または 'inf')
+let currentAffinity = 1;
+let currentMagicLv = 1;
 
+// 属性・ロール設定
 const attributes = {"赤": "#FF6347", "緑": "#32CD32", "黄": "#FFD700", "青": "#1E90FF"};
-const attrBtns = document.getElementById('attribute-btns');
-
-// 仕様：選択（＝フィルタ対象）を保持するセット
-let selectedAttrs = new Set();
-let tabMode = 0; // 0:比較, 1:覚醒前, 2:覚醒後
-let showImages = false; 
-
-// ==== ロールボタン作成 ====
 const roles = ["アタッカー", "タンク", "サポーター"];
+
+// フィルタ選択状態
+let selectedAttrs = new Set();
 let selectedRoles = new Set();
-const roleBtnMap = {};
+
+// 表示モード設定
+let tabMode = 0; // 0:比較, 1:覚醒前, 2:覚醒後
+let showImages = false;
+
+// DOM要素のキャッシュ
+const attrBtns = document.getElementById('attribute-btns');
 const roleBtnsContainer = document.getElementById('role-btns');
 
+/* =========================================
+   初期化処理 (ローカルストレージ読み込み)
+   ========================================= */
+// 保存されたレベル設定があれば読み込む
+let savedAffinity = localStorage.getItem('kage_affinity');
+let savedMagicLv = localStorage.getItem('kage_magicLv');
+
+// 保存値が数値なら変換、'inf'なら文字列のまま保持
+if (savedAffinity && savedAffinity !== 'inf') currentAffinity = parseInt(savedAffinity);
+else if (savedAffinity === 'inf') currentAffinity = 'inf';
+
+if (savedMagicLv && savedMagicLv !== 'inf') currentMagicLv = parseInt(savedMagicLv);
+else if (savedMagicLv === 'inf') currentMagicLv = 'inf';
+
+// ページ読み込み完了時の処理
+document.addEventListener('DOMContentLoaded', () => {
+  // レベルUIの初期反映
+  setAffinity(currentAffinity);
+  setMagicLv(currentMagicLv);
+
+  // オプションパネルの開閉設定
+  setupOptionPanel();
+  
+  // スクリーンショットボタンの設定
+  setupCaptureButton();
+});
+
+/* =========================================
+   レベル操作・計算ロジック
+   ========================================= */
+
+// スキルLv (親密度) 切り替え
+function setAffinity(lv) {
+  currentAffinity = lv;
+  localStorage.setItem('kage_affinity', lv); // 設定を保存
+  
+  // 数値表示更新 ('inf'の場合は'∞')
+  const display = document.getElementById('affinity-val');
+  if(display) display.textContent = (lv === 'inf') ? '∞' : lv;
+
+  // ボタンの選択状態（色）を更新
+  document.querySelectorAll('.magic-btn[data-kind="affinity"]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lv == lv);
+  });
+  
+  refreshDetail(); // 表示更新
+}
+
+// 魔道具Lv 切り替え
+function setMagicLv(lv) {
+  currentMagicLv = lv;
+  localStorage.setItem('kage_magicLv', lv); // 設定を保存
+  
+  // 数値表示更新
+  const display = document.getElementById('magic-val');
+  if(display) display.textContent = (lv === 'inf') ? '∞' : lv;
+  
+  // ボタンの選択状態（色）を更新
+  document.querySelectorAll('.magic-btn[data-kind="magic"]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.lv == lv);
+  });
+  
+  refreshDetail(); // 表示更新
+}
+
+// 詳細表示の再描画（レベル変更時などに呼ぶ）
+function refreshDetail() {
+  const filter = getCurrentFilter();
+  // 選択中のキャラがいれば、現在のレベル設定で再描画
+  if(lastFiltered.length > 0 && lastFiltered[selectedIdx]) {
+    showDetail(lastFiltered[selectedIdx], filter);
+  }
+}
+
+// 数値置換ロジック (テキスト内の {min, max} を計算して置換)
+function replaceDynamicValues(text, type) {
+  if (!text) return text;
+  
+  // 正規表現で {最小値, 最大値} の形式を探す
+  return text.replace(/\{([\d.]+),\s*([\d.]+)\}/g, (match, minStr, maxStr) => {
+    const min = parseFloat(minStr);
+    const max = parseFloat(maxStr);
+    let val;
+    let isInf = false;
+
+    if (type === 'affinity') {
+      if (currentAffinity === 'inf') {
+        isInf = true;
+      } else {
+        // 親密度: (最大-最小)/9 ずつ上昇
+        const step = (max - min) / 9;
+        val = min + (step * (currentAffinity - 1));
+      }
+    } else {
+      if (currentMagicLv === 'inf') {
+        isInf = true;
+      } else {
+        // 魔道具: Lv1-2(最小), Lv3-4(中間), Lv5(最大) という階段状の変化
+        const diff = (max - min) / 2;
+        if (currentMagicLv <= 2) val = min;
+        else if (currentMagicLv <= 4) val = min + diff;
+        else val = max;
+      }
+    }
+
+    // ∞の場合は範囲表示、それ以外は計算値を表示
+    if (isInf) {
+      return `<span class="lv-highlight">${min.toFixed(3)} ～ ${max.toFixed(3)}</span>`;
+    }
+    return `<span class="lv-highlight">${val.toFixed(3)}</span>`;
+  });
+}
+
+/* =========================================
+   フィルタボタン生成 (ロール・属性)
+   ========================================= */
+const roleBtnMap = {};
+const attrBtnMap = {};
+
+// ロールボタン生成
 roles.forEach(role => {
   const btn = document.createElement('button');
   btn.textContent = role;
@@ -29,10 +153,11 @@ roles.forEach(role => {
   btn.style.background = "#444444"; 
   btn.style.color = "#E0E0E0";    
   btn.onclick = () => {
+    // 選択状態のトグル
     if (selectedRoles.has(role)) selectedRoles.delete(role);
     else selectedRoles.add(role);
     updateRoleBtnColors();
-    updateList(true);
+    updateList(true); // リスト更新
   };
   roleBtnsContainer.appendChild(btn);
   roleBtnMap[role] = btn;
@@ -42,99 +167,14 @@ function updateRoleBtnColors() {
   roles.forEach(role => {
     const btn = roleBtnMap[role];
     if(!btn) return;
+    // 選択中は青色、未選択はグレー
     btn.style.background = selectedRoles.has(role) ? "#2c5d8a" : "#444444";
     btn.style.color = "#E0E0E0";
     btn.style.boxShadow = selectedRoles.has(role) ? "0 0 5px rgba(44, 93, 138, 0.8)" : "none";
   });
 }
 
-// ==== ★レベル操作UIの連動設定 ====
-const savedAffinity = localStorage.getItem('kage_affinity');
-const savedMagicLv = localStorage.getItem('kage_magicLv');
-
-if (savedAffinity) currentAffinity = parseInt(savedAffinity);
-if (savedMagicLv) currentMagicLv = parseInt(savedMagicLv);
-
-// ページ読み込み完了時にUIに反映させる
-document.addEventListener('DOMContentLoaded', () => {
-  setAffinity(currentAffinity);
-  setMagicLv(currentMagicLv);
-});
-
-// スキルLv (親密度) 切り替え関数
-function setAffinity(lv) {
-  currentAffinity = lv;
-  localStorage.setItem('kage_affinity', lv); // ★保存
-  
-  // 数値表示更新
-  const display = document.getElementById('affinity-val');
-  if(display) display.textContent = currentAffinity;
-
-  // ボタンの色更新
-  document.querySelectorAll('.magic-btn[data-kind="affinity"]').forEach(btn => {
-    btn.classList.toggle('active', parseInt(btn.dataset.lv) === lv);
-  });
-  
-  refreshDetail();
-}
-
-// 魔道具Lv切り替え関数
-function setMagicLv(lv) {
-  currentMagicLv = lv;
-  localStorage.setItem('kage_magicLv', lv); // ★保存
-  
-  // 数値表示更新
-  const display = document.getElementById('magic-val');
-  if(display) display.textContent = currentMagicLv;
-  
-  // ボタンの色更新
-  document.querySelectorAll('.magic-btn[data-kind="magic"]').forEach(btn => {
-    btn.classList.toggle('active', parseInt(btn.dataset.lv) === lv);
-  });
-  
-  refreshDetail();
-}
-
-function refreshDetail() {
-  const filter = getCurrentFilter();
-  // 選択中のキャラがいれば再描画して数値を反映
-  if(lastFiltered.length > 0 && lastFiltered[selectedIdx]) {
-    showDetail(lastFiltered[selectedIdx], filter);
-  }
-}
-
-// ==== ★数値置換コアロジック ====
-function replaceDynamicValues(text, type) {
-  if (!text) return text;
-  // {最小, 最大} 形式を正規表現で探して置換
-  return text.replace(/\{([\d.]+),\s*([\d.]+)\}/g, (match, minStr, maxStr) => {
-    const min = parseFloat(minStr);
-    const max = parseFloat(maxStr);
-    let val;
-
-    if (type === 'affinity') {
-      // 親密度: (最大-最小)/9 増え
-      const step = (max - min) / 9;
-      val = min + (step * (currentAffinity - 1));
-    } else {
-      // 魔道具: Lv1-2(最小), Lv3-4(最小+増分), Lv5(最大)
-      const diff = (max - min) / 2;
-      if (currentMagicLv <= 2) val = min;
-      else if (currentMagicLv <= 4) val = min + diff;
-      else val = max;
-    }
-    // 四捨五入などのズレを防ぐため小数点2桁。lv-highlightクラスで色変え可能に。
-    return `<span class="lv-highlight">${val.toFixed(2)}</span>`;
-  });
-}
-
-document.getElementById("toggle-img").addEventListener("change", (e)=>{
-  showImages = e.target.checked;
-  updateList(false);
-});
-
-// ==== 属性ボタン作成 ====
-const attrBtnMap = {};
+// 属性ボタン生成
 for (const attr of ["赤","緑","黄","青"]) {
   const btn = document.createElement('button');
   btn.textContent = attr;
@@ -154,12 +194,23 @@ function updateAttrBtnColors() {
   for (const attr of ["赤","緑","黄","青"]) {
     const btn = attrBtnMap[attr];
     if(!btn) continue;
+    // 選択中は各属性の色、未選択はグレー
     btn.style.background = selectedAttrs.has(attr) ? attributes[attr] : "#666666";
   }
 }
 updateAttrBtnColors();
 
-// ==== ソート・フィルター ====
+/* =========================================
+   検索・ソート・表示制御
+   ========================================= */
+
+// 画像表示切り替え
+document.getElementById("toggle-img").addEventListener("change", (e)=>{
+  showImages = e.target.checked;
+  updateList(false); // 画像の有無を変えて再描画
+});
+
+// ポジション順ソートボタン
 const sortBtn = document.getElementById('sort-btn');
 sortBtn.onclick = () => {
   positionSorted = !positionSorted;
@@ -167,24 +218,38 @@ sortBtn.onclick = () => {
   updateList(true);
 };
 
+// 検索フィルター入力
 document.getElementById('filter').addEventListener('input', () => updateList(true));
 
-function highlightText(text, keywords){ return text; }
+// 現在のフィルタキーワードを取得
+function getCurrentFilter(){
+  return document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k);
+}
+
+// テキストハイライト処理 (DOM操作版)
+function highlightText(text, keywords){ return text; } // 文字列操作用（今回はDOM側で処理するためスルー）
 
 function applyHighlightDOM(root, keywords) {
   if (!root || !keywords || !keywords.length) return;
+  
+  // 特殊文字をエスケープして正規表現を作成
   const safeWords = keywords.filter(k => k && k.trim()).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   if (!safeWords.length) return;
+  
   const splitRegex = new RegExp(`(${safeWords.join('|')})`, 'gi');
   const testRegex = new RegExp(`^(${safeWords.join('|')})$`, 'i');
+  
+  // テキストノードを探索してハイライト用のspanタグで囲む
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       if (!node.parentElement || node.parentElement.closest('.hit') || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     }
   });
+  
   const textNodes = [];
   while (walker.nextNode()) textNodes.push(walker.currentNode);
+  
   textNodes.forEach(node => {
     const frag = document.createDocumentFragment();
     const parts = node.nodeValue.split(splitRegex);
@@ -202,10 +267,15 @@ function applyHighlightDOM(root, keywords) {
   });
 }
 
+// 属性ごとのCSSクラス取得
 const attrClassMap = {"赤": "attr-red", "緑": "attr-green", "黄": "attr-yellow", "青": "attr-blue"};
 function attributeClass(attr) { return attrClassMap[attr] || ""; }
 
-// ==== コンボ表示 (数値置換対応) ====
+/* =========================================
+   詳細表示 (HTML生成)
+   ========================================= */
+
+// コンボ情報のHTML生成
 function comboBlock(combo, filter=[]) {
   let res = "";
   if (Array.isArray(combo)) {
@@ -221,11 +291,11 @@ function comboBlock(combo, filter=[]) {
   } else {
     res = `<div class="combo-row"><span class="combo-effect">${highlightText(combo || '', filter)}</span></div>`;
   }
+  // 数値をレベルに合わせて計算してから返す
   return replaceDynamicValues(res, 'affinity');
 }
 
-// ==== スキル表示 (通常・比較用) ====
-// isMagic=trueのときは「通常」「覚醒」ラベルを出さずにそのまま表示する
+// スキル情報のHTML生成 (通常・覚醒 並列表示)
 function skillBlockBothInline(arr, filter=[], isMagic=false) {
   if (!arr) return "";
   if (!Array.isArray(arr)) arr = [arr];
@@ -235,7 +305,7 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
     if (typeof skill === "object") {
       const skillName = skill.title || skill.name || "";
       
-      // 魔道具の場合：覚醒概念がないのでそのまま表示
+      // 魔道具の場合：覚醒概念がないのでシンプルに表示
       if (isMagic) {
         const text = replaceDynamicValues(skill.effect || skill.normal || skill.description || "", type);
         return `<div style="margin-bottom:0.7em;">
@@ -254,12 +324,11 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
         ${normalText}${normalText && awakenedText ? "<br>" : ""}${awakenedText}
       </div>`;
     }
-    // 文字列だけの場合
     return `<div>${highlightText(replaceDynamicValues(skill, type), filter)}</div>`;
   }).join("");
 }
 
-// isMagic=trueのときはタブ(tabType)を無視して常に同じ内容を表示する
+// スキル情報のHTML生成 (比較表示：タブ切り替え用)
 function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
   if (!arr) return "";
   if (!Array.isArray(arr)) arr = [arr];
@@ -269,11 +338,11 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
     let rawText = "";
 
     if (isMagic) {
-       // 魔道具：タブ関係なく中身を表示
+       // 魔道具：タブに関係なく常に同じ内容
        if (typeof skill === "string") rawText = skill;
        else if (typeof skill === "object") rawText = skill.title ? `<b>${skill.title}</b><br>${skill.effect||skill.normal||""}` : (skill.effect||skill.normal||"");
     } else {
-       // スキル：タブ(tabType 0=通常, 1=覚醒)に応じて切り替え
+       // スキル：タブ(tabType 0=通常, 1=覚醒)に応じて切り替える
        if (typeof skill === "string") rawText = skill;
        else if ("title" in skill) rawText = `<b>${skill.title}</b><br>${tabType===0 ? skill.normal : skill.awakened}`;
        else rawText = tabType===0 ? (skill.normal || "") : (skill.awakened || "");
@@ -283,7 +352,7 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
   }).map(s => "　" + s).join("<br>");
 }
 
-// ==== タブ ====
+// タブ生成
 function showTabs(char, filter) {
   const detail = document.getElementById('detail');
   detail.prepend(document.createRange().createContextualFragment(`
@@ -299,8 +368,135 @@ function showTabs(char, filter) {
   document.getElementById('tab-awakened').onclick = ()=>{ tabMode=2; showDetail(char, filter); };
 }
 
-// ==== 画像キャプチャ機能 ====
+// キャラクター詳細のメイン描画関数
+function showDetail(char, filter=[]) {
+  const detail=document.getElementById('detail');
+  const captureBtn = document.getElementById('capture-btn');
+  
+  if(!char){ 
+    detail.textContent="該当キャラクターがありません。"; 
+    if(captureBtn) captureBtn.style.display = 'none';
+    return; 
+  }
+  
+  const attrColor=attributes[char.attribute]||"#E0E0E0";
+  function highlightDetail(val){ return (val && filter.length) ? highlightText(val, filter) : val; }
 
+  // 画像HTML生成
+  let imageHtml = "";
+  if (showImages) {
+    const base = "image/characters/";
+    const images = [base + char.name + ".png", base + char.name + "_Ex.png"];
+    imageHtml = `<div class="char-image-container">${images.map(img => `<img src="${img}" class="char-image" onerror="this.style.display='none';">`).join("")}</div>`;
+  }
+
+  // 基本情報エリア
+  let mainContent = `<div class="char-detail-wrap">
+     <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
+     ${imageHtml}
+     <div class="char-basic">
+      <div class="char-basic-item"><span class="char-label">属性</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
+      <div class="char-basic-item"><span class="char-label">ロール</span><span class="char-value">${highlightDetail(char.role)}</span></div>
+      <div class="char-basic-item"><span class="char-label">ポジション</span><span class="char-value">${highlightDetail(char.position)}</span></div>
+      <div class="char-basic-item"><span class="char-label">グループ</span><span class="char-value">${(char.group||[]).join(', ')}</span></div>
+      <div class="char-basic-item"><span class="char-label">覚醒</span><span class="char-value">${char.arousal}</span></div>
+     </div>`;
+
+  // コンボ（共通）
+  const comboHtml = `<div class="char-section"><div class="char-section-title">コンボ</div><div class="char-section-content">${comboBlock(char.combo, filter)}</div></div>`;
+
+  // タブモードに応じた内容生成
+  if(tabMode===0) {
+    const sect = (title, data, isMag=false) => `<div class="char-section"><div class="char-section-title">${title}</div><div class="char-section-content">${skillBlockBothInline(data, filter, isMag)}</div></div>`;
+    mainContent += `
+      ${sect("究極奥義", char.ex_ultimate||[])}
+      ${sect("奥義", char.ultimate)}
+      ${sect("特技1", char.skill1)}
+      ${sect("特技2", char.skill2)}
+      ${sect("特殊", char.traits)}
+      ${comboHtml}
+      ${sect("通常攻撃", char.normal_attack||[])}
+      ${sect("魔道具1", char.magic_item1, true)}
+      ${sect("魔道具2", char.magic_item2, true)}
+    </div>`;
+  } else {
+    const t = tabMode===1 ? 0 : 1;
+    const sect = (title, data, isMag=false) => `<div class="char-section"><div class="char-section-title">${title}</div><div class="char-section-content">${skillBlockCompare(data, filter, t, isMag)}</div></div>`;
+    mainContent += `
+      ${sect("究極奥義", char.ex_ultimate||[])}
+      ${sect("奥義", char.ultimate)}
+      ${sect("特技1", char.skill1)}
+      ${sect("特技2", char.skill2)}
+      ${sect("特殊", char.traits)}
+      ${comboHtml}
+      ${sect("通常攻撃", char.normal_attack||[])}
+      ${sect("魔道具1", char.magic_item1, true)}
+      ${sect("魔道具2", char.magic_item2, true)}
+    </div>`;
+  }
+
+  detail.innerHTML = mainContent;
+  showTabs(char, filter);
+  applyHighlightDOM(detail, filter); // ハイライト適用
+  
+  // キャプチャボタン表示
+  if(captureBtn) captureBtn.style.display = 'inline-block';
+  
+  // URLパラメータ更新
+  if (char.CharacterID) {
+    const url = new URL(location);
+    url.searchParams.set("id", char.CharacterID);
+    history.replaceState({}, "", url);
+  }
+}
+
+// リストの更新（検索フィルタ・属性フィルタ適用）
+function updateList(resetSelect=false) {
+  const list = document.getElementById('list');
+  const filter = getCurrentFilter();
+  
+  // キーワードフィルタ
+  let filtered = characters.filter(char => filter.every(k => char._search.includes(k)));
+
+  // 属性・ロールフィルタ
+  if (selectedAttrs.size > 0) filtered = filtered.filter(c => selectedAttrs.has(c.attribute));
+  if (selectedRoles.size > 0) filtered = filtered.filter(c => selectedRoles.has(c.role));
+  
+  // ソート
+  if (positionSorted) filtered.sort((a,b)=>(parseInt(a.position)||999)-(parseInt(b.position)||999));
+
+  lastFiltered = filtered;
+  document.getElementById('hit-count').textContent=`ヒット件数: ${filtered.length}件`;
+  
+  // リスト再構築
+  list.innerHTML = "";
+  filtered.forEach((char,idx)=>{
+    const li = document.createElement('li');
+    li.textContent = char.name;
+    applyHighlightDOM(li, filter);
+    li.onclick = () => { tabMode=0; showDetail(char, filter); selectedIdx=idx; highlightSelected(); };
+    list.appendChild(li);
+  });
+
+  // 詳細表示の更新
+  if(filtered.length) {
+    if(resetSelect) selectedIdx=0;
+    showDetail(filtered[selectedIdx], filter);
+    highlightSelected();
+  } else {
+    showDetail(null);
+  }
+}
+
+function highlightSelected() {
+  document.querySelectorAll('#list li').forEach((li,idx)=> li.classList.toggle('selected', idx===selectedIdx));
+}
+
+/* =========================================
+   画像キャプチャ機能 (html2canvas)
+   ========================================= */
+
+// 画像読み込み待ち（空白防止）
 function waitImagesLoaded(container) {
     const imgs = Array.from(container.querySelectorAll('img'));
     if (!imgs.length) return Promise.resolve();
@@ -316,10 +512,11 @@ function waitImagesLoaded(container) {
                 }
             } catch (e) { check(); }
         });
-        setTimeout(resolve, 3000);
+        setTimeout(resolve, 3000); // タイムアウト
     });
 }
 
+// 生成された画像を表示するオーバーレイ
 function showCaptureOverlay(dataUrl, filename) {
     const existing = document.getElementById('capture-overlay');
     if (existing) existing.remove();
@@ -373,141 +570,68 @@ function showCaptureOverlay(dataUrl, filename) {
     document.body.appendChild(overlay);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function setupCaptureButton() {
     const captureBtn = document.getElementById('capture-btn');
     if (!captureBtn) return;
+    
     captureBtn.addEventListener('click', async () => {
         const detailArea = document.getElementById('detail');
         if (!detailArea) return;
+        
         captureBtn.disabled = true;
         captureBtn.style.opacity = '0.5';
+        
         const charNameElement = detailArea.querySelector('.char-title');
         const safeName = charNameElement ? charNameElement.textContent.trim().replace(/[\/\\?%*:|"<>]/g, '_') : 'detail';
         const now = new Date();
         const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
         const filename = `kage_${safeName}_${dateStr}.png`;
+        
         try {
             await waitImagesLoaded(detailArea);
-            setTimeout(() => { window.scrollBy(0,1); window.scrollBy(0,-1); }, 50);
+            setTimeout(() => { window.scrollBy(0,1); window.scrollBy(0,-1); }, 50); // レンダリング補正
+            
             const canvas = await html2canvas(detailArea, {
                 scale: 2, useCORS: true, allowTaint: false, logging: false
             });
             showCaptureOverlay(canvas.toDataURL('image/png'), filename);
-        } catch (err) { console.error(err); alert('キャプチャエラー');
-        } finally { captureBtn.disabled = false; captureBtn.style.opacity = ''; }
+        } catch (err) { 
+            console.error(err); 
+            alert('キャプチャエラーが発生しました');
+        } finally { 
+            captureBtn.disabled = false; 
+            captureBtn.style.opacity = ''; 
+        }
     });
-});
+}
 
-// ==== キャラクター詳細表示 ====
-function showDetail(char, filter=[]) {
-  const detail=document.getElementById('detail');
-  const captureBtn = document.getElementById('capture-btn');
-  if(!char){ 
-    detail.textContent="該当キャラクターがありません。"; 
-    if(captureBtn) captureBtn.style.display = 'none';
-    return; 
-  }
-  const attrColor=attributes[char.attribute]||"#E0E0E0";
-  function highlightDetail(val){ return (val && filter.length) ? highlightText(val, filter) : val; }
+/* =========================================
+   オプションパネル (Lv設定) の開閉処理
+   ========================================= */
+function setupOptionPanel() {
+  const toggleBtn = document.getElementById('toggle-panel-btn');
+  const panel = document.getElementById('level-control-panel');
 
-  let imageHtml = "";
-  if (showImages) {
-    const base = "image/characters/";
-    const images = [base + char.name + ".png", base + char.name + "_Ex.png"];
-    imageHtml = `<div class="char-image-container">${images.map(img => `<img src="${img}" class="char-image" onerror="this.style.display='none';">`).join("")}</div>`;
-  }
-
-  let mainContent = `<div class="char-detail-wrap">
-     <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
-     ${imageHtml}
-     <div class="char-basic">
-      <div class="char-basic-item"><span class="char-label">属性</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
-      <div class="char-basic-item"><span class="char-label">ロール</span><span class="char-value">${highlightDetail(char.role)}</span></div>
-      <div class="char-basic-item"><span class="char-label">ポジション</span><span class="char-value">${highlightDetail(char.position)}</span></div>
-      <div class="char-basic-item"><span class="char-label">グループ</span><span class="char-value">${(char.group||[]).join(', ')}</span></div>
-      <div class="char-basic-item"><span class="char-label">覚醒</span><span class="char-value">${char.arousal}</span></div>
-     </div>`;
-
-  // コンボ用HTML
-  const comboHtml = `<div class="char-section"><div class="char-section-title">コンボ</div><div class="char-section-content">${comboBlock(char.combo, filter)}</div></div>`;
-
-  if(tabMode===0) {
-    const sect = (title, data, isMag=false) => `<div class="char-section"><div class="char-section-title">${title}</div><div class="char-section-content">${skillBlockBothInline(data, filter, isMag)}</div></div>`;
-    mainContent += `
-      ${sect("究極奥義", char.ex_ultimate||[])}
-      ${sect("奥義", char.ultimate)}
-      ${sect("特技1", char.skill1)}
-      ${sect("特技2", char.skill2)}
-      ${sect("特殊", char.traits)}
-      ${comboHtml}
-      ${sect("通常攻撃", char.normal_attack||[])}
-      ${sect("魔道具1", char.magic_item1, true)}
-      ${sect("魔道具2", char.magic_item2, true)}
-    </div>`;
-  } else {
-    const t = tabMode===1 ? 0 : 1;
-    const sect = (title, data, isMag=false) => `<div class="char-section"><div class="char-section-title">${title}</div><div class="char-section-content">${skillBlockCompare(data, filter, t, isMag)}</div></div>`;
-    mainContent += `
-      ${sect("究極奥義", char.ex_ultimate||[])}
-      ${sect("奥義", char.ultimate)}
-      ${sect("特技1", char.skill1)}
-      ${sect("特技2", char.skill2)}
-      ${sect("特殊", char.traits)}
-      ${comboHtml}
-      ${sect("通常攻撃", char.normal_attack||[])}
-      ${sect("魔道具1", char.magic_item1, true)}
-      ${sect("魔道具2", char.magic_item2, true)}
-    </div>`;
-  }
-
-  detail.innerHTML = mainContent;
-  showTabs(char, filter);
-  applyHighlightDOM(detail, filter);
-  if(captureBtn) captureBtn.style.display = 'inline-block';
-  if (char.CharacterID) {
-    const url = new URL(location);
-    url.searchParams.set("id", char.CharacterID);
-    history.replaceState({}, "", url);
+  if (toggleBtn && panel) {
+    toggleBtn.addEventListener('click', () => {
+      if (panel.style.display === 'none') {
+        // 開く
+        panel.style.display = 'block';
+        toggleBtn.classList.add('active'); // ボタン色変更
+      } else {
+        // 閉じる
+        panel.style.display = 'none';
+        toggleBtn.classList.remove('active');
+      }
+    });
   }
 }
 
-// ==== リスト・キーボード・データ読み込み ====
-function updateList(resetSelect=false) {
-  const list = document.getElementById('list');
-  const filter = getCurrentFilter();
-  let filtered = characters.filter(char => filter.every(k => char._search.includes(k)));
+/* =========================================
+   その他イベント (キーボード・データ読み込み)
+   ========================================= */
 
-  if (selectedAttrs.size > 0) filtered = filtered.filter(c => selectedAttrs.has(c.attribute));
-  if (selectedRoles.size > 0) filtered = filtered.filter(c => selectedRoles.has(c.role));
-  if (positionSorted) filtered.sort((a,b)=>(parseInt(a.position)||999)-(parseInt(b.position)||999));
-
-  lastFiltered = filtered;
-  document.getElementById('hit-count').textContent=`ヒット件数: ${filtered.length}件`;
-  list.innerHTML = "";
-  filtered.forEach((char,idx)=>{
-    const li = document.createElement('li');
-    li.textContent = char.name;
-    applyHighlightDOM(li, filter);
-    li.onclick = () => { tabMode=0; showDetail(char, filter); selectedIdx=idx; highlightSelected(); };
-    list.appendChild(li);
-  });
-  if(filtered.length) {
-    if(resetSelect) selectedIdx=0;
-    showDetail(filtered[selectedIdx], filter);
-    highlightSelected();
-  } else {
-    showDetail(null);
-  }
-}
-
-function highlightSelected() {
-  document.querySelectorAll('#list li').forEach((li,idx)=> li.classList.toggle('selected', idx===selectedIdx));
-}
-
-function getCurrentFilter(){
-  return document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k);
-}
-
+// 上下キーでリスト選択
 document.addEventListener('keydown', (e) => {
   if(!lastFiltered.length) return;
   if(e.key==='ArrowDown'){
@@ -522,11 +646,13 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// JSONデータ読み込み
 async function loadCharacters() {
   try {
     const resp = await fetch('characters/all_characters.json');
     if(resp.ok){
       characters = await resp.json();
+      // 検索用文字列の作成
       characters.forEach(char => {
         char._search = (char.name + " " + (char.aliases||[]).join(" ") + " " + JSON.stringify(char)).toLowerCase();
       });
@@ -535,24 +661,5 @@ async function loadCharacters() {
   } catch(e){ console.error(e); }
 }
 
+// 実行
 loadCharacters();
-
-// ==== オプションボタンの開閉処理 ====
-document.addEventListener('DOMContentLoaded', () => {
-  const toggleBtn = document.getElementById('toggle-panel-btn');
-  const panel = document.getElementById('level-control-panel');
-
-  if (toggleBtn && panel) {
-    toggleBtn.addEventListener('click', () => {
-      if (panel.style.display === 'none') {
-        // 開く
-        panel.style.display = 'block';
-        toggleBtn.classList.add('active'); // ボタンの色を変える
-      } else {
-        // 閉じる
-        panel.style.display = 'none';
-        toggleBtn.classList.remove('active');
-      }
-    });
-  }
-});

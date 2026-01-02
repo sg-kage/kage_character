@@ -42,7 +42,7 @@
 
       <div id="level-control-panel" style="display: none;">
         <div class="control-row">
-          <div class="control-label">スキルLv: <span id="affinity-val">1</span></div>
+          <div class="control-label">スキルLv: <span id="affinity-val">3</span></div>
           <div class="skill-btn-group">
             <button class="magic-btn active" data-kind="affinity" data-lv="1" onclick="setAffinity(1)">1</button>
             <button class="magic-btn" data-kind="affinity" data-lv="2" onclick="setAffinity(2)">2</button>
@@ -54,6 +54,7 @@
             <button class="magic-btn" data-kind="affinity" data-lv="8" onclick="setAffinity(8)">8</button>
             <button class="magic-btn" data-kind="affinity" data-lv="9" onclick="setAffinity(9)">9</button>
             <button class="magic-btn" data-kind="affinity" data-lv="10" onclick="setAffinity(10)">10</button>
+            <button class="magic-btn" data-kind="affinity" data-lv="inf" onclick="setAffinity('inf')">∞</button>
           </div>
         </div>
         
@@ -65,6 +66,7 @@
             <button class="magic-btn" data-kind="magic" data-lv="3" onclick="setMagicLv(3)">3</button>
             <button class="magic-btn" data-kind="magic" data-lv="4" onclick="setMagicLv(4)">4</button>
             <button class="magic-btn" data-kind="magic" data-lv="5" onclick="setMagicLv(5)">5</button>
+            <button class="magic-btn" data-kind="magic" data-lv="inf" onclick="setMagicLv('inf')">∞</button>
           </div>
         </div>
       </div>
