@@ -1,10 +1,10 @@
 /* =========================================
    グローバル変数・設定
    ========================================= */
-let characters = [];       // キャラクター全データ
+let characters = [];        // キャラクター全データ
 let positionSorted = false; // ポジション順ソートフラグ
-let lastFiltered = [];     // 最後に検索ヒットしたリスト
-let selectedIdx = 0;       // リスト内の選択位置
+let lastFiltered = [];      // 最後に検索ヒットしたリスト
+let selectedIdx = 0;        // リスト内の選択位置
 
 // レベル管理変数 (1〜10 または 'inf')
 let currentAffinity = 1;
@@ -42,13 +42,25 @@ else if (savedMagicLv === 'inf') currentMagicLv = 'inf';
 
 // ページ読み込み完了時の処理
 document.addEventListener('DOMContentLoaded', () => {
+  // ★追加: 区切り線用のCSSスタイルを動的に追加
+  const style = document.createElement('style');
+  style.textContent = `
+    .skill-sep {
+        border: 0;
+        border-bottom: 1px dashed #666; /* 点線 */
+        margin: 8px 0;
+        opacity: 0.5;
+    }
+  `;
+  document.head.appendChild(style);
+
   // レベルUIの初期反映
   setAffinity(currentAffinity);
   setMagicLv(currentMagicLv);
 
   // オプションパネルの開閉設定
   setupOptionPanel();
-  
+   
   // スクリーンショットボタンの設定
   setupCaptureButton();
 });
@@ -61,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function setAffinity(lv) {
   currentAffinity = lv;
   localStorage.setItem('kage_affinity', lv); // 設定を保存
-  
+   
   // 数値表示更新 ('inf'の場合は'∞')
   const display = document.getElementById('affinity-val');
   if(display) display.textContent = (lv === 'inf') ? '∞' : lv;
@@ -70,7 +82,7 @@ function setAffinity(lv) {
   document.querySelectorAll('.magic-btn[data-kind="affinity"]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lv == lv);
   });
-  
+   
   refreshDetail(); // 表示更新
 }
 
@@ -78,16 +90,16 @@ function setAffinity(lv) {
 function setMagicLv(lv) {
   currentMagicLv = lv;
   localStorage.setItem('kage_magicLv', lv); // 設定を保存
-  
+   
   // 数値表示更新
   const display = document.getElementById('magic-val');
   if(display) display.textContent = (lv === 'inf') ? '∞' : lv;
-  
+   
   // ボタンの選択状態（色）を更新
   document.querySelectorAll('.magic-btn[data-kind="magic"]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lv == lv);
   });
-  
+   
   refreshDetail(); // 表示更新
 }
 
@@ -100,11 +112,10 @@ function refreshDetail() {
   }
 }
 
-// 数値置換ロジック (テキスト内の {min, max} を計算して置換)
+// 数値置換ロジック
 function replaceDynamicValues(text, type) {
   if (!text) return text;
-  
-  // 正規表現で {最小値, 最大値} の形式を探す
+   
   return text.replace(/\{([\d.]+),\s*([\d.]+)\}/g, (match, minStr, maxStr) => {
     const min = parseFloat(minStr);
     const max = parseFloat(maxStr);
@@ -115,7 +126,6 @@ function replaceDynamicValues(text, type) {
       if (currentAffinity === 'inf') {
         isInf = true;
       } else {
-        // 親密度: (最大-最小)/9 ずつ上昇
         const step = (max - min) / 9;
         val = min + (step * (currentAffinity - 1));
       }
@@ -123,7 +133,6 @@ function replaceDynamicValues(text, type) {
       if (currentMagicLv === 'inf') {
         isInf = true;
       } else {
-        // 魔道具: Lv1-2(最小), Lv3-4(中間), Lv5(最大) という階段状の変化
         const diff = (max - min) / 2;
         if (currentMagicLv <= 2) val = min;
         else if (currentMagicLv <= 4) val = min + diff;
@@ -131,7 +140,6 @@ function replaceDynamicValues(text, type) {
       }
     }
 
-    // ∞の場合は範囲表示、それ以外は計算値を表示
     if (isInf) {
       return `<span class="lv-highlight">${min.toFixed(2)} ～ ${max.toFixed(2)}</span>`;
     }
@@ -140,7 +148,7 @@ function replaceDynamicValues(text, type) {
 }
 
 /* =========================================
-   フィルタボタン生成 (ロール・属性)
+   フィルタボタン生成
    ========================================= */
 const roleBtnMap = {};
 const attrBtnMap = {};
@@ -151,13 +159,12 @@ roles.forEach(role => {
   btn.textContent = role;
   btn.className = "attr-btn"; 
   btn.style.background = "#444444"; 
-  btn.style.color = "#E0E0E0";    
+  btn.style.color = "#E0E0E0";     
   btn.onclick = () => {
-    // 選択状態のトグル
     if (selectedRoles.has(role)) selectedRoles.delete(role);
     else selectedRoles.add(role);
     updateRoleBtnColors();
-    updateList(true); // リスト更新
+    updateList(true); 
   };
   roleBtnsContainer.appendChild(btn);
   roleBtnMap[role] = btn;
@@ -167,7 +174,6 @@ function updateRoleBtnColors() {
   roles.forEach(role => {
     const btn = roleBtnMap[role];
     if(!btn) return;
-    // 選択中は青色、未選択はグレー
     btn.style.background = selectedRoles.has(role) ? "#2c5d8a" : "#444444";
     btn.style.color = "#E0E0E0";
     btn.style.boxShadow = selectedRoles.has(role) ? "0 0 5px rgba(44, 93, 138, 0.8)" : "none";
@@ -194,7 +200,6 @@ function updateAttrBtnColors() {
   for (const attr of ["赤","緑","黄","青"]) {
     const btn = attrBtnMap[attr];
     if(!btn) continue;
-    // 選択中は各属性の色、未選択はグレー
     btn.style.background = selectedAttrs.has(attr) ? attributes[attr] : "#666666";
   }
 }
@@ -207,7 +212,7 @@ updateAttrBtnColors();
 // 画像表示切り替え
 document.getElementById("toggle-img").addEventListener("change", (e)=>{
   showImages = e.target.checked;
-  updateList(false); // 画像の有無を変えて再描画
+  updateList(false); 
 });
 
 // ポジション順ソートボタン
@@ -221,35 +226,32 @@ sortBtn.onclick = () => {
 // 検索フィルター入力
 document.getElementById('filter').addEventListener('input', () => updateList(true));
 
-// 現在のフィルタキーワードを取得
 function getCurrentFilter(){
   return document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k);
 }
 
 // テキストハイライト処理 (DOM操作版)
-function highlightText(text, keywords){ return text; } // 文字列操作用（今回はDOM側で処理するためスルー）
+function highlightText(text, keywords){ return text; } 
 
 function applyHighlightDOM(root, keywords) {
   if (!root || !keywords || !keywords.length) return;
-  
-  // 特殊文字をエスケープして正規表現を作成
+   
   const safeWords = keywords.filter(k => k && k.trim()).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
   if (!safeWords.length) return;
-  
+   
   const splitRegex = new RegExp(`(${safeWords.join('|')})`, 'gi');
   const testRegex = new RegExp(`^(${safeWords.join('|')})$`, 'i');
-  
-  // テキストノードを探索してハイライト用のspanタグで囲む
+   
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       if (!node.parentElement || node.parentElement.closest('.hit') || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     }
   });
-  
+   
   const textNodes = [];
   while (walker.nextNode()) textNodes.push(walker.currentNode);
-  
+   
   textNodes.forEach(node => {
     const frag = document.createDocumentFragment();
     const parts = node.nodeValue.split(splitRegex);
@@ -275,27 +277,38 @@ function attributeClass(attr) { return attrClassMap[attr] || ""; }
    詳細表示 (HTML生成)
    ========================================= */
 
-// コンボ情報のHTML生成
+// コンボ情報のHTML生成 (修正: 既存の線を消しつつ、新しい点線で繋ぐ)
 function comboBlock(combo, filter=[]) {
   let res = "";
   if (Array.isArray(combo)) {
-    res = combo.map(row => {
-      const name = (typeof row === 'object') ? row.name : null;
-      const effect = (typeof row === 'object') ? (row.effect ?? '') : row;
-      return `<div class="combo-row">${name ? `<b>${highlightText(name, filter)}</b><br>` : ""}<span class="combo-effect">${highlightText(effect, filter)}</span></div>`;
-    }).join('');
-  } else if (typeof combo === 'object') {
-    res = Object.entries(combo).map(([name, effect]) =>
-      `<div class="combo-row"><b>${highlightText(name, filter)}</b><br><span class="combo-effect">${highlightText(effect, filter)}</span></div>`
-    ).join('');
-  } else {
-    res = `<div class="combo-row"><span class="combo-effect">${highlightText(combo || '', filter)}</span></div>`;
+    res = combo
+      // テキスト取得
+      .map(row => (typeof row === 'object') ? (row.effect ?? '') : row)
+      // 「-」や空文字を除外
+      .filter(text => text && text !== "-")
+      // HTML生成
+      // ★ここで style="border:none" を入れて、元々CSSでついていた線を消す
+      .map(text => `<div class="combo-row" style="border:none !important;"><span class="combo-effect">${highlightText(text, filter)}</span></div>`)
+      // ★その上で、新しい点線(hr)で繋ぐ
+      .join('<hr class="skill-sep">');
+  } 
+  else if (typeof combo === 'object' && combo !== null) {
+    const effect = combo.effect ?? '';
+    if (effect && effect !== "-") {
+        // 単体の場合は線は不要だが、念のためborderは消しておく
+        res = `<div class="combo-row" style="border:none !important;"><span class="combo-effect">${highlightText(effect, filter)}</span></div>`;
+    }
+  } 
+  else {
+    const text = combo || '';
+    if (text && text !== "-") {
+        res = `<div class="combo-row" style="border:none !important;"><span class="combo-effect">${highlightText(text, filter)}</span></div>`;
+    }
   }
-  // 数値をレベルに合わせて計算してから返す
   return replaceDynamicValues(res, 'affinity');
 }
-
 // スキル情報のHTML生成 (通常・覚醒 並列表示)
+// スキル情報のHTML生成 (修正: 余白を削除して、線との隙間を詰める)
 function skillBlockBothInline(arr, filter=[], isMagic=false) {
   if (!arr) return "";
   if (!Array.isArray(arr)) arr = [arr];
@@ -304,28 +317,43 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
   return arr.map(skill => {
     if (typeof skill === "object") {
       const skillName = skill.title || skill.name || "";
-      
-      // 魔道具の場合：覚醒概念がないのでシンプルに表示
+       
       if (isMagic) {
         const text = replaceDynamicValues(skill.effect || skill.normal || skill.description || "", type);
-        return `<div style="margin-bottom:0.7em;">
+        // ★修正: style="margin-bottom:0.7em;" を削除
+        return `<div>
           ${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}
           ${highlightText(text, filter)}
         </div>`;
       }
 
-      // 通常スキル：通常・覚醒のラベル付き表示
       const normal = replaceDynamicValues(skill.normal || "", type);
       const awakened = replaceDynamicValues(skill.awakened || "", type);
-      const normalText = normal ? `<span class="effect-label normal-label">通常</span>${highlightText(normal, filter)}` : "";
-      const awakenedText = awakened ? `<span class="effect-label awakened-label">覚醒</span>${highlightText(awakened, filter)}` : "";
-      return `<div style="margin-bottom:0.7em;">
-        ${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}
-        ${normalText}${normalText && awakenedText ? "<br>" : ""}${awakenedText}
-      </div>`;
+
+      if (awakened) {
+        const normalText = normal ? `<span class="effect-label normal-label">通常</span>${highlightText(normal, filter)}` : "";
+        const awakenedText = `<span class="effect-label awakened-label">覚醒</span>${highlightText(awakened, filter)}`;
+        
+        // ★修正: style="margin-bottom:0.7em;" を削除
+        return `<div>
+          ${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}
+          ${normalText}<br>${awakenedText}
+        </div>`;
+      } else {
+        // ★修正: style="margin-bottom:0.7em;" を削除
+        return `<div>
+          ${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}
+          ${highlightText(normal, filter)}
+        </div>`;
+      }
     }
-    return `<div>${highlightText(replaceDynamicValues(skill, type), filter)}</div>`;
-  }).join("");
+    const text = replaceDynamicValues(skill, type);
+    if (text === "-") return "";
+    return `<div>${highlightText(text, filter)}</div>`;
+
+  })
+  .filter(html => html !== "")
+  .join('<hr class="skill-sep">');
 }
 
 // スキル情報のHTML生成 (比較表示：タブ切り替え用)
@@ -338,18 +366,21 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
     let rawText = "";
 
     if (isMagic) {
-       // 魔道具：タブに関係なく常に同じ内容
        if (typeof skill === "string") rawText = skill;
        else if (typeof skill === "object") rawText = skill.title ? `<b>${skill.title}</b><br>${skill.effect||skill.normal||""}` : (skill.effect||skill.normal||"");
     } else {
-       // スキル：タブ(tabType 0=通常, 1=覚醒)に応じて切り替える
        if (typeof skill === "string") rawText = skill;
        else if ("title" in skill) rawText = `<b>${skill.title}</b><br>${tabType===0 ? skill.normal : skill.awakened}`;
        else rawText = tabType===0 ? (skill.normal || "") : (skill.awakened || "");
     }
-      
+       
+    if (rawText === "-") return "";
     return highlightText(replaceDynamicValues(rawText, calcType), filter);
-  }).map(s => "　" + s).join("<br>");
+
+  })
+  .filter(s => s !== "")
+  .map(s => "　" + s)
+  .join('<hr class="skill-sep">'); 
 }
 
 // タブ生成
@@ -372,13 +403,13 @@ function showTabs(char, filter) {
 function showDetail(char, filter=[]) {
   const detail=document.getElementById('detail');
   const captureBtn = document.getElementById('capture-btn');
-  
+   
   if(!char){ 
     detail.textContent="該当キャラクターがありません。"; 
     if(captureBtn) captureBtn.style.display = 'none';
     return; 
   }
-  
+   
   const attrColor=attributes[char.attribute]||"#E0E0E0";
   function highlightDetail(val){ return (val && filter.length) ? highlightText(val, filter) : val; }
 
@@ -390,17 +421,19 @@ function showDetail(char, filter=[]) {
     imageHtml = `<div class="char-image-container">${images.map(img => `<img src="${img}" class="char-image" onerror="this.style.display='none';">`).join("")}</div>`;
   }
 
+  let displayNormalAttack = char.normal_attack;
+
   // 基本情報エリア
   let mainContent = `<div class="char-detail-wrap">
-     <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
-     ${imageHtml}
-     <div class="char-basic">
-      <div class="char-basic-item"><span class="char-label">属性</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
-      <div class="char-basic-item"><span class="char-label">ロール</span><span class="char-value">${highlightDetail(char.role)}</span></div>
-      <div class="char-basic-item"><span class="char-label">ポジション</span><span class="char-value">${highlightDetail(char.position)}</span></div>
-      <div class="char-basic-item"><span class="char-label">グループ</span><span class="char-value">${(char.group||[]).join(', ')}</span></div>
-      <div class="char-basic-item"><span class="char-label">覚醒</span><span class="char-value">${char.arousal}</span></div>
-     </div>`;
+      <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
+      ${imageHtml}
+      <div class="char-basic">
+       <div class="char-basic-item"><span class="char-label">属性</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
+       <div class="char-basic-item"><span class="char-label">ロール</span><span class="char-value">${highlightDetail(char.role)}</span></div>
+       <div class="char-basic-item"><span class="char-label">ポジション</span><span class="char-value">${highlightDetail(char.position)}</span></div>
+       <div class="char-basic-item"><span class="char-label">グループ</span><span class="char-value">${(char.group||[]).join(', ')}</span></div>
+       <div class="char-basic-item"><span class="char-label">覚醒</span><span class="char-value">${char.arousal}</span></div>
+      </div>`;
 
   // コンボ（共通）
   const comboHtml = `<div class="char-section"><div class="char-section-title">コンボ</div><div class="char-section-content">${comboBlock(char.combo, filter)}</div></div>`;
@@ -415,7 +448,7 @@ function showDetail(char, filter=[]) {
       ${sect("特技2", char.skill2)}
       ${sect("特殊", char.traits)}
       ${comboHtml}
-      ${sect("通常攻撃", char.normal_attack||[])}
+      ${sect("通常攻撃", displayNormalAttack||[])}
       ${sect("魔道具1", char.magic_item1, true)}
       ${sect("魔道具2", char.magic_item2, true)}
     </div>`;
@@ -429,7 +462,7 @@ function showDetail(char, filter=[]) {
       ${sect("特技2", char.skill2)}
       ${sect("特殊", char.traits)}
       ${comboHtml}
-      ${sect("通常攻撃", char.normal_attack||[])}
+      ${sect("通常攻撃", displayNormalAttack||[])}
       ${sect("魔道具1", char.magic_item1, true)}
       ${sect("魔道具2", char.magic_item2, true)}
     </div>`;
@@ -438,10 +471,10 @@ function showDetail(char, filter=[]) {
   detail.innerHTML = mainContent;
   showTabs(char, filter);
   applyHighlightDOM(detail, filter); // ハイライト適用
-  
+   
   // キャプチャボタン表示
   if(captureBtn) captureBtn.style.display = 'inline-block';
-  
+   
   // URLパラメータ更新
   if (char.CharacterID) {
     const url = new URL(location);
@@ -454,20 +487,20 @@ function showDetail(char, filter=[]) {
 function updateList(resetSelect=false) {
   const list = document.getElementById('list');
   const filter = getCurrentFilter();
-  
+   
   // キーワードフィルタ
   let filtered = characters.filter(char => filter.every(k => char._search.includes(k)));
 
   // 属性・ロールフィルタ
   if (selectedAttrs.size > 0) filtered = filtered.filter(c => selectedAttrs.has(c.attribute));
   if (selectedRoles.size > 0) filtered = filtered.filter(c => selectedRoles.has(c.role));
-  
+   
   // ソート
   if (positionSorted) filtered.sort((a,b)=>(parseInt(a.position)||999)-(parseInt(b.position)||999));
 
   lastFiltered = filtered;
   document.getElementById('hit-count').textContent=`ヒット件数: ${filtered.length}件`;
-  
+   
   // リスト再構築
   list.innerHTML = "";
   filtered.forEach((char,idx)=>{
@@ -573,24 +606,24 @@ function showCaptureOverlay(dataUrl, filename) {
 function setupCaptureButton() {
     const captureBtn = document.getElementById('capture-btn');
     if (!captureBtn) return;
-    
+     
     captureBtn.addEventListener('click', async () => {
         const detailArea = document.getElementById('detail');
         if (!detailArea) return;
-        
+         
         captureBtn.disabled = true;
         captureBtn.style.opacity = '0.5';
-        
+         
         const charNameElement = detailArea.querySelector('.char-title');
         const safeName = charNameElement ? charNameElement.textContent.trim().replace(/[\/\\?%*:|"<>]/g, '_') : 'detail';
         const now = new Date();
         const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
         const filename = `kage_${safeName}_${dateStr}.png`;
-        
+         
         try {
             await waitImagesLoaded(detailArea);
             setTimeout(() => { window.scrollBy(0,1); window.scrollBy(0,-1); }, 50); // レンダリング補正
-            
+             
             const canvas = await html2canvas(detailArea, {
                 scale: 2, useCORS: true, allowTaint: false, logging: false
             });

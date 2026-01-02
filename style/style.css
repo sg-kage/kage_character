@@ -257,7 +257,7 @@ h1 {
 }
 
 #list li {
-    padding: 5px 10px; /* ← 0.15em から大幅に広げました */
+    padding: 3px 10px; /* ← 0.15em から大幅に広げました */
     cursor: pointer;
     border-radius: 4px;
     border-bottom: 1px solid #3a3a3a;
@@ -542,4 +542,26 @@ li.selected {
   background: #ff8c00;
   border-color: #ff8c00;
   color: #fff;
+}
+
+/* スキル・奥義内の区切り線 */
+.skill-sep {
+    border: 0;
+    border-bottom: 1px dashed #666;
+    margin: 1px 0; /* 上下の隙間はここで好みに微調整してください（0でもOK） */
+    height: 1px;   /* 高さを1pxに固定 */
+    opacity: 0.5;
+    display: block;
+}
+
+@media screen and (min-width: 900px) {
+  #list {
+    /* 既存の高さ制限を解除して、画面下まで伸ばす */
+    max-height: none !important;
+    
+    /* 画面の高さ(100vh) - 上の入力欄などの高さ(300pxくらいと仮定) */
+    height: calc(100vh - 300px) !important;
+    
+    overflow-y: auto !important;
+  }
 }
