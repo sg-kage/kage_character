@@ -133,9 +133,9 @@ function replaceDynamicValues(text, type) {
 
     // ∞の場合は範囲表示、それ以外は計算値を表示
     if (isInf) {
-      return `<span class="lv-highlight">${min.toFixed(3)} ～ ${max.toFixed(3)}</span>`;
+      return `<span class="lv-highlight">${min.toFixed(2)} ～ ${max.toFixed(2)}</span>`;
     }
-    return `<span class="lv-highlight">${val.toFixed(3)}</span>`;
+    return `<span class="lv-highlight">${val.toFixed(2)}</span>`;
   });
 }
 
