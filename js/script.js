@@ -379,7 +379,6 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
 
   })
   .filter(s => s !== "")
-  .map(s => "　" + s)
   .join('<hr class="skill-sep">'); 
 }
 
