@@ -7,8 +7,8 @@ let lastFiltered = [];      // 最後に検索ヒットしたリスト
 let selectedIdx = 0;        // リスト内の選択位置
 
 // レベル管理変数 (1〜10 または 'inf')
-let currentAffinity = 1;
-let currentMagicLv = 1;
+let currentAffinity = 3;
+let currentMagicLv = 5;
 
 // 属性・ロール設定
 const attributes = {"赤": "#FF6347", "緑": "#32CD32", "黄": "#FFD700", "青": "#1E90FF"};
