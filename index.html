@@ -2,21 +2,43 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <link rel="apple-touch-icon" href="image/kage.png">
-  <link rel="icon" href="image/kage.png" type="image/png">
-  <title>カゲマスキャラ検索</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta property="og:title" content="カゲマスキャラ検索">
-  <meta property="og:description" content="陰の実力者になりたくて！ キャラクター図鑑です。">
-  <meta name="description" content="『陰の実力者になりたくて！マスターオブガーデン（カゲマス）』のキャラクター性能・属性・スキルを検索できるサイトです。">
-  <meta property="og:description" content="『陰の実力者になりたくて！マスターオブガーデン（カゲマス）』のキャラクター検索・性能確認ができる非公式サイトです。">
-  <meta property="og:image" content="https://sg-kage.github.io/kage_character/image/thumbnail.png">
-  <meta property="og:url" content="https://sg-kage.github.io/kage_character/">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン</title>
+  <meta name="description" content="『陰の実力者になりたくて！マスターオブガーデン（カゲマス）』の全キャラクターデータベースです。スキル効果、コンボ倍率、属性、ロール、専用魔道具の性能を検索できます。パーティ編成や攻略の参考に。">
+  <link rel="canonical" href="https://sg-kage.github.io/kage_character/">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="【カゲマス】全キャラクター図鑑・スキル検索データベース">
+  <meta property="og:description" content="カゲマスの全キャラ性能を検索できるデータベースサイト。スキル詳細、魔道具、覚醒前後の切り替え確認が可能です。">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="https://sg-kage.github.io/kage_character/">
+  <meta property="og:image" content="https://sg-kage.github.io/kage_character/image/thumbnail.png">
+  <meta property="og:site_name" content="カゲマスキャラ検索DB">
   <meta property="og:locale" content="ja_JP">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@kagenotify">
+  <script type="application/ld+json">
+  {
+    "@context": "http://schema.org",
+    "@type": "WebApplication",
+    "name": "カゲマスキャラ検索データベース",
+    "url": "https://sg-kage.github.io/kage_character/",
+    "description": "陰の実力者になりたくて！マスターオブガーデン（カゲマス）のキャラクター性能・スキル検索ツール",
+    "applicationCategory": "GameReference",
+    "operatingSystem": "All",
+    "author": {
+      "@type": "Person",
+      "name": "kagenotify",
+      "url": "https://x.com/kagenotify"
+    }
+  }
+  </script>
+
+  <link rel="apple-touch-icon" href="image/kage.png">
+  <link rel="icon" href="image/kage.png" type="image/png">
+
   <link rel="stylesheet" href="style/style.css">
+
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-79BGMS7Q1F"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -28,16 +50,20 @@
   </script>
 </head>
 <body>
-  <h1>カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン</h1>
-  <p class="sub-desc">カゲマスに登場するキャラクターの属性や性能を絞り込み検索できます。</p>
+
+  <header>
+    <h1>カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン</h1>
+    <p class="sub-desc">カゲマスに登場するキャラクターの属性、スキル、魔道具性能を詳細に絞り込み検索できます。</p>
+  </header>
+
   <div id="container">
-    <div id="side">
+    <aside id="side">
       
       <div id="top-controls">
         <label class="img-check-label">
           <input type="checkbox" id="toggle-img"> 画像を表示
         </label>
-        <button id="toggle-panel-btn">⚙️ Lv設定</button>
+        <button id="toggle-panel-btn" aria-expanded="false" aria-controls="level-control-panel">⚙️ Lv設定</button>
       </div>
 
       <div id="level-control-panel" style="display: none;">
@@ -70,11 +96,17 @@
           </div>
         </div>
       </div>
-      <input id="filter" type="text" placeholder="フィルター（スペース区切り）">
-      <div id="attribute-row"><div id="attribute-btns"></div></div>
+
+      <input id="filter" type="text" placeholder="フィルター（キャラ名・スキル名など）" aria-label="キャラクター検索フィルター">
+      
+      <div id="attribute-row">
+        <div id="attribute-btns"></div>
+      </div>
+      
       <div id="role-row" style="display:flex; gap:0.5em; margin-bottom:0.8em;">
        <div id="role-btns" style="display:flex; gap:0.5em;"></div>
       </div>
+      
       <div id="hit-row">
         <span id="hit-count"></span>
         <div class="button-group">
@@ -82,22 +114,27 @@
           <button id="capture-btn" style="display: none;">スクショ</button>
         </div>
       </div>
+      
       <ul id="list"></ul>
-    </div>
+    </aside>
 
-    <div id="main">
+    <main id="main">
       <div id="detail"></div>
-    </div>
+    </main>
   </div>
 
-  <div class="creator-link">
+  <footer class="creator-link">
     作成者: <a href="https://x.com/kagenotify" target="_blank" rel="noopener">kagenotify（X／旧Twitter）</a><br>
     Discord鯖: <a href="http://discord.gg/SfMWv5UPad" target="_blank" rel="noopener">陰マス通知</a><br>
-    このウェブサイト <a href="https://sg-kage.github.io/kage_character" target="_blank" rel="noopener">kage_character</a> は、Team CARAVANおよびAiming Inc.とは一切関係がなく、<br>また、これらの企業から公式な承認を受けたものではありません。<br>
-    掲載されているすべての画像の著作権は、それぞれの権利者に帰属します。
-  </div>
+    <small>
+      このウェブサイト <a href="https://sg-kage.github.io/kage_character" target="_blank" rel="noopener">kage_character</a> は、Team CARAVANおよびAiming Inc.とは一切関係がなく、
+      また、これらの企業から公式な承認を受けたものではありません。<br>
+      掲載されているすべての画像の著作権は、それぞれの権利者に帰属します。
+    </small>
+  </footer>
 
   <div id="modal-container"></div>
+  
   <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script src="js/script.js"></script>
 </body>
