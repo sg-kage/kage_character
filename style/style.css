@@ -565,3 +565,54 @@ li.selected {
     overflow-y: auto !important;
   }
 }
+
+/* =========================================
+   グループボタン用スタイル (修正版)
+   ========================================= */
+
+/* デフォルトは非表示にする */
+#group-btns ,
+#name-btns {
+  display: none; /* ★ここを変更：最初は隠す */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+  margin-bottom: 15px;
+  background: #222; /* パネル背景を少し暗くして区別 */
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #444;
+}
+
+/* JSでこのクラスが付いたら表示する */
+#group-btns.is-open ,
+#name-btns.is-open {
+  display: grid; /* ★開いたときはグリッド表示 */
+}
+
+/* グループボタン自体のデザイン */
+.group-btn {
+  background-color: #393864;
+  border: 2px solid #5d5c8d;
+  color: #ffffff;
+  padding: 6px 2px;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 4px;
+}
+
+.group-btn:hover {
+  background-color: #4a497a;
+}
+
+.group-btn.active {
+  background-color: #6a5acd;
+  border-color: #8476d1;
+  box-shadow: 0 0 6px #6a5acd;
+}
+
