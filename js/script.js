@@ -173,7 +173,7 @@ roles.forEach(role => {
 });
 // ------------------------------------
 
-// ★グループ開閉ボタン★
+// ★修正: グループ開閉ボタン（属性の横のコンテナに追加）★
 const groupToggleBtn = document.createElement('button');
 groupToggleBtn.textContent = "グループ ▼";
 groupToggleBtn.className = "attr-btn";
@@ -183,8 +183,12 @@ groupToggleBtn.style.border = "1px solid #5d5c8d";
 
 groupToggleBtn.onclick = () => {
   const panel = document.getElementById('group-btns');
-  panel.classList.toggle('is-open');
+  const container = document.getElementById('group-btns-container');
   
+  panel.classList.toggle('is-open');
+  // 開いたときに親コンテナにクラスをつけて、幅100%にする
+  container.classList.toggle('expanded');
+
   if (panel.classList.contains('is-open')) {
     groupToggleBtn.textContent = "グループ ▲";
     groupToggleBtn.style.background = "#5d5c8d"; 
@@ -193,21 +197,25 @@ groupToggleBtn.onclick = () => {
     groupToggleBtn.style.background = "#393864"; 
   }
 };
-roleBtnsContainer.appendChild(groupToggleBtn);
+// 修正: 正しいコンテナに追加
+const groupContainer = document.getElementById('group-btns-container');
+if(groupContainer) groupContainer.prepend(groupToggleBtn);
 
-// ★キャラ名開閉ボタン★
+// ★修正: キャラ名開閉ボタン（属性の横のコンテナに追加）★
 const nameToggleBtn = document.createElement('button');
 nameToggleBtn.textContent = "キャラ名 ▼";
 nameToggleBtn.className = "attr-btn";
 nameToggleBtn.style.background = "#393864";
 nameToggleBtn.style.color = "#fff";
 nameToggleBtn.style.border = "1px solid #5d5c8d";
-nameToggleBtn.style.marginLeft = "4px";
 
 nameToggleBtn.onclick = () => {
   const panel = document.getElementById('name-btns');
-  panel.classList.toggle('is-open');
+  const container = document.getElementById('name-btns-container');
   
+  panel.classList.toggle('is-open');
+  container.classList.toggle('expanded');
+
   if (panel.classList.contains('is-open')) {
     nameToggleBtn.textContent = "キャラ名 ▲";
     nameToggleBtn.style.background = "#5d5c8d";
@@ -216,7 +224,9 @@ nameToggleBtn.onclick = () => {
     nameToggleBtn.style.background = "#393864";
   }
 };
-roleBtnsContainer.appendChild(nameToggleBtn);
+// 修正: 正しいコンテナに追加
+const nameContainer = document.getElementById('name-btns-container');
+if(nameContainer) nameContainer.prepend(nameToggleBtn);
 
 
 function updateRoleBtnColors() {

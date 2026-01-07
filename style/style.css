@@ -165,14 +165,18 @@ h1 {
     border-radius: 4px;
 }
 
-#attribute-row,
+/* 属性行のスタイル修正 */
+#attribute-row {
+    display: flex;
+    flex-wrap: wrap; /* 折り返しを許可 */
+    gap: 0.4em;
+    align-items: flex-start; /* 上揃え */
+    margin-bottom: 0.8em;
+}
+
 #attribute-btns {
     display: flex;
     gap: 0.4em;
-    align-items: center;
-}
-#attribute-row {
-    margin-bottom: 0.4em;
 }
 
 /* 属性・ロールボタン共通 */
@@ -201,6 +205,77 @@ h1 {
 .attr-green { background: #32CD32 !important; color: #222 !important; }
 .attr-yellow { background: #FFD700 !important; color: #222 !important; }
 .attr-blue { background: #1E90FF !important; color: #fff !important; }
+
+/* =========================================
+   グループ・名前ボタン＆パネル (ここを修正)
+   ========================================= */
+
+/* コンテナ設定：開いた時に幅100%になって改行させる */
+#group-btns-container,
+#name-btns-container {
+    display: flex;
+    flex-direction: column; /* 縦並びにして、ボタンの下にパネルが来るように */
+}
+
+/* 開いたときに強制的に改行させるためのハック 
+   flex-basis: 100% を付与して行を占有させる
+*/
+#group-btns-container.expanded,
+#name-btns-container.expanded {
+    width: 100%;
+    flex-basis: 100%;
+    margin-top: 4px;
+}
+
+/* パネル (ボタン一覧) - デフォルト非表示 */
+#group-btns,
+#name-btns {
+    display: none; /* 隠す */
+    
+    /* 見た目（通常配置に戻す） */
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    background: #2b2b2b;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    margin-top: 5px;
+    width: 100%; /* 親に合わせて広がる */
+    box-sizing: border-box;
+}
+
+/* 開いたときの表示 */
+#group-btns.is-open,
+#name-btns.is-open {
+    display: grid;
+    /* position: absolute; を削除したので、下に押し広げて表示されます */
+}
+
+/* ボタン自体のスタイル */
+.group-btn {
+    background-color: #393864;
+    border: 1px solid #5d5c8d;
+    color: #ffffff;
+    padding: 6px 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+.group-btn:hover {
+    background-color: #4a497a;
+}
+
+.group-btn.active {
+    background-color: #6a5acd;
+    border-color: #8476d1;
+    box-shadow: 0 0 6px #6a5acd;
+}
 
 /* =========================================
    リスト・ヒット件数・操作ボタン
@@ -257,11 +332,11 @@ h1 {
 }
 
 #list li {
-    padding: 3px 10px; /* ← 0.15em から大幅に広げました */
+    padding: 3px 10px;
     cursor: pointer;
     border-radius: 4px;
     border-bottom: 1px solid #3a3a3a;
-    font-size: 1rem;    /* 文字も少し大きく読みやすく */
+    font-size: 1rem;
 }
 #list li:hover {
     background: #666;
@@ -485,11 +560,12 @@ li.selected {
     #list {
         height: 200px;
     }
+    
+    /* スマホ時は属性ボタンとグループボタンをどうするか */
     #attribute-row {
-        flex-direction: column;
-        gap: 0;
-        align-items: flex-start;
+        flex-wrap: wrap; /* 折り返し許可 */
     }
+    
     #hit-row {
         flex-direction: column;
         align-items: flex-start;
@@ -548,8 +624,8 @@ li.selected {
 .skill-sep {
     border: 0;
     border-bottom: 1px dashed #666;
-    margin: 1px 0; /* 上下の隙間はここで好みに微調整してください（0でもOK） */
-    height: 1px;   /* 高さを1pxに固定 */
+    margin: 1px 0;
+    height: 1px;
     opacity: 0.5;
     display: block;
 }
@@ -565,54 +641,3 @@ li.selected {
     overflow-y: auto !important;
   }
 }
-
-/* =========================================
-   グループボタン用スタイル (修正版)
-   ========================================= */
-
-/* デフォルトは非表示にする */
-#group-btns ,
-#name-btns {
-  display: none; /* ★ここを変更：最初は隠す */
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  margin-top: 10px;
-  margin-bottom: 15px;
-  background: #222; /* パネル背景を少し暗くして区別 */
-  padding: 10px;
-  border-radius: 6px;
-  border: 1px solid #444;
-}
-
-/* JSでこのクラスが付いたら表示する */
-#group-btns.is-open ,
-#name-btns.is-open {
-  display: grid; /* ★開いたときはグリッド表示 */
-}
-
-/* グループボタン自体のデザイン */
-.group-btn {
-  background-color: #393864;
-  border: 2px solid #5d5c8d;
-  color: #ffffff;
-  padding: 6px 2px;
-  font-size: 11px;
-  cursor: pointer;
-  text-align: center;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-  width: 100%;
-  box-sizing: border-box;
-  border-radius: 4px;
-}
-
-.group-btn:hover {
-  background-color: #4a497a;
-}
-
-.group-btn.active {
-  background-color: #6a5acd;
-  border-color: #8476d1;
-  box-shadow: 0 0 6px #6a5acd;
-}
-

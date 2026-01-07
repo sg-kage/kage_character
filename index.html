@@ -96,19 +96,21 @@
           </div>
         </div>
       </div>
-      <div id="attribute-row">
-        <div id="attribute-btns"></div>
+
+      <div id="attribute-row" style="display:flex; flex-wrap: wrap; gap:0.5em; align-items: flex-start; margin-bottom: 0.8em;">
+        <div id="attribute-btns" style="display:flex; gap:0.5em;"></div>
+        
+        <div id="group-btns-container">
+          <div id="group-btns"></div>
+        </div>
+        <div id="name-btns-container">
+          <div id="name-btns"></div>
+        </div>
       </div>
-      
       <div id="role-row" style="display:flex; gap:0.5em; margin-bottom:0.8em;">
        <div id="role-btns" style="display:flex; gap:0.5em;"></div>
       </div>
-      <div id="group-btns-container">
-        <div id="group-btns"></div>
-      </div>
-      <div id="name-btns-container">
-        <div id="name-btns"></div>
-      </div>
+
       <input id="filter" type="text" placeholder="フィルター（キャラ名・スキル名など）" aria-label="キャラクター検索フィルター">
       <div id="hit-row">
         <span id="hit-count"></span>
