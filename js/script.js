@@ -568,41 +568,87 @@ async function loadCharacters() {
 }
 
 /* =========================================
-   グループボタン自動生成・制御
+   ソート用ヘルパー関数（新規追加）
+   ========================================= */
+function getSortPriority(text, type) {
+  if (!text) return 99;
+  const charCode = text.charCodeAt(0);
+
+  // Unicode範囲定義
+  const isKanji = (charCode >= 0x4e00 && charCode <= 0x9fff);
+  const isKatakana = (charCode >= 0x30a0 && charCode <= 0x30ff);
+  const isHiragana = (charCode >= 0x3040 && charCode <= 0x309f);
+
+  if (type === 'group') {
+    // グループ: 漢字(1) -> カタカナ(2) -> ひらがな(3) -> その他(4)
+    if (isKanji) return 1;
+    if (isKatakana) return 2;
+    if (isHiragana) return 3;
+    return 4;
+  } else if (type === 'name') {
+    // キャラ名: カタカナ(1) -> 漢字(2) -> その他(3)
+    if (isKatakana) return 1;
+    if (isKanji) return 2;
+    return 3;
+  }
+  return 99;
+}
+
+function customSort(a, b, type) {
+  const priorityA = getSortPriority(a, type);
+  const priorityB = getSortPriority(b, type);
+
+  // 優先度が異なる場合は優先度順
+  if (priorityA !== priorityB) {
+    return priorityA - priorityB;
+  }
+  // 優先度が同じ場合は文字列の昇順（あいうえお順など）
+  return a.localeCompare(b, 'ja');
+}
+
+/* =========================================
+   グループボタン自動生成・制御（修正）
    ========================================= */
 function setupGroupButtons() {
   const container = document.getElementById('group-btns');
   const allGroups = new Set();
   characters.forEach(char => char.group?.forEach(g => allGroups.add(g)));
-  Array.from(allGroups).sort().forEach(g => {
-    const btn = document.createElement('button');
-    btn.textContent = g; btn.className = "group-btn";
-    btn.onclick = () => {
-      btn.classList.toggle('active');
-      if (selectedGroups.has(g)) selectedGroups.delete(g); else selectedGroups.add(g);
-      updateList(true);
-    };
-    container.appendChild(btn);
-  });
+  
+  // 修正: customSortを使用
+  Array.from(allGroups)
+    .sort((a, b) => customSort(a, b, 'group'))
+    .forEach(g => {
+      const btn = document.createElement('button');
+      btn.textContent = g; btn.className = "group-btn";
+      btn.onclick = () => {
+        btn.classList.toggle('active');
+        if (selectedGroups.has(g)) selectedGroups.delete(g); else selectedGroups.add(g);
+        updateList(true);
+      };
+      container.appendChild(btn);
+    });
 }
 
 /* =========================================
-   キャラ名ボタン自動生成・制御 (修正版: &分割対応)
+   キャラ名ボタン自動生成・制御（修正）
    ========================================= */
 function setupNameButtons() {
   const container = document.getElementById('name-btns');
   const allNames = new Set();
   characters.forEach(c => c.name.split('[')[0].split(/[&＆]/).forEach(n => allNames.add(n.trim())));
-  Array.from(allNames).sort().forEach(n => {
-    const btn = document.createElement('button');
-    btn.textContent = n; btn.className = "group-btn";
-    btn.onclick = () => {
-      btn.classList.toggle('active');
-      if (selectedNames.has(n)) selectedNames.delete(n); else selectedNames.add(n);
-      updateList(true);
-    };
-    container.appendChild(btn);
-  });
+  
+  // 修正: customSortを使用
+  Array.from(allNames)
+    .sort((a, b) => customSort(a, b, 'name'))
+    .forEach(n => {
+      const btn = document.createElement('button');
+      btn.textContent = n; btn.className = "group-btn";
+      btn.onclick = () => {
+        btn.classList.toggle('active');
+        if (selectedNames.has(n)) selectedNames.delete(n); else selectedNames.add(n);
+        updateList(true);
+      };
+      container.appendChild(btn);
+    });
 }
-
 loadCharacters();
