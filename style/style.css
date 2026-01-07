@@ -149,11 +149,6 @@ h1 {
 /* =========================================
    検索・フィルタ・属性ボタン
    ========================================= */
-#filter,
-#attribute-row {
-    margin: 0.2em 0;
-}
-
 #filter {
     background: #2d2d2d;
     width: 90%;
@@ -163,20 +158,24 @@ h1 {
     border: 1px solid #555;
     padding: 4px;
     border-radius: 4px;
+    margin-bottom: 0.5em;
 }
 
-/* 属性行のスタイル修正 */
-#attribute-row {
+/* ボタンの行：横並び */
+#filter-toggle-row {
     display: flex;
-    flex-wrap: wrap; /* 折り返しを許可 */
-    gap: 0.4em;
-    align-items: flex-start; /* 上揃え */
-    margin-bottom: 0.8em;
+    gap: 0.5em;
+    margin-bottom: 0.5em;
 }
 
+#attribute-row,
 #attribute-btns {
     display: flex;
     gap: 0.4em;
+    align-items: center;
+}
+#attribute-row {
+    margin-bottom: 0.4em;
 }
 
 /* 属性・ロールボタン共通 */
@@ -205,77 +204,6 @@ h1 {
 .attr-green { background: #32CD32 !important; color: #222 !important; }
 .attr-yellow { background: #FFD700 !important; color: #222 !important; }
 .attr-blue { background: #1E90FF !important; color: #fff !important; }
-
-/* =========================================
-   グループ・名前ボタン＆パネル (ここを修正)
-   ========================================= */
-
-/* コンテナ設定：開いた時に幅100%になって改行させる */
-#group-btns-container,
-#name-btns-container {
-    display: flex;
-    flex-direction: column; /* 縦並びにして、ボタンの下にパネルが来るように */
-}
-
-/* 開いたときに強制的に改行させるためのハック 
-   flex-basis: 100% を付与して行を占有させる
-*/
-#group-btns-container.expanded,
-#name-btns-container.expanded {
-    width: 100%;
-    flex-basis: 100%;
-    margin-top: 4px;
-}
-
-/* パネル (ボタン一覧) - デフォルト非表示 */
-#group-btns,
-#name-btns {
-    display: none; /* 隠す */
-    
-    /* 見た目（通常配置に戻す） */
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    background: #2b2b2b;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #555;
-    margin-top: 5px;
-    width: 100%; /* 親に合わせて広がる */
-    box-sizing: border-box;
-}
-
-/* 開いたときの表示 */
-#group-btns.is-open,
-#name-btns.is-open {
-    display: grid;
-    /* position: absolute; を削除したので、下に押し広げて表示されます */
-}
-
-/* ボタン自体のスタイル */
-.group-btn {
-    background-color: #393864;
-    border: 1px solid #5d5c8d;
-    color: #ffffff;
-    padding: 6px 4px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.2s;
-    border-radius: 4px;
-    width: 100%;
-    box-sizing: border-box;
-    margin: 0;
-}
-
-.group-btn:hover {
-    background-color: #4a497a;
-}
-
-.group-btn.active {
-    background-color: #6a5acd;
-    border-color: #8476d1;
-    box-shadow: 0 0 6px #6a5acd;
-}
 
 /* =========================================
    リスト・ヒット件数・操作ボタン
@@ -561,11 +489,6 @@ li.selected {
         height: 200px;
     }
     
-    /* スマホ時は属性ボタンとグループボタンをどうするか */
-    #attribute-row {
-        flex-wrap: wrap; /* 折り返し許可 */
-    }
-    
     #hit-row {
         flex-direction: column;
         align-items: flex-start;
@@ -632,12 +555,54 @@ li.selected {
 
 @media screen and (min-width: 900px) {
   #list {
-    /* 既存の高さ制限を解除して、画面下まで伸ばす */
-    max-height: none !important;
-    
-    /* 画面の高さ(100vh) - 上の入力欄などの高さ(300pxくらいと仮定) */
     height: calc(100vh - 300px) !important;
-    
     overflow-y: auto !important;
   }
+}
+
+/* =========================================
+   グループ・名前ボタン用スタイル (ドロップダウン)
+   ========================================= */
+
+#group-btns,
+#name-btns {
+  display: none;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  background: #222;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #444;
+}
+
+#group-btns.is-open,
+#name-btns.is-open {
+  display: grid;
+}
+
+.group-btn {
+  background-color: #393864;
+  border: 2px solid #5d5c8d;
+  color: #ffffff;
+  padding: 6px 2px;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 4px;
+}
+
+.group-btn:hover {
+  background-color: #4a497a;
+}
+
+.group-btn.active {
+  background-color: #6a5acd;
+  border-color: #8476d1;
+  box-shadow: 0 0 6px #6a5acd;
 }
