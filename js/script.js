@@ -143,6 +143,7 @@ roles.forEach(role => {
 
 // ★修正: トグルボタンを #filter-toggle-row に追加★
 const groupToggleBtn = document.createElement('button');
+groupToggleBtn.id = "group-toggle-btn";
 groupToggleBtn.textContent = "グループ ▼";
 groupToggleBtn.className = "attr-btn";
 groupToggleBtn.style.background = "#393864";
@@ -156,6 +157,7 @@ groupToggleBtn.onclick = () => {
 document.getElementById('filter-toggle-row').appendChild(groupToggleBtn);
 
 const nameToggleBtn = document.createElement('button');
+nameToggleBtn.id = "name-toggle-btn";
 nameToggleBtn.textContent = "キャラ名 ▼";
 nameToggleBtn.className = "attr-btn";
 nameToggleBtn.style.background = "#393864";
