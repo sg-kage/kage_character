@@ -299,11 +299,20 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
       }
       const normal = replaceDynamicValues(skill.normal || "", type);
       const awakened = replaceDynamicValues(skill.awakened || "", type);
+      
+      // ▼▼▼ 修正箇所ここから ▼▼▼
       if (awakened) {
-        return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}<span class="effect-label normal-label">通常</span>${highlightText(normal, filter)}<br><span class="effect-label awakened-label">覚醒</span>${highlightText(awakened, filter)}</div>`;
+        // <br> を削除し、薄い破線の仕切りを追加
+        return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}
+          <span class="effect-label normal-label">通常</span>${highlightText(normal, filter)}
+          <div style="border-top: 1px dashed #555; margin: 6px 0 6px 0; opacity: 0.7;"></div>
+          <span class="effect-label awakened-label">覚醒</span>${highlightText(awakened, filter)}
+        </div>`;
       } else {
         return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}${highlightText(normal, filter)}</div>`;
       }
+      // ▲▲▲ 修正箇所ここまで ▲▲▲
+      
     }
     const text = replaceDynamicValues(skill, type);
     return (text === "-") ? "" : `<div>${highlightText(text, filter)}</div>`;
