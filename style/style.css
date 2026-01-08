@@ -612,9 +612,8 @@ li.selected {
 .hit {
     color: #ff4444; /* 赤色で強調 */
     font-weight: bold;
-    background: rgba(255, 68, 68, 0.1); /* ほんのり背景色もつけると見やすいです */
+    background: rgba(255, 68, 68, 0.1);
 }
-
 /* グループとキャラ名のボタンだけ文字を白にする */
 #group-toggle-btn,
 #name-toggle-btn {
