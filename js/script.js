@@ -7,6 +7,7 @@ let lastFiltered = [];      // 最後に検索ヒットしたリスト
 let selectedIdx = 0;        // リスト内の選択位置
 let selectedGroups = new Set(); // 選択中のグループ
 let selectedNames = new Set(); // 選択中のキャラ名
+let selectedEffects = new Set(); // 選択中の効果（『』内）
 
 // レベル管理変数 (1〜10 または 'inf')
 let currentAffinity = 3;
@@ -20,6 +21,9 @@ const roles = ["アタッカー", "タンク", "サポーター"];
 let selectedAttrs = new Set();
 let selectedRoles = new Set();
 
+// 効果フィルタのモード: 'and' または 'or'
+let effectMode = 'and';
+
 // 表示モード設定
 let tabMode = 0; // 0:比較, 1:覚醒前, 2:覚醒後
 let showImages = false;
@@ -31,7 +35,6 @@ const roleBtnsContainer = document.getElementById('role-btns');
 /* =========================================
    初期化処理 (ローカルストレージ読み込み)
    ========================================= */
-// 保存されたレベル設定があれば読み込む
 let savedAffinity = localStorage.getItem('kage_affinity');
 let savedMagicLv = localStorage.getItem('kage_magicLv');
 
@@ -115,7 +118,7 @@ function replaceDynamicValues(text, type) {
       }
     }
     if (isInf) return `<span class="lv-highlight">${min.toFixed(2)}～${max.toFixed(2)}</span>`;
-    return `<span class="lv-highlight">${val.toFixed(2)}</span>`;
+    return `<span class="lv-highlight">${val.toFixed(02)}</span>`;
   });
 }
 
@@ -169,6 +172,35 @@ nameToggleBtn.onclick = () => {
   nameToggleBtn.textContent = panel.classList.contains('is-open') ? "キャラ名 ▲" : "キャラ名 ▼";
 };
 document.getElementById('filter-toggle-row').appendChild(nameToggleBtn);
+
+// 新規: 効果トグルボタン
+const effectToggleBtn = document.createElement('button');
+effectToggleBtn.id = "effect-toggle-btn";
+effectToggleBtn.textContent = "効果 ▼";
+effectToggleBtn.className = "attr-btn";
+effectToggleBtn.style.background = "#393864";
+effectToggleBtn.style.color = "#fff";
+effectToggleBtn.style.border = "1px solid #5d5c8d";
+effectToggleBtn.onclick = () => {
+  const panel = document.getElementById('effect-btns');
+  panel.classList.toggle('is-open');
+  effectToggleBtn.textContent = panel.classList.contains('is-open') ? "効果 ▲" : "効果 ▼";
+};
+document.getElementById('filter-toggle-row').appendChild(effectToggleBtn);
+
+// 効果モード切替ボタン (AND/OR)
+const effectModeBtn = document.createElement('button');
+effectModeBtn.id = "effect-mode-btn";
+effectModeBtn.textContent = "効果検索: AND";
+effectModeBtn.className = "attr-btn";
+effectModeBtn.style.background = "#2d6b2d";
+effectModeBtn.style.color = "#fff";
+effectModeBtn.style.border = "1px solid #4b8f4b";
+effectModeBtn.onclick = () => {
+  effectMode = (effectMode === 'and') ? 'or' : 'and';
+  effectModeBtn.textContent = effectMode === 'and' ? "効果検索: AND" : "効果検索: OR";
+  updateList(true);
+};
 
 function updateRoleBtnColors() {
   roles.forEach(role => {
@@ -383,7 +415,7 @@ function showDetail(char, filter=[]) {
       </div>`;
 
   const comboHtml = `<div class="char-section"><div class="char-section-title">コンボ</div><div class="char-section-content">${comboBlock(char.combo, filter)}</div></div>`;
-  const sect = (title, data, isMag=false) => `<div class="char-section"><div class="char-section-title">${title}</div><div class="char-section-content">${tabMode===0 ? skillBlockBothInline(data, filter, isMag) : skillBlockCompare(data, filter, tabMode===1?0:1, isMag)}</div></div>`;
+  const sect = (title, data, isMag=false) => `<div class="char-section"><div class="char-section-title">${title}</div><div class="char-section-content">${tabMode===0 ? skillBlockBothInline(data, filter, isMag) : (tabMode===1 ? skillBlockCompare(data, filter, 1, isMag) : skillBlockCompare(data, filter, 2, isMag))}</div></div>`;
 
   mainContent += `
     ${sect("究極奥義", char.ex_ultimate||[])}
@@ -403,9 +435,14 @@ function showDetail(char, filter=[]) {
   if(captureBtn) captureBtn.style.display = 'inline-block';
 }
 
+/* =========================================
+   高速化: リスト描画の最適化 (Fragment使用)
+   ========================================= */
 function updateList(resetSelect=false) {
   const list = document.getElementById('list');
   const filter = getCurrentFilter();
+  
+  // 1. フィルタリング (ここまでのロジックは変更なし)
   let filtered = characters.filter(char => filter.every(k => char._search.includes(k)));
 
   if (selectedAttrs.size > 0) filtered = filtered.filter(c => selectedAttrs.has(c.attribute));
@@ -420,29 +457,48 @@ function updateList(resetSelect=false) {
   if (selectedGroups.size > 0) {
     filtered = filtered.filter(c => c.group && c.group.some(g => selectedGroups.has(g)));
   }
-  
+
+  // 効果フィルタ
+  if (selectedEffects.size > 0) {
+    if (effectMode === 'and') {
+      filtered = filtered.filter(c => {
+        const set = new Set((c._effects||[]));
+        for (const e of selectedEffects) if (!set.has(e)) return false;
+        return true;
+      });
+    } else {
+      filtered = filtered.filter(c => {
+        const set = new Set((c._effects||[]));
+        for (const e of selectedEffects) if (set.has(e)) return true;
+        return false;
+      });
+    }
+  }
+
   if (positionSorted) filtered.sort((a,b)=>(parseInt(a.position)||999)-(parseInt(b.position)||999));
 
   lastFiltered = filtered;
   document.getElementById('hit-count').textContent=`ヒット件数: ${filtered.length}件`;
-  list.innerHTML = "";
+  
+  // 2. ★ここから変更: DocumentFragmentによる高速描画★
+  list.innerHTML = ""; // 一旦クリア
+  const fragment = document.createDocumentFragment(); // メモリ上の仮想領域を作成
+
   filtered.forEach((char,idx)=>{
     const li = document.createElement('li');
     li.textContent = char.name;
     applyHighlightDOM(li, filter);
     li.onclick = () => { tabMode=0; showDetail(char, filter); selectedIdx=idx; highlightSelected(); };
-    list.appendChild(li);
+    fragment.appendChild(li); // 仮想領域に追加 (画面描画はまだ起きない)
   });
+
+  list.appendChild(fragment); // 最後に1回だけ画面に反映 (高速！)
 
   if(filtered.length) {
     if(resetSelect) selectedIdx=0;
     showDetail(filtered[selectedIdx], filter);
     highlightSelected();
   } else { showDetail(null); }
-}
-
-function highlightSelected() {
-  document.querySelectorAll('#list li').forEach((li,idx)=> li.classList.toggle('selected', idx===selectedIdx));
 }
 
 /* =========================================
@@ -565,19 +621,6 @@ function setupOptionPanel() {
   };
 }
 
-async function loadCharacters() {
-  const resp = await fetch('characters/all_characters.json');
-  if(resp.ok){
-    characters = await resp.json();
-    characters.forEach(c => {
-      c._search = (c.name + " " + (c.group||[]).join(" ") + " " + JSON.stringify(c)).toLowerCase();
-    });
-    setupGroupButtons();
-    setupNameButtons();
-    updateList(true);
-  }
-}
-
 /* =========================================
    ソート用ヘルパー関数（新規追加）
    ========================================= */
@@ -625,7 +668,6 @@ function setupGroupButtons() {
   const allGroups = new Set();
   characters.forEach(char => char.group?.forEach(g => allGroups.add(g)));
   
-  // 修正: customSortを使用
   Array.from(allGroups)
     .sort((a, b) => customSort(a, b, 'group'))
     .forEach(g => {
@@ -641,14 +683,13 @@ function setupGroupButtons() {
 }
 
 /* =========================================
-   キャラ名ボタン自動生成・制御（修正）
+   キ���ラ名ボタン自動生成・制御（修正）
    ========================================= */
 function setupNameButtons() {
   const container = document.getElementById('name-btns');
   const allNames = new Set();
   characters.forEach(c => c.name.split('[')[0].split(/[&＆]/).forEach(n => allNames.add(n.trim())));
   
-  // 修正: customSortを使用
   Array.from(allNames)
     .sort((a, b) => customSort(a, b, 'name'))
     .forEach(n => {
@@ -662,4 +703,132 @@ function setupNameButtons() {
       container.appendChild(btn);
     });
 }
+
+/* =========================================
+   効果ボタン自動生成・制御
+   ========================================= */
+function setupEffectButtons() {
+  const container = document.getElementById('effect-btns');
+  
+  // ★追加: コンテナを一度クリアし、最初にモード切替ボタンを配置する
+  container.innerHTML = ""; 
+  
+  // 見た目をパネル内のボタンに合わせるため、クラスを変更しても良い
+  effectModeBtn.className = "group-btn"; 
+  // 少し目立たせるためのスタイル維持
+  effectModeBtn.style.background = "#2d6b2d";
+  effectModeBtn.style.border = "1px solid #4b8f4b";
+  effectToggleBtn.style.setProperty('color', '#ffffff', 'important'); // ★この行に書き換え！
+  
+  container.appendChild(effectModeBtn); // ← これで一覧の左上（先頭）に入ります
+
+  const allEffects = new Set();
+  characters.forEach(c => (c._effects||[]).forEach(e => allEffects.add(e)));
+
+  // ソートは日本語ロケールで（簡易）
+  Array.from(allEffects).sort((a,b) => a.localeCompare(b, 'ja')).forEach(e => {
+    const btn = document.createElement('button');
+    btn.textContent = e; btn.className = "group-btn";
+    btn.onclick = () => {
+      btn.classList.toggle('active');
+      if (selectedEffects.has(e)) selectedEffects.delete(e); else selectedEffects.add(e);
+      updateList(true);
+    };
+    container.appendChild(btn);
+  });
+}
+
+/* =========================================
+   キャラ読み込み（効果抽出含む）
+   ========================================= */
+/* =========================================
+   高速化: キャラ読み込み & キャッシュ制御
+   ========================================= */
+async function loadCharacters() {
+  const jsonUrl = 'characters/all_characters.json';
+  const cacheKeyData = 'kage_char_data_v2'; // データ本体
+  const cacheKeyTime = 'kage_char_time_v2'; // 更新日時
+
+  try {
+    // 1. サーバー上のファイルの更新日時だけを確認 (HEADリクエスト)
+    // ※ データ本体はまだDLしないので通信量は極小です
+    const headResp = await fetch(jsonUrl, { method: 'HEAD' });
+    if (!headResp.ok) throw new Error("Network response was not ok");
+    
+    const serverLastModified = headResp.headers.get('Last-Modified');
+    const localLastModified = localStorage.getItem(cacheKeyTime);
+    const localData = localStorage.getItem(cacheKeyData);
+
+    // 2. キャッシュが有効ならそれを使う (通信なし・計算なし)
+    if (localData && localLastModified && serverLastModified === localLastModified) {
+      console.log("Using cached data (No download)");
+      characters = JSON.parse(localData);
+      
+      // キャッシュから復元できたらボタン生成へ
+      setupGroupButtons();
+      setupNameButtons();
+      setupEffectButtons();
+      updateList(true);
+      return; 
+    }
+
+    // 3. 更新がある(または初回)なら本体をダウンロード
+    console.log("Downloading new data...");
+    const resp = await fetch(jsonUrl);
+    if(resp.ok){
+      characters = await resp.json();
+
+      // --- 重たい処理: 検索用インデックス作成 & 効果抽出 ---
+      
+      // ヘルパー関数: テキストから『』を抽出
+      const extractEffects = (text, targetSet) => {
+        if (!text || typeof text !== 'string') return;
+        const matches = text.matchAll(/『([^』]+)』/g);
+        for (const m of matches) targetSet.add(m[1].trim());
+      };
+
+      // ヘルパー関数: スキル詳細のみ探索
+      const processSkillData = (data, targetSet) => {
+        if (!data) return;
+        if (Array.isArray(data)) {
+          data.forEach(item => processSkillData(item, targetSet));
+        } else if (typeof data === 'object') {
+          extractEffects(data.normal, targetSet);
+          extractEffects(data.awakened, targetSet);
+          extractEffects(data.effect, targetSet);
+          extractEffects(data.description, targetSet);
+        } else if (typeof data === 'string') {
+          extractEffects(data, targetSet);
+        }
+      };
+
+      characters.forEach(c => {
+        // 検索用テキスト生成
+        c._search = (c.name + " " + (c.group||[]).join(" ") + " " + JSON.stringify(c)).toLowerCase();
+        
+        // 効果抽出
+        const effectSet = new Set();
+        const targets = [c.ultimate, c.ex_ultimate, c.skill1, c.skill2, c.traits, c.combo, c.magic_item1, c.magic_item2];
+        targets.forEach(t => processSkillData(t, effectSet));
+        c._effects = Array.from(effectSet);
+      });
+
+      // 4. 計算済みのデータを保存 (次回はこの重い処理をスキップ)
+      try {
+        localStorage.setItem(cacheKeyData, JSON.stringify(characters));
+        localStorage.setItem(cacheKeyTime, serverLastModified);
+      } catch (e) {
+        console.warn("Cache quota exceeded", e); // 容量不足等の場合
+      }
+
+      setupGroupButtons();
+      setupNameButtons();
+      setupEffectButtons();
+      updateList(true);
+    }
+  } catch (err) {
+    console.error("Failed to load characters:", err);
+  }
+}
+
 loadCharacters();

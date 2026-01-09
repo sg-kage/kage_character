@@ -565,7 +565,8 @@ li.selected {
    ========================================= */
 
 #group-btns,
-#name-btns {
+#name-btns,
+#effect-btns {
   display: none;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
@@ -578,7 +579,8 @@ li.selected {
 }
 
 #group-btns.is-open,
-#name-btns.is-open {
+#name-btns.is-open,
+#effect-btns.is-open {
   display: grid;
 }
 
