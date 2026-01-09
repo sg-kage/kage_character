@@ -144,21 +144,6 @@ roles.forEach(role => {
   roleBtnMap[role] = btn;
 });
 
-// ★修正: トグルボタンを #filter-toggle-row に追加★
-const groupToggleBtn = document.createElement('button');
-groupToggleBtn.id = "group-toggle-btn";
-groupToggleBtn.textContent = "グループ ▼";
-groupToggleBtn.className = "attr-btn";
-groupToggleBtn.style.background = "#393864";
-groupToggleBtn.style.color = "#fff";
-groupToggleBtn.style.border = "1px solid #5d5c8d";
-groupToggleBtn.onclick = () => {
-  const panel = document.getElementById('group-btns');
-  panel.classList.toggle('is-open');
-  groupToggleBtn.textContent = panel.classList.contains('is-open') ? "グループ ▲" : "グループ ▼";
-};
-document.getElementById('filter-toggle-row').appendChild(groupToggleBtn);
-
 const nameToggleBtn = document.createElement('button');
 nameToggleBtn.id = "name-toggle-btn";
 nameToggleBtn.textContent = "キャラ名 ▼";
@@ -172,6 +157,20 @@ nameToggleBtn.onclick = () => {
   nameToggleBtn.textContent = panel.classList.contains('is-open') ? "キャラ名 ▲" : "キャラ名 ▼";
 };
 document.getElementById('filter-toggle-row').appendChild(nameToggleBtn);
+
+const groupToggleBtn = document.createElement('button');
+groupToggleBtn.id = "group-toggle-btn";
+groupToggleBtn.textContent = "グループ ▼";
+groupToggleBtn.className = "attr-btn";
+groupToggleBtn.style.background = "#393864";
+groupToggleBtn.style.color = "#fff";
+groupToggleBtn.style.border = "1px solid #5d5c8d";
+groupToggleBtn.onclick = () => {
+  const panel = document.getElementById('group-btns');
+  panel.classList.toggle('is-open');
+  groupToggleBtn.textContent = panel.classList.contains('is-open') ? "グループ ▲" : "グループ ▼";
+};
+document.getElementById('filter-toggle-row').appendChild(groupToggleBtn);
 
 // 新規: 効果トグルボタン
 const effectToggleBtn = document.createElement('button');

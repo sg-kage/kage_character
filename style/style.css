@@ -618,7 +618,8 @@ li.selected {
 }
 /* グループとキャラ名のボタンだけ文字を白にする */
 #group-toggle-btn,
-#name-toggle-btn {
+#name-toggle-btn,
+#effect-toggle-btn {
     color: #ffffff !important;
 }
 
