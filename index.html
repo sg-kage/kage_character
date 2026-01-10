@@ -116,17 +116,26 @@
       </div>
 
       <input id="filter" type="text" placeholder="フィルター（キャラ名・スキル名など）" aria-label="キャラクター検索フィルター">
+      
       <div id="hit-row">
         <span id="hit-count"></span>
         <div class="button-group">
           <button id="sort-btn" aria-pressed="false">ポジ順</button>
-          <button id="capture-btn" style="display: none;">スクショ</button>
-        </div>
+          <select id="list-height-select" aria-label="リスト表示件数">
+            <option value="auto">自動</option>
+            <option value="10">10件</option>
+            <option value="15">15件</option>
+            <option value="20">20件</option>
+          </select>
+          </div>
       </div>
       <ul id="list"></ul>
     </aside>
 
     <main id="main">
+      <div id="detail-header">
+        <button id="capture-btn" style="display: none;">📷 スクショ</button>
+      </div>
       <div id="detail"></div>
     </main>
   </div>

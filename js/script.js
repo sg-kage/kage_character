@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setMagicLv(currentMagicLv);
   setupOptionPanel();
   setupCaptureButton();
+  setupListHeightControl();
 });
 
 /* =========================================
@@ -331,9 +332,7 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
       const normal = replaceDynamicValues(skill.normal || "", type);
       const awakened = replaceDynamicValues(skill.awakened || "", type);
       
-      // ▼▼▼ 修正箇所ここから ▼▼▼
       if (awakened) {
-        // <br> を削除し、薄い破線の仕切りを追加
         return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}
           <span class="effect-label normal-label">通常</span>${highlightText(normal, filter)}
           <div style="border-top: 1px dashed #555; margin: 6px 0 6px 0; opacity: 0.7;"></div>
@@ -342,7 +341,6 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
       } else {
         return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}${highlightText(normal, filter)}</div>`;
       }
-      // ▲▲▲ 修正箇所ここまで ▲▲▲
       
     }
     const text = replaceDynamicValues(skill, type);
@@ -435,14 +433,32 @@ function showDetail(char, filter=[]) {
 }
 
 /* =========================================
+   リスト選択ハイライト
+   ========================================= */
+function highlightSelected() {
+  const list = document.getElementById('list');
+  // 子要素を全て取得して判定
+  Array.from(list.children).forEach((li, idx) => {
+    if (idx === selectedIdx) {
+      li.classList.add('selected');
+    } else {
+      li.classList.remove('selected');
+    }
+  });
+}
+
+/* =========================================
    高速化: リスト描画の最適化 (Fragment使用)
    ========================================= */
 function updateList(resetSelect=false) {
   const list = document.getElementById('list');
   const filter = getCurrentFilter();
   
-  // 1. フィルタリング (ここまでのロジックは変更なし)
-  let filtered = characters.filter(char => filter.every(k => char._search.includes(k)));
+  // 1. フィルタリング (安全策を追加: _searchがない場合のエラー防止)
+  let filtered = characters.filter(char => {
+    if (!char._search) return false; 
+    return filter.every(k => char._search.includes(k));
+  });
 
   if (selectedAttrs.size > 0) filtered = filtered.filter(c => selectedAttrs.has(c.attribute));
   if (selectedRoles.size > 0) filtered = filtered.filter(c => selectedRoles.has(c.role));
@@ -454,7 +470,8 @@ function updateList(resetSelect=false) {
     });
   }
   if (selectedGroups.size > 0) {
-    filtered = filtered.filter(c => c.group && c.group.some(g => selectedGroups.has(g)));
+    // 安全策: c.group が undefined の場合は空配列扱い
+    filtered = filtered.filter(c => (c.group || []).some(g => selectedGroups.has(g)));
   }
 
   // 効果フィルタ
@@ -479,22 +496,25 @@ function updateList(resetSelect=false) {
   lastFiltered = filtered;
   document.getElementById('hit-count').textContent=`ヒット件数: ${filtered.length}件`;
   
-  // 2. ★ここから変更: DocumentFragmentによる高速描画★
-  list.innerHTML = ""; // 一旦クリア
-  const fragment = document.createDocumentFragment(); // メモリ上の仮想領域を作成
+  // 2. ★ DocumentFragmentによる高速描画 ★
+  list.innerHTML = ""; 
+  const fragment = document.createDocumentFragment();
 
   filtered.forEach((char,idx)=>{
     const li = document.createElement('li');
     li.textContent = char.name;
     applyHighlightDOM(li, filter);
     li.onclick = () => { tabMode=0; showDetail(char, filter); selectedIdx=idx; highlightSelected(); };
-    fragment.appendChild(li); // 仮想領域に追加 (画面描画はまだ起きない)
+    fragment.appendChild(li);
   });
 
-  list.appendChild(fragment); // 最後に1回だけ画面に反映 (高速！)
+  list.appendChild(fragment);
 
   if(filtered.length) {
     if(resetSelect) selectedIdx=0;
+    // インデックスが範囲外にならないよう調整
+    if (selectedIdx >= filtered.length) selectedIdx = 0;
+    
     showDetail(filtered[selectedIdx], filter);
     highlightSelected();
   } else { showDetail(null); }
@@ -621,7 +641,7 @@ function setupOptionPanel() {
 }
 
 /* =========================================
-   ソート用ヘルパー関数（新規追加）
+   ソート用ヘルパー関数
    ========================================= */
 function getSortPriority(text, type) {
   if (!text) return 99;
@@ -660,7 +680,7 @@ function customSort(a, b, type) {
 }
 
 /* =========================================
-   グループボタン自動生成・制御（修正）
+   グループボタン自動生成・制御
    ========================================= */
 function setupGroupButtons() {
   const container = document.getElementById('group-btns');
@@ -682,7 +702,7 @@ function setupGroupButtons() {
 }
 
 /* =========================================
-   キ���ラ名ボタン自動生成・制御（修正）
+   キャラ名ボタン自動生成・制御
    ========================================= */
 function setupNameButtons() {
   const container = document.getElementById('name-btns');
@@ -709,22 +729,17 @@ function setupNameButtons() {
 function setupEffectButtons() {
   const container = document.getElementById('effect-btns');
   
-  // ★追加: コンテナを一度クリアし、最初にモード切替ボタンを配置する
   container.innerHTML = ""; 
-  
-  // 見た目をパネル内のボタンに合わせるため、クラスを変更しても良い
   effectModeBtn.className = "group-btn"; 
-  // 少し目立たせるためのスタイル維持
   effectModeBtn.style.background = "#2d6b2d";
   effectModeBtn.style.border = "1px solid #4b8f4b";
-  effectToggleBtn.style.setProperty('color', '#ffffff', 'important'); // ★この行に書き換え！
+  effectToggleBtn.style.setProperty('color', '#ffffff', 'important'); 
   
-  container.appendChild(effectModeBtn); // ← これで一覧の左上（先頭）に入ります
+  container.appendChild(effectModeBtn); 
 
   const allEffects = new Set();
   characters.forEach(c => (c._effects||[]).forEach(e => allEffects.add(e)));
 
-  // ソートは日本語ロケールで（簡易）
   Array.from(allEffects).sort((a,b) => a.localeCompare(b, 'ja')).forEach(e => {
     const btn = document.createElement('button');
     btn.textContent = e; btn.className = "group-btn";
@@ -745,12 +760,10 @@ function setupEffectButtons() {
    ========================================= */
 async function loadCharacters() {
   const jsonUrl = 'characters/all_characters.json';
-  const cacheKeyData = 'kage_char_data_v2'; // データ本体
-  const cacheKeyTime = 'kage_char_time_v2'; // 更新日時
+  const cacheKeyData = 'kage_char_data_v3'; 
+  const cacheKeyTime = 'kage_char_time_v3'; 
 
   try {
-    // 1. サーバー上のファイルの更新日時だけを確認 (HEADリクエスト)
-    // ※ データ本体はまだDLしないので通信量は極小です
     const headResp = await fetch(jsonUrl, { method: 'HEAD' });
     if (!headResp.ok) throw new Error("Network response was not ok");
     
@@ -758,12 +771,10 @@ async function loadCharacters() {
     const localLastModified = localStorage.getItem(cacheKeyTime);
     const localData = localStorage.getItem(cacheKeyData);
 
-    // 2. キャッシュが有効ならそれを使う (通信なし・計算なし)
     if (localData && localLastModified && serverLastModified === localLastModified) {
       console.log("Using cached data (No download)");
       characters = JSON.parse(localData);
       
-      // キャッシュから復元できたらボタン生成へ
       setupGroupButtons();
       setupNameButtons();
       setupEffectButtons();
@@ -771,22 +782,17 @@ async function loadCharacters() {
       return; 
     }
 
-    // 3. 更新がある(または初回)なら本体をダウンロード
     console.log("Downloading new data...");
     const resp = await fetch(jsonUrl);
     if(resp.ok){
       characters = await resp.json();
 
-      // --- 重たい処理: 検索用インデックス作成 & 効果抽出 ---
-      
-      // ヘルパー関数: テキストから『』を抽出
       const extractEffects = (text, targetSet) => {
         if (!text || typeof text !== 'string') return;
         const matches = text.matchAll(/『([^』]+)』/g);
         for (const m of matches) targetSet.add(m[1].trim());
       };
 
-      // ヘルパー関数: スキル詳細のみ探索
       const processSkillData = (data, targetSet) => {
         if (!data) return;
         if (Array.isArray(data)) {
@@ -802,22 +808,19 @@ async function loadCharacters() {
       };
 
       characters.forEach(c => {
-        // 検索用テキスト生成
         c._search = (c.name + " " + (c.group||[]).join(" ") + " " + JSON.stringify(c)).toLowerCase();
         
-        // 効果抽出
         const effectSet = new Set();
         const targets = [c.ultimate, c.ex_ultimate, c.skill1, c.skill2, c.traits, c.combo, c.magic_item1, c.magic_item2];
         targets.forEach(t => processSkillData(t, effectSet));
         c._effects = Array.from(effectSet);
       });
 
-      // 4. 計算済みのデータを保存 (次回はこの重い処理をスキップ)
       try {
         localStorage.setItem(cacheKeyData, JSON.stringify(characters));
         localStorage.setItem(cacheKeyTime, serverLastModified);
       } catch (e) {
-        console.warn("Cache quota exceeded", e); // 容量不足等の場合
+        console.warn("Cache quota exceeded", e);
       }
 
       setupGroupButtons();
@@ -831,3 +834,78 @@ async function loadCharacters() {
 }
 
 loadCharacters();
+
+/* =========================================
+   リスト高さ調整機能 (保存機能付き・完全版)
+   ========================================= */
+function setupListHeightControl() {
+  const select = document.getElementById('list-height-select');
+  const list = document.getElementById('list');
+  
+  if (!select || !list) return;
+
+  // ★追加1: 前回の設定を読み込む
+  const savedHeight = localStorage.getItem('kage_list_height');
+  if (savedHeight) {
+    select.value = savedHeight;
+  }
+
+  // 高さを適用するメイン関数
+  const updateHeight = () => {
+    const val = select.value;
+
+    // ★追加2: 設定を変更したら保存する
+    localStorage.setItem('kage_list_height', val);
+    
+    if (val === 'auto') {
+      // ■「自動」の場合
+      // PC (幅900px以上) は「画面の一番下まで」広げる
+      if (window.innerWidth >= 900) {
+        const rect = list.getBoundingClientRect();
+        // 画面の高さ - リストの上端位置 - 下部余白(20px)
+        const availableHeight = window.innerHeight - rect.top - 20; 
+        const finalHeight = Math.max(availableHeight, 100);
+
+        list.style.setProperty('height', `${finalHeight}px`, 'important');
+        list.style.setProperty('max-height', 'none', 'important');
+      } else {
+        // スマホはCSSの標準設定(50vh)に戻す
+        list.style.removeProperty('height');
+        list.style.removeProperty('max-height');
+      }
+    } else {
+      // ■「件数指定」の場合
+      const count = parseInt(val);
+      
+      const firstItem = list.querySelector('li');
+      const itemHeight = firstItem ? firstItem.getBoundingClientRect().height : 40;
+
+      const style = window.getComputedStyle(list);
+      const padTop = parseFloat(style.paddingTop) || 0;
+      const padBottom = parseFloat(style.paddingBottom) || 0;
+      const borderTop = parseFloat(style.borderTopWidth) || 0;
+      const borderBottom = parseFloat(style.borderBottomWidth) || 0;
+
+      const newHeight = (itemHeight * count) + padTop + padBottom + borderTop + borderBottom + 1;
+      
+      list.style.setProperty('height', `${newHeight}px`, 'important');
+      list.style.setProperty('max-height', 'none', 'important');
+    }
+  };
+
+  select.addEventListener('change', updateHeight);
+  window.addEventListener('resize', updateHeight);
+
+  const toggleBtnIds = ['toggle-panel-btn', 'group-toggle-btn', 'name-toggle-btn', 'effect-toggle-btn'];
+  toggleBtnIds.forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) {
+      btn.addEventListener('click', () => {
+        setTimeout(updateHeight, 50); 
+        setTimeout(updateHeight, 300);
+      });
+    }
+  });
+
+  setTimeout(updateHeight, 100);
+}

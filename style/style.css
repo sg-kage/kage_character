@@ -151,9 +151,10 @@ h1 {
    ========================================= */
 #filter {
     background: #2d2d2d;
-    width: 90%;
+    width: 100%;
+    box-sizing: border-box;
+    margin-right: 0;
     font-size: 0.95em;
-    margin-right: 0.5em;
     color: #E0E0E0;
     border: 1px solid #555;
     padding: 4px;
@@ -213,6 +214,7 @@ h1 {
     align-items: center;
     gap: 0.6em;
     margin-bottom: 0.3em;
+    justify-content: space-between;
 }
 
 #hit-count {
@@ -224,6 +226,21 @@ h1 {
 .button-group {
     display: flex;
     gap: 0.6em;
+}
+
+#list-height-select {
+    background: #444; /* 少し濃くして区別 */
+    color: #E0E0E0;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 0.2em 0.4em;
+    cursor: pointer;
+    font-size: 0.9em;
+    height: 100%;
+}
+#list-height-select:focus {
+    outline: none;
+    background: #555;
 }
 
 #sort-btn {
@@ -276,8 +293,16 @@ li.selected {
 /* =========================================
    詳細表示エリア
    ========================================= */
+/* 追加: 詳細エリア上のヘッダー（スクショボタン用） */
+#detail-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 6px;
+    min-height: 24px; /* ボタンがない時もレイアウトを崩さない */
+}
+
 #detail {
-    margin-top: 0.4em;
+    /* margin-top: 0.4em; ヘッダーができたのでマージン調整 */
     background: #333;
     color: #E0E0E0;
     border-radius: 8px;
@@ -453,19 +478,21 @@ li.selected {
    画像キャプチャ（オーバーレイ）
    ========================================= */
 #capture-btn {
-    background: #555555; 
+    background: #444; 
     color: #E0E0E0;
-    border: none;
+    border: 1px solid #666;
     border-radius: 6px;
-    padding: 0.2em 0.8em;
+    padding: 0.3em 1em;
     cursor: pointer;
-    font-weight: normal;
-    font-size: 0.9em;
+    font-weight: bold;
+    font-size: 0.85em;
     margin-left: 0.6em;
     display: none;
+    transition: background 0.2s;
 }
 #capture-btn:hover {
-    background: #666666;
+    background: #555;
+    color: #fff;
 }
 
 #capture-overlay {
@@ -494,8 +521,12 @@ li.selected {
         align-items: flex-start;
         gap: 0.2em;
     }
-    #sort-btn, #capture-btn {
+    #sort-btn {
         margin-left: 0;
+    }
+    /* スクショボタンの位置調整 */
+    #detail-header {
+        justify-content: space-between;
     }
 }
 
@@ -622,4 +653,3 @@ li.selected {
 #effect-toggle-btn {
     color: #ffffff !important;
 }
-
