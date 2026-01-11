@@ -536,119 +536,22 @@ function updateList(resetSelect=false) {
 /* =========================================
    画像キャプチャ機能 (html2canvas)
    ========================================= */
-async function setupCaptureButton() {
-    const captureBtn = document.getElementById('capture-btn');
-    if (!captureBtn) return;
-      
-    captureBtn.addEventListener('click', async () => {
-        const detailArea = document.getElementById('detail');
-        if (!detailArea) return;
-          
-        captureBtn.disabled = true;
-        captureBtn.style.opacity = '0.5';
-          
-        const charNameElement = detailArea.querySelector('.char-title');
-        const safeName = charNameElement ? charNameElement.textContent.trim().replace(/[\/\\?%*:|"<>]/g, '_') : 'detail';
-        const now = new Date();
-        const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
-        const filename = `kage_${safeName}_${dateStr}.png`;
-          
-        try {
-            await waitImagesLoaded(detailArea);
-            setTimeout(() => { window.scrollBy(0,1); window.scrollBy(0,-1); }, 50); 
-              
-            // ▼▼▼ 修正・追加箇所 ▼▼▼
-            // PCレイアウト(横広)で撮影するための設定
-            const canvas = await html2canvas(detailArea, {
-                scale: 2, 
-                useCORS: true, 
-                allowTaint: false, 
-                logging: false,
-                // 1. ウィンドウ幅をPCサイズ（例: 1200px）と偽装する
-                windowWidth: 1200, 
-                // 2. 撮影直前にクローンされた要素の幅を強制的に広げる
-                onclone: (clonedDoc) => {
-                    const clonedDetail = clonedDoc.getElementById('detail');
-                    if (clonedDetail) {
-                        // ここで強制的に幅を指定することで、flexアイテムなどが横に並ぶようにする
-                        clonedDetail.style.width = '1000px'; 
-                        clonedDetail.style.maxWidth = 'none';
-                        // 余白調整（お好みで）
-                        clonedDetail.style.padding = '20px';
-                        clonedDetail.style.boxSizing = 'border-box';
-                    }
-                }
-            });
-            // ▲▲▲ 修正・追加箇所 ここまで ▲▲▲
-
-            showCaptureOverlay(canvas.toDataURL('image/png'), filename);
-        } catch (err) { 
-            console.error(err); 
-            alert('キャプチャエラーが発生しました');
-        } finally { 
-            captureBtn.disabled = false; 
-            captureBtn.style.opacity = ''; 
-        }
-    });
-}
-
-function showCaptureOverlay(dataUrl, filename) {
-    const existing = document.getElementById('capture-overlay');
-    if (existing) existing.remove();
-
-    const overlay = document.createElement('div');
-    overlay.id = 'capture-overlay';
-    Object.assign(overlay.style, {
-        position: 'fixed', left: 0, top: 0, right: 0, bottom: 0,
-        background: 'rgba(0,0,0,0.85)', zIndex: 9999,
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        padding: '20px', gap: '12px'
-    });
-
-    const img = document.createElement('img');
-    img.src = dataUrl;
-    img.style.maxWidth = '100%';
-    img.style.maxHeight = '80vh';
-    img.style.borderRadius = '8px';
-
-    const hint = document.createElement('div');
-    hint.style.color = '#fff';
-    hint.textContent = '※ 画像を長押し/右クリックで保存してください';
-
-    const btnWrap = document.createElement('div');
-    btnWrap.style.display = 'flex';
-    btnWrap.style.gap = '8px';
-
-    const dlBtn = document.createElement('a');
-    dlBtn.textContent = '保存';
-    dlBtn.href = dataUrl;
-    dlBtn.download = filename || 'capture.png';
-    Object.assign(dlBtn.style, {
-        background: '#4CAF50', color: '#fff', padding: '10px 14px',
-        borderRadius: '6px', textDecoration: 'none'
-    });
-
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '閉じる';
-    Object.assign(closeBtn.style, {
-        background: '#999', color: '#fff', padding: '10px 14px',
-        borderRadius: '6px', border: 'none', cursor: 'pointer'
-    });
-    closeBtn.onclick = () => overlay.remove();
-
-    btnWrap.appendChild(dlBtn);
-    btnWrap.appendChild(closeBtn);
-    overlay.appendChild(img);
-    overlay.appendChild(hint);
-    overlay.appendChild(btnWrap);
-    document.body.appendChild(overlay);
-}
-
 function setupCaptureButton() {
     const captureBtn = document.getElementById('capture-btn');
     if (!captureBtn) return;
-      
+    
+    // ★修正: 読み込み待ち関数をここに内蔵させます（絶対に迷子になりません）
+    const waitImagesLoaded = (root) => {
+        const images = Array.from(root.querySelectorAll('img'));
+        return Promise.all(images.map(img => {
+            if (img.complete) return Promise.resolve();
+            return new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve; 
+            });
+        }));
+    };
+
     captureBtn.addEventListener('click', async () => {
         const detailArea = document.getElementById('detail');
         if (!detailArea) return;
@@ -661,23 +564,144 @@ function setupCaptureButton() {
         const now = new Date();
         const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
         const filename = `kage_${safeName}_${dateStr}.png`;
+
+        let clone = null;
           
         try {
+            console.log("Capture started...");
+
+            // 1. 画像読み込み待ち (内蔵関数を使用)
             await waitImagesLoaded(detailArea);
-            setTimeout(() => { window.scrollBy(0,1); window.scrollBy(0,-1); }, 50); 
-              
-            const canvas = await html2canvas(detailArea, {
-                scale: 2, useCORS: true, allowTaint: false, logging: false
+
+            // 2. 撮影用クローン作成
+            clone = detailArea.cloneNode(true);
+            
+            // 3. クローンをPC幅に強制設定
+            Object.assign(clone.style, {
+                position: 'fixed',
+                top: '0',
+                left: '0',
+                width: '1100px',      
+                minWidth: '1100px',
+                maxWidth: 'none',
+                height: 'auto',
+                padding: '20px',
+                margin: '0',
+                background: '#232323', 
+                color: '#ffffff',
+                zIndex: '-9999',       
+                overflow: 'visible',
+                borderRadius: '0',
+                transform: 'none'
             });
+
+            clone.removeAttribute('id');
+            document.body.appendChild(clone);
+
+            // 4. html2canvas実行
+            const isMobile = window.innerWidth < 800;
+            const canvas = await html2canvas(clone, {
+                scale: isMobile ? 1.5 : 2, 
+                useCORS: true,
+                allowTaint: false,
+                logging: true,
+                windowWidth: 1200,
+                backgroundColor: '#232323',
+                onclone: null 
+            });
+
             showCaptureOverlay(canvas.toDataURL('image/png'), filename);
+
         } catch (err) { 
-            console.error(err); 
-            alert('キャプチャエラーが発生しました');
+            console.error("Capture Failed:", err);
+            alert('【NEW】エラー詳細:\n' + (err.message || err));
         } finally { 
+            if (clone && clone.parentNode) {
+                clone.parentNode.removeChild(clone);
+            }
             captureBtn.disabled = false; 
             captureBtn.style.opacity = ''; 
         }
     });
+}
+
+/* =========================================
+   保存用オーバーレイ表示関数
+   ========================================= */
+function showCaptureOverlay(dataUrl, filename) {
+    // 既存のオーバーレイがあれば削除
+    const existing = document.getElementById('capture-overlay');
+    if (existing) existing.remove();
+
+    // オーバーレイ作成
+    const overlay = document.createElement('div');
+    overlay.id = 'capture-overlay';
+    Object.assign(overlay.style, {
+        position: 'fixed', 
+        top: '0', 
+        left: '0', 
+        width: '100%', 
+        height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.85)', 
+        zIndex: '10000',
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center'
+    });
+
+    // 画像表示
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    Object.assign(img.style, {
+        maxWidth: '90%', 
+        maxHeight: '80%', 
+        border: '2px solid #fff', 
+        marginBottom: '15px',
+        boxShadow: '0 0 20px rgba(0,0,0,0.5)'
+    });
+
+    // ボタンエリア
+    const btnArea = document.createElement('div');
+
+    // ダウンロードボタン
+    const dlBtn = document.createElement('a');
+    dlBtn.textContent = '画像を保存';
+    dlBtn.href = dataUrl;
+    dlBtn.download = filename;
+    Object.assign(dlBtn.style, {
+        display: 'inline-block', 
+        padding: '10px 20px', 
+        background: '#4CAF50', 
+        color: '#fff',
+        textDecoration: 'none', 
+        borderRadius: '5px', 
+        fontSize: '16px', 
+        cursor: 'pointer', 
+        margin: '0 10px',
+        border: '1px solid #388E3C'
+    });
+
+    // 閉じるボタン
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '閉じる';
+    Object.assign(closeBtn.style, {
+        padding: '10px 20px', 
+        background: '#f44336', 
+        color: '#fff', 
+        border: '1px solid #d32f2f',
+        borderRadius: '5px', 
+        fontSize: '16px', 
+        cursor: 'pointer', 
+        margin: '0 10px'
+    });
+    closeBtn.onclick = () => overlay.remove();
+
+    btnArea.appendChild(dlBtn);
+    btnArea.appendChild(closeBtn);
+    overlay.appendChild(img);
+    overlay.appendChild(btnArea);
+    document.body.appendChild(overlay);
 }
 
 function setupOptionPanel() {
