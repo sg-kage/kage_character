@@ -536,22 +536,59 @@ function updateList(resetSelect=false) {
 /* =========================================
    画像キャプチャ機能 (html2canvas)
    ========================================= */
-function waitImagesLoaded(container) {
-    const imgs = Array.from(container.querySelectorAll('img'));
-    if (!imgs.length) return Promise.resolve();
-    return new Promise(resolve => {
-        let count = 0;
-        const check = () => { count++; if (count >= imgs.length) resolve(); };
-        imgs.forEach(img => {
-            try {
-                if (img.complete) check();
-                else {
-                    img.addEventListener('load', check, { once: true });
-                    img.addEventListener('error', check, { once: true });
+async function setupCaptureButton() {
+    const captureBtn = document.getElementById('capture-btn');
+    if (!captureBtn) return;
+      
+    captureBtn.addEventListener('click', async () => {
+        const detailArea = document.getElementById('detail');
+        if (!detailArea) return;
+          
+        captureBtn.disabled = true;
+        captureBtn.style.opacity = '0.5';
+          
+        const charNameElement = detailArea.querySelector('.char-title');
+        const safeName = charNameElement ? charNameElement.textContent.trim().replace(/[\/\\?%*:|"<>]/g, '_') : 'detail';
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+        const filename = `kage_${safeName}_${dateStr}.png`;
+          
+        try {
+            await waitImagesLoaded(detailArea);
+            setTimeout(() => { window.scrollBy(0,1); window.scrollBy(0,-1); }, 50); 
+              
+            // ▼▼▼ 修正・追加箇所 ▼▼▼
+            // PCレイアウト(横広)で撮影するための設定
+            const canvas = await html2canvas(detailArea, {
+                scale: 2, 
+                useCORS: true, 
+                allowTaint: false, 
+                logging: false,
+                // 1. ウィンドウ幅をPCサイズ（例: 1200px）と偽装する
+                windowWidth: 1200, 
+                // 2. 撮影直前にクローンされた要素の幅を強制的に広げる
+                onclone: (clonedDoc) => {
+                    const clonedDetail = clonedDoc.getElementById('detail');
+                    if (clonedDetail) {
+                        // ここで強制的に幅を指定することで、flexアイテムなどが横に並ぶようにする
+                        clonedDetail.style.width = '1000px'; 
+                        clonedDetail.style.maxWidth = 'none';
+                        // 余白調整（お好みで）
+                        clonedDetail.style.padding = '20px';
+                        clonedDetail.style.boxSizing = 'border-box';
+                    }
                 }
-            } catch (e) { check(); }
-        });
-        setTimeout(resolve, 3000); 
+            });
+            // ▲▲▲ 修正・追加箇所 ここまで ▲▲▲
+
+            showCaptureOverlay(canvas.toDataURL('image/png'), filename);
+        } catch (err) { 
+            console.error(err); 
+            alert('キャプチャエラーが発生しました');
+        } finally { 
+            captureBtn.disabled = false; 
+            captureBtn.style.opacity = ''; 
+        }
     });
 }
 
