@@ -63,44 +63,6 @@
 
   <div id="container">
     <aside id="side">
-      <div id="top-controls">
-        <label class="img-check-label">
-          <input type="checkbox" id="toggle-img"> 画像を表示
-        </label>
-        <button id="toggle-panel-btn" aria-expanded="false" aria-controls="level-control-panel">⚙️ Lv設定</button>
-      </div>
-
-      <div id="level-control-panel" style="display: none;">
-        <div class="control-row">
-          <div class="control-label">スキルLv: <span id="affinity-val">3</span></div>
-          <div class="skill-btn-group">
-            <button class="magic-btn active" data-kind="affinity" data-lv="1" onclick="setAffinity(1)">1</button>
-            <button class="magic-btn" data-kind="affinity" data-lv="2" onclick="setAffinity(2)">2</button>
-            <button class="magic-btn" data-kind="affinity" data-lv="3" onclick="setAffinity(3)">3</button>
-            <button class="magic-btn" data-kind="affinity" data-lv="4" onclick="setAffinity(4)">4</button>
-            <button class="magic-btn" data-kind="affinity" data-lv="5" onclick="setAffinity(5)">5</button>
-            <button class="magic-btn" data-kind="affinity" data-lv="6" onclick="setAffinity(6)">6</button>
-            <button class="magic-btn" data-kind="affinity" data-lv="7" onclick="setAffinity(7)">7</button>
-            <button class="magic-btn" data-kind="affinity" data-lv="8" onclick="setAffinity(8)">8</button>
-            <button class="magic-btn" data-kind="affinity" data-lv="9" onclick="setAffinity(9)">9</button>
-            <button class="magic-btn" data-kind="affinity" data-lv="10" onclick="setAffinity(10)">10</button>
-            <button class="magic-btn" data-kind="affinity" data-lv="inf" onclick="setAffinity('inf')">∞</button>
-          </div>
-        </div>
-        
-        <div class="control-row">
-          <div class="control-label">魔道具Lv: <span id="magic-val">1</span></div>
-          <div class="magic-btn-group">
-            <button class="magic-btn active" data-kind="magic" data-lv="1" onclick="setMagicLv(1)">1</button>
-            <button class="magic-btn" data-kind="magic" data-lv="2" onclick="setMagicLv(2)">2</button>
-            <button class="magic-btn" data-kind="magic" data-lv="3" onclick="setMagicLv(3)">3</button>
-            <button class="magic-btn" data-kind="magic" data-lv="4" onclick="setMagicLv(4)">4</button>
-            <button class="magic-btn" data-kind="magic" data-lv="5" onclick="setMagicLv(5)">5</button>
-            <button class="magic-btn" data-kind="magic" data-lv="inf" onclick="setMagicLv('inf')">∞</button>
-          </div>
-        </div>
-      </div>
-
       <div id="filter-toggle-row"></div>
 
       <div id="name-btns"></div>
@@ -134,8 +96,47 @@
 
     <main id="main">
       <div id="detail-header">
-        <button id="capture-btn" style="display: none;">📷 スクショ</button>
+        
+        <button id="toggle-img-btn" class="header-btn">画像: OFF</button>
+        
+        <div style="position: relative;">
+          <button id="toggle-panel-btn" class="header-btn" aria-expanded="false">⚙️ Lv設定</button>
+          
+          <div id="level-control-panel" style="display: none;">
+            <div class="control-row">
+              <div class="control-label" style="color:#ddd; font-size:0.9em;">スキルLv: <span id="affinity-val">3</span></div>
+              <div class="skill-btn-group">
+                <button class="magic-btn active" data-kind="affinity" data-lv="1" onclick="setAffinity(1)">1</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="2" onclick="setAffinity(2)">2</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="3" onclick="setAffinity(3)">3</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="4" onclick="setAffinity(4)">4</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="5" onclick="setAffinity(5)">5</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="6" onclick="setAffinity(6)">6</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="7" onclick="setAffinity(7)">7</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="8" onclick="setAffinity(8)">8</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="9" onclick="setAffinity(9)">9</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="10" onclick="setAffinity(10)">10</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="inf" onclick="setAffinity('inf')">∞</button>
+              </div>
+            </div>
+            
+            <div class="control-row" style="margin-top: 12px;">
+              <div class="control-label" style="color:#ddd; font-size:0.9em;">魔道具Lv: <span id="magic-val">1</span></div>
+              <div class="magic-btn-group">
+                <button class="magic-btn active" data-kind="magic" data-lv="1" onclick="setMagicLv(1)">1</button>
+                <button class="magic-btn" data-kind="magic" data-lv="2" onclick="setMagicLv(2)">2</button>
+                <button class="magic-btn" data-kind="magic" data-lv="3" onclick="setMagicLv(3)">3</button>
+                <button class="magic-btn" data-kind="magic" data-lv="4" onclick="setMagicLv(4)">4</button>
+                <button class="magic-btn" data-kind="magic" data-lv="5" onclick="setMagicLv(5)">5</button>
+                <button class="magic-btn" data-kind="magic" data-lv="inf" onclick="setMagicLv('inf')">∞</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button id="capture-btn" class="header-btn" style="display: none;">📷 スクショ</button>
       </div>
+      
       <div id="detail"></div>
     </main>
   </div>

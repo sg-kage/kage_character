@@ -237,10 +237,23 @@ updateAttrBtnColors();
 /* =========================================
    検索・ソート・表示制御
    ========================================= */
-document.getElementById("toggle-img").addEventListener("change", (e)=>{
-  showImages = e.target.checked;
-  updateList(false); 
-});
+const imgBtn = document.getElementById("toggle-img-btn");
+if (imgBtn) {
+  imgBtn.onclick = () => {
+    showImages = !showImages; // フラグ反転
+    
+    // ボタンの表示とスタイル更新
+    if (showImages) {
+      imgBtn.textContent = "画像: ON";
+      imgBtn.classList.add("active"); // index.htmlのstyleで青色になる
+    } else {
+      imgBtn.textContent = "画像: OFF";
+      imgBtn.classList.remove("active");
+    }
+    
+    updateList(false); // リスト再描画
+  };
+}
 
 const sortBtn = document.getElementById('sort-btn');
 sortBtn.onclick = () => {
@@ -397,7 +410,7 @@ function showDetail(char, filter=[]) {
   if (showImages) {
     const base = "image/characters/";
     const images = [base + char.name + ".png", base + char.name + "_Ex.png"];
-    imageHtml = `<div class="char-image-container">${images.map(img => `<img src="${img}" class="char-image" loading="lazy" onerror="this.style.display='none';">`).join("")}</div>`;
+    imageHtml = `<div class="char-image-container">${images.map(img => `<img src="${img}" class="char-image" crossorigin="anonymous" onerror="this.style.display='none';">`).join("")}</div>`;
   }
 
   let mainContent = `<div class="char-detail-wrap">
@@ -633,13 +646,28 @@ function setupCaptureButton() {
 function setupOptionPanel() {
   const btn = document.getElementById('toggle-panel-btn');
   const p = document.getElementById('level-control-panel');
+  
+  if (!btn || !p) return;
+
+  // 1. ボタンを押したときの開閉（トグル）動作
   btn.onclick = () => {
     const isHidden = p.style.display === 'none';
     p.style.display = isHidden ? 'block' : 'none';
     btn.classList.toggle('active', isHidden);
   };
-}
 
+  // 2. 【追加】画面のどこかをクリックしたときの判定
+  document.addEventListener('click', (e) => {
+    // パネルが閉じているなら何もしない
+    if (p.style.display === 'none') return;
+
+    // クリックされた要素が「ボタンの中」でも「パネルの中」でもない場合
+    if (!btn.contains(e.target) && !p.contains(e.target)) {
+      p.style.display = 'none';   // パネルを閉じる
+      btn.classList.remove('active'); // ボタンの選択状態を解除
+    }
+  });
+}
 /* =========================================
    ソート用ヘルパー関数
    ========================================= */

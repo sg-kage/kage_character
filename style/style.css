@@ -63,15 +63,66 @@ h1 {
 }
 
 /* =========================================
-   レベル操作パネル (スキルLv・魔道具Lv)
+   メインヘッダー & 操作ボタン (.header-btn)
+   ========================================= */
+/* 詳細エリア上のヘッダー */
+#detail-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    min-height: 24px;
+    position: relative; /* 基準位置 */
+}
+
+/* ヘッダー内ボタン共通スタイル (Lv設定, 画像, スクショ) */
+.header-btn {
+    font-size: 0.9rem;
+    padding: 5px 10px;
+    cursor: pointer;
+    background: #444;
+    color: #fff;
+    border: 1px solid #666;
+    border-radius: 4px;
+    transition: background 0.2s;
+    font-weight: bold;
+}
+.header-btn:hover {
+    background: #555;
+}
+.header-btn.active {
+    background: #2c5d8a; /* 青系のアクティブ色 */
+    border-color: #4a8bc2;
+}
+
+/* =========================================
+   レベル操作パネル (ポップアップ/ドロップダウン)
    ========================================= */
 #level-control-panel {
+    /* 共通デザイン */
     background: #2b2b2b;
     padding: 10px;
     border-radius: 6px;
-    margin-bottom: 8px;
-    border: 1px solid #444;
+    border: 1px solid #555;
     font-size: 0.85rem;
+    
+    /* ポップアップ配置設定 */
+    position: absolute;
+    top: 100%;       /* ボタンの真下に表示 */
+    right: 0;        /* 右寄せ */
+    margin-top: 5px; /* ボタンとの隙間 */
+    z-index: 1000;   /* 最前面に表示 */
+    width: 290px;    /* パネル幅 */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6); /* 影をつけて浮き上がらせる */
+}
+
+/* スマホで右側が見切れないように調整 */
+@media (max-width: 480px) {
+    #level-control-panel {
+        right: -50px; /* 必要に応じて調整 */
+        width: 270px;
+    }
 }
 
 .control-row {
@@ -107,7 +158,7 @@ h1 {
     justify-content: space-between;
 }
 
-/* スキルボタン：1行に10個配置 */
+/* スキルボタン：11個配置 (1-10 + inf) */
 .skill-btn-group {
     display: grid;
     grid-template-columns: repeat(11, 1fr);
@@ -120,19 +171,20 @@ h1 {
     background: #444;
     color: #eee;
     border: 1px solid #555;
-    padding: 12px 0; /* 指で押しやすいサイズ */
+    padding: 8px 0; /* サイズ調整 */
     cursor: pointer;
-    border-radius: 6px;
-    font-size: 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
     font-weight: bold;
     transition: all 0.2s;
     flex: 1;
     text-align: center;
 }
 
-/* スキルボタン（10個）用の文字サイズ微調整 */
+/* スキルボタン（多数）用の文字サイズ微調整 */
 .skill-btn-group .magic-btn {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+    padding: 8px 0;
 }
 
 .magic-btn:hover:not(.active) {
@@ -293,16 +345,9 @@ li.selected {
 /* =========================================
    詳細表示エリア
    ========================================= */
-/* 追加: 詳細エリア上のヘッダー（スクショボタン用） */
-#detail-header {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 6px;
-    min-height: 24px; /* ボタンがない時もレイアウトを崩さない */
-}
 
 #detail {
-    /* margin-top: 0.4em; ヘッダーができたのでマージン調整 */
+    /* ヘッダーとのマージンは headerの margin-bottom で確保 */
     background: #333;
     color: #E0E0E0;
     border-radius: 8px;
@@ -477,23 +522,7 @@ li.selected {
 /* =========================================
    画像キャプチャ（オーバーレイ）
    ========================================= */
-#capture-btn {
-    background: #444; 
-    color: #E0E0E0;
-    border: 1px solid #666;
-    border-radius: 6px;
-    padding: 0.3em 1em;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 0.85em;
-    margin-left: 0.6em;
-    display: none;
-    transition: background 0.2s;
-}
-#capture-btn:hover {
-    background: #555;
-    color: #fff;
-}
+/* スクショボタン自体は .header-btn でスタイル定義済み */
 
 #capture-overlay {
     font-family: 'Segoe UI', sans-serif;
@@ -524,54 +553,11 @@ li.selected {
     #sort-btn {
         margin-left: 0;
     }
-    /* スクショボタンの位置調整 */
+    
+    /* スマホ時はヘッダーボタンを少し詰める */
     #detail-header {
-        justify-content: space-between;
+        justify-content: flex-end; 
     }
-}
-
-/* === トップコントロール（画像表示＆設定ボタン） === */
-#top-controls {
-  display: flex;
-  justify-content: space-between; /* 両端に配置 */
-  align-items: center;
-  margin-bottom: 10px;
-  background: #2b2b2b;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #444;
-}
-
-.img-check-label {
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.95rem;
-}
-
-#toggle-panel-btn {
-  background: #444;
-  color: #E0E0E0;
-  border: 1px solid #555;
-  border-radius: 4px;
-  padding: 4px 10px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  font-weight: bold;
-  transition: all 0.2s;
-}
-
-#toggle-panel-btn:hover {
-  background: #555;
-}
-
-/* ボタンが押された状態（開いているとき） */
-#toggle-panel-btn.active {
-  background: #ff8c00;
-  border-color: #ff8c00;
-  color: #fff;
 }
 
 /* スキル・奥義内の区切り線 */
@@ -639,14 +625,16 @@ li.selected {
   border-color: #8476d1;
   box-shadow: 0 0 6px #6a5acd;
 }
+
 /* =========================================
-   検索ハイライト (追加)
+   検索ハイライト
    ========================================= */
 .hit {
     color: #ff4444; /* 赤色で強調 */
     font-weight: bold;
     background: rgba(255, 68, 68, 0.1);
 }
+
 /* グループとキャラ名のボタンだけ文字を白にする */
 #group-toggle-btn,
 #name-toggle-btn,
