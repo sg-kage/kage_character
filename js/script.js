@@ -372,7 +372,7 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
        else if (typeof skill === "object") rawText = skill.title ? `<b>${skill.title}</b><br>${skill.effect||skill.normal||""}` : (skill.effect||skill.normal||"");
     } else {
        if (typeof skill === "string") rawText = skill;
-       else if ("title" in skill) rawText = `<b>${skill.title}</b><br>${tabType===0 ? skill.normal : skill.awakened}`;
+       else if ("title" in skill) rawText = `<b>${skill.title}</b><br>${tabType===1 ? skill.normal : skill.awakened}`;
        else rawText = tabType===0 ? (skill.normal || "") : (skill.awakened || "");
     }
     if (rawText === "-") return "";
