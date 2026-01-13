@@ -77,8 +77,34 @@
        <div id="role-btns" style="display:flex; gap:0.5em;"></div>
       </div>
 
-      <input id="filter" type="text" placeholder="フィルター（キャラ名・スキル名など）" aria-label="キャラクター検索フィルター">
-      
+      <input id="filter" type="text" placeholder="キャラ名 スキル等 特殊:シールド 魔道具:パリィ など" aria-label="キャラクター検索フィルター">
+      <details class="search-help">
+        <summary>🔍 検索コマンドの使い方（クリックで開く）</summary>
+        <div class="help-content">
+          <p>キーワードの前に<b>項目名:</b>をつけると、その場所だけを検索できます。</p>
+          <ul class="help-list">
+            <li><code>特殊:</code> <code>魔道具:</code> <code>奥義:</code> <code>特技:</code> <code>コンボ:</code> <code>通常:</code></li>
+            
+          </ul>
+          <p class="help-example">例：<b>特殊:シールド 魔道具:パリィ</b></p>
+        </div>
+      </details>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       <div id="hit-row">
         <span id="hit-count"></span>
         <div class="button-group">

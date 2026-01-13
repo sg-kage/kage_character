@@ -465,14 +465,50 @@ function highlightSelected() {
    ========================================= */
 function updateList(resetSelect=false) {
   const list = document.getElementById('list');
-  const filter = getCurrentFilter();
+  // 全角スペースも半角に変換してから分割
+  const rawFilter = document.getElementById('filter').value
+      .normalize('NFKC') 
+      .toLowerCase()
+      .replace(/　/g, ' ')
+      .trim();
+
+  const filterKeywords = rawFilter.split(/[ ]+/).filter(k => k);
   
-  // 1. フィルタリング (安全策を追加: _searchがない場合のエラー防止)
+  // ▼ 検索対象の定義
+  const fieldMap = {
+      "特殊": ["traits"],
+      "特技": ["skill1", "skill2"],
+      "奥義": ["ultimate","ex_ultimate"],
+      "魔道具": ["magic_item1", "magic_item2"],
+      "コンボ": ["combo"],
+      "通常": ["normal_attack"]
+  };
+
+  // ▼ フィルタリング処理
   let filtered = characters.filter(char => {
     if (!char._search) return false; 
-    return filter.every(k => char._search.includes(k));
+    
+    // 入力されたキーワードすべてを満たしているかチェック (AND検索)
+    return filterKeywords.every(token => {
+        // キーワードに「:」または「：」が含まれているか判定
+        if (token.includes(':') || token.includes('：')) {
+            let [key, val] = token.split(/[:：]/);
+            
+            // 定義にある項目なら、その中身だけを探す
+            const targetProps = fieldMap[key];
+            if (targetProps && val) {
+                return targetProps.some(prop => {
+                    const data = char[prop];
+                    return data && JSON.stringify(data).toLowerCase().includes(val);
+                });
+            }
+        }
+        // コロンがない、または未知の項目の場合は全体検索
+        return char._search.includes(token);
+    });
   });
 
+  // --- 既存のボタンフィルタ処理 ---
   if (selectedAttrs.size > 0) filtered = filtered.filter(c => selectedAttrs.has(c.attribute));
   if (selectedRoles.size > 0) filtered = filtered.filter(c => selectedRoles.has(c.role));
   if (selectedNames.size > 0) {
@@ -483,11 +519,8 @@ function updateList(resetSelect=false) {
     });
   }
   if (selectedGroups.size > 0) {
-    // 安全策: c.group が undefined の場合は空配列扱い
     filtered = filtered.filter(c => (c.group || []).some(g => selectedGroups.has(g)));
   }
-
-  // 効果フィルタ
   if (selectedEffects.size > 0) {
     if (effectMode === 'and') {
       filtered = filtered.filter(c => {
@@ -509,15 +542,29 @@ function updateList(resetSelect=false) {
   lastFiltered = filtered;
   document.getElementById('hit-count').textContent=`ヒット件数: ${filtered.length}件`;
   
-  // 2. ★ DocumentFragmentによる高速描画 ★
+  // ▼▼▼ ハイライト用キーワードの作成 ▼▼▼
+  // 「特殊:被ダメ」なら「被ダメ」だけを取り出してハイライト対象にする
+  const highlightKeywords = filterKeywords.map(k => {
+      if (k.includes(':') || k.includes('：')) {
+          return k.split(/[:：]/)[1]; 
+      }
+      return k;
+  }).filter(k => k); // 空文字は除去
+
+  
+  // --- リスト描画 ---
   list.innerHTML = ""; 
   const fragment = document.createDocumentFragment();
 
   filtered.forEach((char,idx)=>{
     const li = document.createElement('li');
     li.textContent = char.name;
-    applyHighlightDOM(li, filter);
-    li.onclick = () => { tabMode=0; showDetail(char, filter); selectedIdx=idx; highlightSelected(); };
+    
+    // ハイライト適用
+    applyHighlightDOM(li, highlightKeywords);
+    
+    // クリック時もハイライト情報を渡す
+    li.onclick = () => { tabMode=0; showDetail(char, highlightKeywords); selectedIdx=idx; highlightSelected(); };
     fragment.appendChild(li);
   });
 
@@ -525,13 +572,13 @@ function updateList(resetSelect=false) {
 
   if(filtered.length) {
     if(resetSelect) selectedIdx=0;
-    // インデックスが範囲外にならないよう調整
     if (selectedIdx >= filtered.length) selectedIdx = 0;
-    
-    showDetail(filtered[selectedIdx], filter);
+    // 詳細画面にもハイライト情報を渡す
+    showDetail(filtered[selectedIdx], highlightKeywords);
     highlightSelected();
   } else { showDetail(null); }
 }
+
 
 /* =========================================
    画像キャプチャ機能 (html2canvas)
