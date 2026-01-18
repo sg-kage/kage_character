@@ -1,419 +1,519 @@
 /* =========================================
    グローバル変数・設定
    ========================================= */
-let characters = [];        // キャラクター全データ
-let positionSorted = false; // ポジション順ソートフラグ
-let lastFiltered = [];      // 最後に検索ヒットしたリスト
-let selectedIdx = 0;        // リスト内の選択位置
-let selectedGroups = new Set(); // 選択中のグループ
-let selectedNames = new Set(); // 選択中のキャラ名
-let selectedEffects = new Set(); // 選択中の効果（『』内）
+// 設定定数
+const CONFIG = {
+    attributes: {"赤": "#FF6347", "緑": "#32CD32", "黄": "#FFD700", "青": "#1E90FF"},
+    roles: ["アタッカー", "タンク", "サポーター"],
+    // 頻繁に使う正規表現を事前コンパイル（動作は変わりませんが高速になります）
+    REGEX: {
+        splitSpace: /[ 　]+/,
+        splitColon: /[:：]/,
+        splitName: /[&＆]/,
+        cleanName: /\[.*$/,
+        dynamicVal: /\{([\d.]+),\s*([\d.]+)\}/g,
+        effects: /『([^』]+)』/g,
+        sanitize: /[\/\\?%*:|"<>]/g,
+        unsafeChars: /[.*+?^${}()|[\]\\]/g
+    }
+};
 
-// レベル管理変数 (1〜10 または 'inf')
+// 状態管理変数
+let characters = [];
+let positionSorted = false;
+let lastFiltered = [];
+let selectedIdx = 0;
+let selectedGroups = new Set();
+let selectedNames = new Set();
+let selectedEffects = new Set();
 let currentAffinity = 3;
 let currentMagicLv = 5;
-
-// 属性・ロール設定
-const attributes = {"赤": "#FF6347", "緑": "#32CD32", "黄": "#FFD700", "青": "#1E90FF"};
-const roles = ["アタッカー", "タンク", "サポーター"];
-
-// フィルタ選択状態
 let selectedAttrs = new Set();
 let selectedRoles = new Set();
-
-// 効果フィルタのモード: 'and' または 'or'
 let effectMode = 'and';
-
-// 表示モード設定
-let tabMode = 0; // 0:比較, 1:覚醒前, 2:覚醒後
+let tabMode = 0;
 let showImages = false;
 
-// DOM要素のキャッシュ
-const attrBtns = document.getElementById('attribute-btns');
-const roleBtnsContainer = document.getElementById('role-btns');
+// DOM要素のキャッシュ（高速化の肝：毎回検索しない）
+const ELS = {
+    list: document.getElementById('list'),
+    detail: document.getElementById('detail'),
+    filter: document.getElementById('filter'),
+    hitCount: document.getElementById('hit-count'),
+    attrBtns: document.getElementById('attribute-btns'),
+    roleBtns: document.getElementById('role-btns'),
+    groupBtns: document.getElementById('group-btns'),
+    nameBtns: document.getElementById('name-btns'),
+    effectBtns: document.getElementById('effect-btns'),
+    captureBtn: document.getElementById('capture-btn'),
+    sortBtn: document.getElementById('sort-btn'),
+    imgBtn: document.getElementById("toggle-img-btn"),
+    toggleRow: document.getElementById('filter-toggle-row'),
+    affinityVal: document.getElementById('affinity-val'),
+    magicVal: document.getElementById('magic-val'),
+    listHeightSelect: document.getElementById('list-height-select'),
+    panelBtn: document.getElementById('toggle-panel-btn'),
+    controlPanel: document.getElementById('level-control-panel'),
+    // NodeListは動的なのでquerySelector等で取得
+    getAffinityBtns: () => document.querySelectorAll('.magic-btn[data-kind="affinity"]'),
+    getMagicBtns: () => document.querySelectorAll('.magic-btn[data-kind="magic"]')
+};
 
-/* =========================================
-   初期化処理 (ローカルストレージ読み込み)
-   ========================================= */
-let savedAffinity = localStorage.getItem('kage_affinity');
-let savedMagicLv = localStorage.getItem('kage_magicLv');
-
-if (savedAffinity && savedAffinity !== 'inf') currentAffinity = parseInt(savedAffinity);
-else if (savedAffinity === 'inf') currentAffinity = 'inf';
-
-if (savedMagicLv && savedMagicLv !== 'inf') currentMagicLv = parseInt(savedMagicLv);
-else if (savedMagicLv === 'inf') currentMagicLv = 'inf';
-
-document.addEventListener('DOMContentLoaded', () => {
-  const style = document.createElement('style');
-  style.textContent = `
-    .skill-sep {
-        border: 0;
-        border-bottom: 1px dashed #666;
-        margin: 8px 0;
-        opacity: 0.5;
-    }
-  `;
-  document.head.appendChild(style);
-
-  setAffinity(currentAffinity);
-  setMagicLv(currentMagicLv);
-  setupOptionPanel();
-  setupCaptureButton();
-  setupListHeightControl();
-});
-
-/* =========================================
-   レベル操作・計算ロジック
-   ========================================= */
-function setAffinity(lv) {
-  currentAffinity = lv;
-  localStorage.setItem('kage_affinity', lv);
-  const display = document.getElementById('affinity-val');
-  if(display) display.textContent = (lv === 'inf') ? '∞' : lv;
-  document.querySelectorAll('.magic-btn[data-kind="affinity"]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.lv == lv);
-  });
-  refreshDetail();
-}
-
-function setMagicLv(lv) {
-  currentMagicLv = lv;
-  localStorage.setItem('kage_magicLv', lv);
-  const display = document.getElementById('magic-val');
-  if(display) display.textContent = (lv === 'inf') ? '∞' : lv;
-  document.querySelectorAll('.magic-btn[data-kind="magic"]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.lv == lv);
-  });
-  refreshDetail();
-}
-
-function refreshDetail() {
-  const filter = getCurrentFilter();
-  if(lastFiltered.length > 0 && lastFiltered[selectedIdx]) {
-    showDetail(lastFiltered[selectedIdx], filter);
-  }
-}
-
-function replaceDynamicValues(text, type) {
-  if (!text) return text;
-  return text.replace(/\{([\d.]+),\s*([\d.]+)\}/g, (match, minStr, maxStr) => {
-    const min = parseFloat(minStr);
-    const max = parseFloat(maxStr);
-    let val;
-    let isInf = false;
-
-    if (type === 'affinity') {
-      if (currentAffinity === 'inf') isInf = true;
-      else {
-        const step = (max - min) / 9;
-        val = min + (step * (currentAffinity - 1));
-      }
-    } else {
-      if (currentMagicLv === 'inf') isInf = true;
-      else {
-        const diff = (max - min) / 2;
-        if (currentMagicLv <= 2) val = min;
-        else if (currentMagicLv <= 4) val = min + diff;
-        else val = max;
-      }
-    }
-    if (isInf) return `<span class="lv-highlight">${min.toFixed(2)}～${max.toFixed(2)}</span>`;
-    return `<span class="lv-highlight">${val.toFixed(02)}</span>`;
-  });
-}
-
-/* =========================================
-   フィルタボタン生成
-   ========================================= */
+// ボタン管理用マップ
 const roleBtnMap = {};
 const attrBtnMap = {};
 
-roles.forEach(role => {
-  const btn = document.createElement('button');
-  btn.textContent = role;
-  btn.className = "attr-btn"; 
-  btn.style.background = "#444444"; 
-  btn.style.color = "#E0E0E0";      
-  btn.onclick = () => {
-    if (selectedRoles.has(role)) selectedRoles.delete(role);
-    else selectedRoles.add(role);
-    updateRoleBtnColors();
-    updateList(true); 
-  };
-  roleBtnsContainer.appendChild(btn);
-  roleBtnMap[role] = btn;
+/* =========================================
+   初期化処理
+   ========================================= */
+document.addEventListener('DOMContentLoaded', () => {
+    // スタイル注入
+    const style = document.createElement('style');
+    style.textContent = `.skill-sep { border: 0; border-bottom: 1px dashed #666; margin: 8px 0; opacity: 0.5; }`;
+    document.head.appendChild(style);
+
+    // ローカルストレージ読み込み
+    const savedAff = localStorage.getItem('kage_affinity');
+    const savedMag = localStorage.getItem('kage_magicLv');
+    
+    if (savedAff && savedAff !== 'inf') currentAffinity = parseInt(savedAff);
+    else if (savedAff === 'inf') currentAffinity = 'inf';
+
+    if (savedMag && savedMag !== 'inf') currentMagicLv = parseInt(savedMag);
+    else if (savedMag === 'inf') currentMagicLv = 'inf';
+
+    // UI初期化
+    initLevelUI();
+    setupStaticButtons();
+    setupOptionPanel();
+    setupCaptureButton();
+    setupListHeightControl();
+    
+    // データ読み込み
+    loadCharacters();
 });
 
-const nameToggleBtn = document.createElement('button');
-nameToggleBtn.id = "name-toggle-btn";
-nameToggleBtn.textContent = "キャラ名 ▼";
-nameToggleBtn.className = "attr-btn";
-nameToggleBtn.style.background = "#393864";
-nameToggleBtn.style.color = "#fff";
-nameToggleBtn.style.border = "1px solid #5d5c8d";
-nameToggleBtn.onclick = () => {
-  const panel = document.getElementById('name-btns');
-  panel.classList.toggle('is-open');
-  nameToggleBtn.textContent = panel.classList.contains('is-open') ? "キャラ名 ▲" : "キャラ名 ▼";
-};
-document.getElementById('filter-toggle-row').appendChild(nameToggleBtn);
-
-const groupToggleBtn = document.createElement('button');
-groupToggleBtn.id = "group-toggle-btn";
-groupToggleBtn.textContent = "グループ ▼";
-groupToggleBtn.className = "attr-btn";
-groupToggleBtn.style.background = "#393864";
-groupToggleBtn.style.color = "#fff";
-groupToggleBtn.style.border = "1px solid #5d5c8d";
-groupToggleBtn.onclick = () => {
-  const panel = document.getElementById('group-btns');
-  panel.classList.toggle('is-open');
-  groupToggleBtn.textContent = panel.classList.contains('is-open') ? "グループ ▲" : "グループ ▼";
-};
-document.getElementById('filter-toggle-row').appendChild(groupToggleBtn);
-
-// 新規: 効果トグルボタン
-const effectToggleBtn = document.createElement('button');
-effectToggleBtn.id = "effect-toggle-btn";
-effectToggleBtn.textContent = "効果 ▼";
-effectToggleBtn.className = "attr-btn";
-effectToggleBtn.style.background = "#393864";
-effectToggleBtn.style.color = "#fff";
-effectToggleBtn.style.border = "1px solid #5d5c8d";
-effectToggleBtn.onclick = () => {
-  const panel = document.getElementById('effect-btns');
-  panel.classList.toggle('is-open');
-  effectToggleBtn.textContent = panel.classList.contains('is-open') ? "効果 ▲" : "効果 ▼";
-};
-document.getElementById('filter-toggle-row').appendChild(effectToggleBtn);
-
-// 効果モード切替ボタン (AND/OR)
-const effectModeBtn = document.createElement('button');
-effectModeBtn.id = "effect-mode-btn";
-effectModeBtn.textContent = "効果検索: AND";
-effectModeBtn.className = "attr-btn";
-effectModeBtn.style.background = "#2d6b2d";
-effectModeBtn.style.color = "#fff";
-effectModeBtn.style.border = "1px solid #4b8f4b";
-effectModeBtn.onclick = () => {
-  effectMode = (effectMode === 'and') ? 'or' : 'and';
-  effectModeBtn.textContent = effectMode === 'and' ? "効果検索: AND" : "効果検索: OR";
-  updateList(true);
-};
-
-function updateRoleBtnColors() {
-  roles.forEach(role => {
-    const btn = roleBtnMap[role];
-    if(!btn) return;
-    btn.style.background = selectedRoles.has(role) ? "#2c5d8a" : "#444444";
-    btn.style.color = "#E0E0E0";
-  });
+/* =========================================
+   レベル操作・計算ロジック (元の計算式を完全維持)
+   ========================================= */
+function initLevelUI() {
+    updateLevelDisplay('affinity', currentAffinity);
+    updateLevelDisplay('magic', currentMagicLv);
 }
 
-for (const attr of ["赤","緑","黄","青"]) {
-  const btn = document.createElement('button');
-  btn.textContent = attr;
-  btn.className = "attr-btn";
-  btn.onclick = () => {
-    if (selectedAttrs.has(attr)) selectedAttrs.delete(attr);
-    else selectedAttrs.add(attr);
+// 外部呼び出し用関数（HTMLのonclick対応）
+window.setAffinity = function(lv) {
+    currentAffinity = lv;
+    localStorage.setItem('kage_affinity', lv);
+    updateLevelDisplay('affinity', lv);
+    refreshDetail();
+};
+
+window.setMagicLv = function(lv) {
+    currentMagicLv = lv;
+    localStorage.setItem('kage_magicLv', lv);
+    updateLevelDisplay('magic', lv);
+    refreshDetail();
+};
+
+function updateLevelDisplay(type, lv) {
+    const el = type === 'affinity' ? ELS.affinityVal : ELS.magicVal;
+    const btns = type === 'affinity' ? ELS.getAffinityBtns() : ELS.getMagicBtns();
+    
+    if(el) el.textContent = (lv === 'inf') ? '∞' : lv;
+    btns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.lv == lv);
+    });
+}
+
+function refreshDetail() {
+    // 現在の入力内容でハイライト用フィルタを作成して詳細再描画
+    if(lastFiltered.length > 0 && lastFiltered[selectedIdx]) {
+        showDetail(lastFiltered[selectedIdx], getCurrentFilterKeywords());
+    }
+}
+
+// ★重要：元の計算ロジックを完全に維持
+function replaceDynamicValues(text, type) {
+    if (!text) return text;
+    return text.replace(CONFIG.REGEX.dynamicVal, (match, minStr, maxStr) => {
+        const min = parseFloat(minStr);
+        const max = parseFloat(maxStr);
+        let val;
+        let isInf = false;
+
+        if (type === 'affinity') {
+            if (currentAffinity === 'inf') isInf = true;
+            else {
+                const step = (max - min) / 9;
+                val = min + (step * (currentAffinity - 1));
+            }
+        } else {
+            if (currentMagicLv === 'inf') isInf = true;
+            else {
+                const diff = (max - min) / 2;
+                if (currentMagicLv <= 2) val = min;
+                else if (currentMagicLv <= 4) val = min + diff;
+                else val = max;
+            }
+        }
+        
+        // 元コードの出力フォーマットを維持
+        if (isInf) return `<span class="lv-highlight">${min.toFixed(2)}～${max.toFixed(2)}</span>`;
+        return `<span class="lv-highlight">${val.toFixed(2)}</span>`; // toFixed(02) は toFixed(2) と同義
+    });
+}
+
+/* =========================================
+   フィルタボタン生成・制御
+   ========================================= */
+function setupStaticButtons() {
+    // ロールボタン
+    const roleFrag = document.createDocumentFragment();
+    CONFIG.roles.forEach(role => {
+        const btn = document.createElement('button');
+        btn.textContent = role;
+        btn.className = "attr-btn";
+        btn.style.background = "#444444";
+        btn.style.color = "#E0E0E0";
+        btn.onclick = () => {
+            if (selectedRoles.has(role)) selectedRoles.delete(role);
+            else selectedRoles.add(role);
+            updateRoleBtnColors();
+            updateList(true);
+        };
+        roleFrag.appendChild(btn);
+        roleBtnMap[role] = btn;
+    });
+    ELS.roleBtns.appendChild(roleFrag);
+
+    // 属性ボタン
+    const attrFrag = document.createDocumentFragment();
+    for (const attr of ["赤","緑","黄","青"]) {
+        const btn = document.createElement('button');
+        btn.textContent = attr;
+        btn.className = "attr-btn";
+        btn.onclick = () => {
+            if (selectedAttrs.has(attr)) selectedAttrs.delete(attr);
+            else selectedAttrs.add(attr);
+            updateAttrBtnColors();
+            updateList(true);
+        };
+        attrFrag.appendChild(btn);
+        attrBtnMap[attr] = btn;
+    }
+    ELS.attrBtns.appendChild(attrFrag);
     updateAttrBtnColors();
-    updateList(true);
-  };
-  attrBtns.appendChild(btn);
-  attrBtnMap[attr] = btn;
+
+    // トグルボタン群（DOM生成ヘルパーを使用せず、元のロジック通り生成）
+    createToggleBtn("name-toggle-btn", "キャラ名 ▼", "name-btns");
+    createToggleBtn("group-toggle-btn", "グループ ▼", "group-btns");
+    createToggleBtn("effect-toggle-btn", "効果 ▼", "effect-btns");
+
+    // 画像切り替え
+    if (ELS.imgBtn) {
+        ELS.imgBtn.onclick = () => {
+            showImages = !showImages;
+            ELS.imgBtn.textContent = showImages ? "画像: ON" : "画像: OFF";
+            ELS.imgBtn.classList.toggle("active", showImages);
+            updateList(false);
+        };
+    }
+
+    // ソート
+    ELS.sortBtn.onclick = () => {
+        positionSorted = !positionSorted;
+        ELS.sortBtn.setAttribute("aria-pressed", positionSorted ? "true" : "false");
+        updateList(true);
+    };
+
+    // 検索入力（デバウンス処理は維持）
+    let searchTimeout;
+    ELS.filter.addEventListener('input', () => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => { updateList(true); }, 300);
+    });
+}
+
+function createToggleBtn(id, text, targetId) {
+    const btn = document.createElement('button');
+    btn.id = id;
+    btn.textContent = text;
+    btn.className = "attr-btn";
+    btn.style.background = "#393864";
+    btn.style.color = "#fff";
+    btn.style.border = "1px solid #5d5c8d";
+    
+    const panel = document.getElementById(targetId);
+    btn.onclick = () => {
+        panel.classList.toggle('is-open');
+        btn.textContent = panel.classList.contains('is-open') ? text.replace('▼', '▲') : text;
+    };
+    ELS.toggleRow.appendChild(btn);
+}
+
+function updateRoleBtnColors() {
+    CONFIG.roles.forEach(role => {
+        const btn = roleBtnMap[role];
+        if(!btn) return;
+        btn.style.background = selectedRoles.has(role) ? "#2c5d8a" : "#444444";
+    });
 }
 
 function updateAttrBtnColors() {
-  for (const attr of ["赤","緑","黄","青"]) {
-    const btn = attrBtnMap[attr];
-    if(!btn) continue;
-    btn.style.background = selectedAttrs.has(attr) ? attributes[attr] : "#666666";
-  }
+    for (const attr of ["赤","緑","黄","青"]) {
+        const btn = attrBtnMap[attr];
+        if(!btn) continue;
+        btn.style.background = selectedAttrs.has(attr) ? CONFIG.attributes[attr] : "#666666";
+    }
 }
-updateAttrBtnColors();
 
 /* =========================================
-   検索・ソート・表示制御
+   検索・リスト表示ロジック
    ========================================= */
-const imgBtn = document.getElementById("toggle-img-btn");
-if (imgBtn) {
-  imgBtn.onclick = () => {
-    showImages = !showImages; // フラグ反転
-    
-    // ボタンの表示とスタイル更新
-    if (showImages) {
-      imgBtn.textContent = "画像: ON";
-      imgBtn.classList.add("active"); // index.htmlのstyleで青色になる
-    } else {
-      imgBtn.textContent = "画像: OFF";
-      imgBtn.classList.remove("active");
-    }
-    
-    updateList(false); // リスト再描画
-  };
+function getCurrentFilterKeywords(){
+    // 全角スペース変換も含め、元のロジック通り
+    return ELS.filter.value.normalize('NFKC').toLowerCase().replace(/　/g, ' ').trim().split(/[ ]+/).filter(k=>k);
 }
 
-const sortBtn = document.getElementById('sort-btn');
-sortBtn.onclick = () => {
-  positionSorted = !positionSorted;
-  sortBtn.setAttribute("aria-pressed", positionSorted ? "true" : "false");
-  updateList(true);
-};
+function highlightText(text, keywords){ return text; } // プレースホルダ
 
-let searchTimeout;
-document.getElementById('filter').addEventListener('input', () => {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => { updateList(true); }, 300);
-});
-
-function getCurrentFilter(){
-  return document.getElementById('filter').value.toLowerCase().split(/[ 　]+/).filter(k=>k);
-}
-
-function highlightText(text, keywords){ return text; } 
-
+// DOM操作によるハイライト（高速化のためTreeWalker使用）
 function applyHighlightDOM(root, keywords) {
-  if (!root || !keywords || !keywords.length) return;
-  const safeWords = keywords.filter(k => k && k.trim()).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  if (!safeWords.length) return;
-  const splitRegex = new RegExp(`(${safeWords.join('|')})`, 'gi');
-  const testRegex = new RegExp(`^(${safeWords.join('|')})$`, 'i');
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      if (!node.parentElement || node.parentElement.closest('.hit') || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
-      return NodeFilter.FILTER_ACCEPT;
-    }
-  });
-  const textNodes = [];
-  while (walker.nextNode()) textNodes.push(walker.currentNode);
-  textNodes.forEach(node => {
-    const frag = document.createDocumentFragment();
-    const parts = node.nodeValue.split(splitRegex);
-    parts.forEach(part => {
-      if (testRegex.test(part)) {
-        const span = document.createElement('span');
-        span.className = 'hit';
-        span.textContent = part;
-        frag.appendChild(span);
-      } else {
-        frag.appendChild(document.createTextNode(part));
-      }
+    if (!root || !keywords || !keywords.length) return;
+    const safeWords = keywords.filter(k => k && k.trim()).map(k => k.replace(CONFIG.REGEX.unsafeChars, '\\$&'));
+    if (!safeWords.length) return;
+
+    const splitRegex = new RegExp(`(${safeWords.join('|')})`, 'gi');
+    const testRegex = new RegExp(`^(${safeWords.join('|')})$`, 'i');
+
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+            if (!node.parentElement || node.parentElement.closest('.hit') || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+            return NodeFilter.FILTER_ACCEPT;
+        }
     });
-    node.parentNode.replaceChild(frag, node);
-  });
+
+    const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+
+    nodes.forEach(node => {
+        const parts = node.nodeValue.split(splitRegex);
+        if (parts.length > 1) {
+            const frag = document.createDocumentFragment();
+            parts.forEach(part => {
+                if (testRegex.test(part)) {
+                    const span = document.createElement('span');
+                    span.className = 'hit';
+                    span.textContent = part;
+                    frag.appendChild(span);
+                } else {
+                    frag.appendChild(document.createTextNode(part));
+                }
+            });
+            node.parentNode.replaceChild(frag, node);
+        }
+    });
 }
 
-const attrClassMap = {"赤": "attr-red", "緑": "attr-green", "黄": "attr-yellow", "青": "attr-blue"};
-function attributeClass(attr) { return attrClassMap[attr] || ""; }
+// ★重要：元の検索ロジックを完全に維持
+function updateList(resetSelect=false) {
+    const filterKeywords = getCurrentFilterKeywords();
+
+    // 検索対象マップ
+    const fieldMap = {
+        "特殊": ["traits"], "特技": ["skill1", "skill2"], "奥義": ["ultimate","ex_ultimate"],
+        "魔道具": ["magic_item1", "magic_item2"], "コンボ": ["combo"], "通常": ["normal_attack"]
+    };
+
+    let filtered = characters.filter(char => {
+        if (!char._search) return false;
+        
+        // AND検索ロジック
+        const matchKeywords = filterKeywords.every(token => {
+            if (token.includes(':') || token.includes('：')) {
+                let [key, val] = token.split(CONFIG.REGEX.splitColon);
+                const targetProps = fieldMap[key];
+                if (targetProps && val) {
+                    return targetProps.some(prop => {
+                        const data = char[prop];
+                        return data && JSON.stringify(data).toLowerCase().includes(val);
+                    });
+                }
+            }
+            return char._search.includes(token);
+        });
+        if (!matchKeywords) return false;
+
+        // 各種フィルタ
+        if (selectedAttrs.size > 0 && !selectedAttrs.has(char.attribute)) return false;
+        if (selectedRoles.size > 0 && !selectedRoles.has(char.role)) return false;
+        if (selectedGroups.size > 0 && !(char.group || []).some(g => selectedGroups.has(g))) return false;
+        
+        if (selectedNames.size > 0) {
+            const cleanName = char.name.split('[')[0].trim();
+            const names = cleanName.split(CONFIG.REGEX.splitName).map(n => n.trim());
+            if (!names.some(n => selectedNames.has(n))) return false;
+        }
+
+        if (selectedEffects.size > 0) {
+            const charEffects = new Set(char._effects || []);
+            if (effectMode === 'and') {
+                for (const e of selectedEffects) if (!charEffects.has(e)) return false;
+            } else {
+                let hit = false;
+                for (const e of selectedEffects) if (charEffects.has(e)) { hit = true; break; }
+                if (!hit) return false;
+            }
+        }
+        return true;
+    });
+
+    if (positionSorted) filtered.sort((a,b)=>(parseInt(a.position)||999)-(parseInt(b.position)||999));
+
+    lastFiltered = filtered;
+    ELS.hitCount.textContent = `ヒット件数: ${filtered.length}件`;
+
+    // ハイライトキーワード抽出
+    const highlightKeywords = filterKeywords.map(k => {
+        if (k.includes(':') || k.includes('：')) return k.split(CONFIG.REGEX.splitColon)[1];
+        return k;
+    }).filter(k => k);
+
+    // ★高速化: DocumentFragmentを使用（動作は変わらず描画だけ高速化）
+    ELS.list.innerHTML = "";
+    const fragment = document.createDocumentFragment();
+
+    filtered.forEach((char,idx)=>{
+        const li = document.createElement('li');
+        li.textContent = char.name;
+        applyHighlightDOM(li, highlightKeywords);
+        
+        // クリックイベント（ID等は使わずクロージャで解決）
+        li.onclick = () => { 
+            tabMode = 0; 
+            showDetail(char, highlightKeywords); 
+            selectedIdx = idx; 
+            highlightSelected(); 
+        };
+        fragment.appendChild(li);
+    });
+    ELS.list.appendChild(fragment);
+
+    if(filtered.length) {
+        if(resetSelect) selectedIdx = 0;
+        if (selectedIdx >= filtered.length) selectedIdx = 0;
+        showDetail(filtered[selectedIdx], highlightKeywords);
+        highlightSelected();
+    } else {
+        showDetail(null);
+    }
+}
+
+function highlightSelected() {
+    // 高速化: 直接クラス操作
+    const items = ELS.list.children;
+    for (let i = 0; i < items.length; i++) {
+        if (i === selectedIdx) items[i].classList.add('selected');
+        else items[i].classList.remove('selected');
+    }
+}
 
 /* =========================================
-   詳細表示 (HTML生成)
+   詳細表示 (元のHTML構築ロジックを維持)
    ========================================= */
 function comboBlock(combo, filter=[]) {
-  let res = "";
-  if (Array.isArray(combo)) {
-    res = combo
-      .map(row => (typeof row === 'object') ? (row.effect ?? '') : row)
-      .filter(text => text && text !== "-")
-      .map(text => `<div class="combo-row" style="border:none !important;"><span class="combo-effect">${highlightText(text, filter)}</span></div>`)
-      .join('<hr class="skill-sep">');
-  } 
-  else if (typeof combo === 'object' && combo !== null) {
-    const effect = combo.effect ?? '';
-    if (effect && effect !== "-") res = `<div class="combo-row" style="border:none !important;"><span class="combo-effect">${highlightText(effect, filter)}</span></div>`;
-  } 
-  else {
-    const text = combo || '';
-    if (text && text !== "-") res = `<div class="combo-row" style="border:none !important;"><span class="combo-effect">${highlightText(text, filter)}</span></div>`;
-  }
-  return replaceDynamicValues(res, 'affinity');
+    let res = "";
+    // ★元の条件判定 (text && text !== "-") を厳密に維持
+    if (Array.isArray(combo)) {
+        res = combo
+            .map(row => (typeof row === 'object') ? (row.effect ?? '') : row)
+            .filter(text => text && text !== "-")
+            .map(text => `<div class="combo-row" style="border:none !important;"><span class="combo-effect">${highlightText(text, filter)}</span></div>`)
+            .join('<hr class="skill-sep">');
+    } 
+    else if (typeof combo === 'object' && combo !== null) {
+        const effect = combo.effect ?? '';
+        if (effect && effect !== "-") res = `<div class="combo-row" style="border:none !important;"><span class="combo-effect">${highlightText(effect, filter)}</span></div>`;
+    } 
+    else {
+        const text = combo || '';
+        if (text && text !== "-") res = `<div class="combo-row" style="border:none !important;"><span class="combo-effect">${highlightText(text, filter)}</span></div>`;
+    }
+    return replaceDynamicValues(res, 'affinity');
 }
 
 function skillBlockBothInline(arr, filter=[], isMagic=false) {
-  if (!arr) return "";
-  if (!Array.isArray(arr)) arr = [arr];
-  const type = isMagic ? 'magic' : 'affinity';
-  return arr.map(skill => {
-    if (typeof skill === "object") {
-      const skillName = skill.title || skill.name || "";
-      if (isMagic) {
-        const text = replaceDynamicValues(skill.effect || skill.normal || skill.description || "", type);
-        return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}${highlightText(text, filter)}</div>`;
-      }
-      const normal = replaceDynamicValues(skill.normal || "", type);
-      const awakened = replaceDynamicValues(skill.awakened || "", type);
-      
-      if (awakened) {
-        return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}
-          <span class="effect-label normal-label">通常</span>${highlightText(normal, filter)}
-          <div style="border-top: 1px dashed #555; margin: 6px 0 6px 0; opacity: 0.7;"></div>
-          <span class="effect-label awakened-label">覚醒</span>${highlightText(awakened, filter)}
-        </div>`;
-      } else {
-        return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}${highlightText(normal, filter)}</div>`;
-      }
-      
-    }
-    const text = replaceDynamicValues(skill, type);
-    return (text === "-") ? "" : `<div>${highlightText(text, filter)}</div>`;
-  }).filter(html => html !== "").join('<hr class="skill-sep">');
+    if (!arr) return "";
+    if (!Array.isArray(arr)) arr = [arr];
+    const type = isMagic ? 'magic' : 'affinity';
+    
+    return arr.map(skill => {
+        if (typeof skill === "object") {
+            const skillName = skill.title || skill.name || "";
+            if (isMagic) {
+                const text = replaceDynamicValues(skill.effect || skill.normal || skill.description || "", type);
+                return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}${highlightText(text, filter)}</div>`;
+            }
+            const normal = replaceDynamicValues(skill.normal || "", type);
+            const awakened = replaceDynamicValues(skill.awakened || "", type);
+            
+            if (awakened) {
+                return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}
+                  <span class="effect-label normal-label">通常</span>${highlightText(normal, filter)}
+                  <div style="border-top: 1px dashed #555; margin: 6px 0 6px 0; opacity: 0.7;"></div>
+                  <span class="effect-label awakened-label">覚醒</span>${highlightText(awakened, filter)}
+                </div>`;
+            } else {
+                return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}${highlightText(normal, filter)}</div>`;
+            }
+        }
+        const text = replaceDynamicValues(skill, type);
+        // ★元の条件 (text === "-") ? "" を維持
+        return (text === "-") ? "" : `<div>${highlightText(text, filter)}</div>`;
+    }).filter(html => html !== "").join('<hr class="skill-sep">');
 }
 
 function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
-  if (!arr) return "";
-  if (!Array.isArray(arr)) arr = [arr];
-  const calcType = isMagic ? 'magic' : 'affinity';
-  return arr.map(skill => {
-    let rawText = "";
-    if (isMagic) {
-       if (typeof skill === "string") rawText = skill;
-       else if (typeof skill === "object") rawText = skill.title ? `<b>${skill.title}</b><br>${skill.effect||skill.normal||""}` : (skill.effect||skill.normal||"");
-    } else {
-       if (typeof skill === "string") rawText = skill;
-       else if ("title" in skill) rawText = `<b>${skill.title}</b><br>${tabType===1 ? skill.normal : skill.awakened}`;
-       else rawText = tabType===0 ? (skill.normal || "") : (skill.awakened || "");
-    }
-    if (rawText === "-") return "";
-    return highlightText(replaceDynamicValues(rawText, calcType), filter);
-  }).filter(s => s !== "").join('<hr class="skill-sep">'); 
-}
-
-function showTabs(char, filter) {
-  const detail = document.getElementById('detail');
-  detail.prepend(document.createRange().createContextualFragment(`
-    <div class="tabs-wrap" id="detail-tabs">
-      <div class="tabs-buttons">
-        <button class="tabs-btn${tabMode===0?' active':''}" id="tab-both">比較</button>
-        <button class="tabs-btn${tabMode===1?' active':''}" id="tab-normal">覚醒前</button>
-        <button class="tabs-btn${tabMode===2?' active':''}" id="tab-awakened">覚醒後</button>
-      </div>
-    </div>`));
-  document.getElementById('tab-both').onclick = ()=>{ tabMode=0; showDetail(char, filter); };
-  document.getElementById('tab-normal').onclick = ()=>{ tabMode=1; showDetail(char, filter); };
-  document.getElementById('tab-awakened').onclick = ()=>{ tabMode=2; showDetail(char, filter); };
+    if (!arr) return "";
+    if (!Array.isArray(arr)) arr = [arr];
+    const calcType = isMagic ? 'magic' : 'affinity';
+    
+    return arr.map(skill => {
+        let rawText = "";
+        if (isMagic) {
+            if (typeof skill === "string") rawText = skill;
+            else if (typeof skill === "object") rawText = skill.title ? `<b>${skill.title}</b><br>${skill.effect||skill.normal||""}` : (skill.effect||skill.normal||"");
+        } else {
+            if (typeof skill === "string") rawText = skill;
+            else if ("title" in skill) rawText = `<b>${skill.title}</b><br>${tabType===1 ? skill.normal : skill.awakened}`;
+            else rawText = tabType===0 ? (skill.normal || "") : (skill.awakened || "");
+        }
+        if (rawText === "-") return "";
+        return highlightText(replaceDynamicValues(rawText, calcType), filter);
+    }).filter(s => s !== "").join('<hr class="skill-sep">'); 
 }
 
 function showDetail(char, filter=[]) {
-  const detail=document.getElementById('detail');
-  const captureBtn = document.getElementById('capture-btn');
-  if(!char){ 
-    detail.textContent="該当キャラクターがありません。"; 
-    if(captureBtn) captureBtn.style.display = 'none';
-    return; 
-  }
-  const attrColor=attributes[char.attribute]||"#E0E0E0";
-  function highlightDetail(val){ return (val && filter.length) ? highlightText(val, filter) : val; }
+    if(!char){ 
+        ELS.detail.textContent="該当キャラクターがありません。"; 
+        if(ELS.captureBtn) ELS.captureBtn.style.display = 'none';
+        return; 
+    }
+    
+    const attrColor = CONFIG.attributes[char.attribute] || "#E0E0E0";
+    const highlightDetail = (val) => (val && filter.length) ? highlightText(val, filter) : val;
 
-  let imageHtml = "";
-  if (showImages) {
-    const base = "image/characters/";
-    const images = [base + char.name + ".png", base + char.name + "_Ex.png"];
-    imageHtml = `<div class="char-image-container">${images.map(img => `<img src="${img}" class="char-image" crossorigin="anonymous" onerror="this.style.display='none';">`).join("")}</div>`;
-  }
+    let imageHtml = "";
+    if (showImages) {
+        const base = "image/characters/";
+        const images = [base + char.name + ".png", base + char.name + "_Ex.png"];
+        imageHtml = `<div class="char-image-container">${images.map(img => `<img src="${img}" class="char-image" crossorigin="anonymous" onerror="this.style.display='none';">`).join("")}</div>`;
+    }
 
-  let mainContent = `<div class="char-detail-wrap">
+    const attributeClass = (attr) => ({"赤": "attr-red", "緑": "attr-green", "黄": "attr-yellow", "青": "attr-blue"}[attr] || "");
+
+    let mainContent = `<div class="char-detail-wrap">
       <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
       ${imageHtml}
       <div class="char-basic">
@@ -424,170 +524,226 @@ function showDetail(char, filter=[]) {
        <div class="char-basic-item"><span class="char-label">覚醒</span><span class="char-value">${char.arousal}</span></div>
       </div>`;
 
-  const comboHtml = `<div class="char-section"><div class="char-section-title">コンボ</div><div class="char-section-content">${comboBlock(char.combo, filter)}</div></div>`;
-  const sect = (title, data, isMag=false) => `<div class="char-section"><div class="char-section-title">${title}</div><div class="char-section-content">${tabMode===0 ? skillBlockBothInline(data, filter, isMag) : (tabMode===1 ? skillBlockCompare(data, filter, 1, isMag) : skillBlockCompare(data, filter, 2, isMag))}</div></div>`;
+    const sect = (title, data, isMag=false) => {
+        let content;
+        if(tabMode === 0) content = skillBlockBothInline(data, filter, isMag);
+        else if(tabMode === 1) content = skillBlockCompare(data, filter, 1, isMag);
+        else content = skillBlockCompare(data, filter, 2, isMag);
+        return `<div class="char-section"><div class="char-section-title">${title}</div><div class="char-section-content">${content}</div></div>`;
+    };
 
-  mainContent += `
+    mainContent += `
     ${sect("究極奥義", char.ex_ultimate||[])}
     ${sect("奥義", char.ultimate)}
     ${sect("特技1", char.skill1)}
     ${sect("特技2", char.skill2)}
     ${sect("特殊", char.traits)}
-    ${comboHtml}
+    <div class="char-section"><div class="char-section-title">コンボ</div><div class="char-section-content">${comboBlock(char.combo, filter)}</div></div>
     ${sect("通常攻撃", char.normal_attack||[])}
     ${sect("魔道具1", char.magic_item1, true)}
     ${sect("魔道具2", char.magic_item2, true)}
-  </div>`;
+    </div>`;
 
-  detail.innerHTML = mainContent;
-  showTabs(char, filter);
-  applyHighlightDOM(detail, filter);
-  if(captureBtn) captureBtn.style.display = 'inline-block';
-}
-
-/* =========================================
-   リスト選択ハイライト
-   ========================================= */
-function highlightSelected() {
-  const list = document.getElementById('list');
-  // 子要素を全て取得して判定
-  Array.from(list.children).forEach((li, idx) => {
-    if (idx === selectedIdx) {
-      li.classList.add('selected');
-    } else {
-      li.classList.remove('selected');
-    }
-  });
-}
-
-/* =========================================
-   高速化: リスト描画の最適化 (Fragment使用)
-   ========================================= */
-function updateList(resetSelect=false) {
-  const list = document.getElementById('list');
-  // 全角スペースも半角に変換してから分割
-  const rawFilter = document.getElementById('filter').value
-      .normalize('NFKC') 
-      .toLowerCase()
-      .replace(/　/g, ' ')
-      .trim();
-
-  const filterKeywords = rawFilter.split(/[ ]+/).filter(k => k);
-  
-  // ▼ 検索対象の定義
-  const fieldMap = {
-      "特殊": ["traits"],
-      "特技": ["skill1", "skill2"],
-      "奥義": ["ultimate","ex_ultimate"],
-      "魔道具": ["magic_item1", "magic_item2"],
-      "コンボ": ["combo"],
-      "通常": ["normal_attack"]
-  };
-
-  // ▼ フィルタリング処理
-  let filtered = characters.filter(char => {
-    if (!char._search) return false; 
+    ELS.detail.innerHTML = mainContent;
     
-    // 入力されたキーワードすべてを満たしているかチェック (AND検索)
-    return filterKeywords.every(token => {
-        // キーワードに「:」または「：」が含まれているか判定
-        if (token.includes(':') || token.includes('：')) {
-            let [key, val] = token.split(/[:：]/);
-            
-            // 定義にある項目なら、その中身だけを探す
-            const targetProps = fieldMap[key];
-            if (targetProps && val) {
-                return targetProps.some(prop => {
-                    const data = char[prop];
-                    return data && JSON.stringify(data).toLowerCase().includes(val);
-                });
-            }
+    // タブ生成
+    const tabRange = document.createRange().createContextualFragment(`
+    <div class="tabs-wrap" id="detail-tabs">
+      <div class="tabs-buttons">
+        <button class="tabs-btn${tabMode===0?' active':''}" id="tab-both">比較</button>
+        <button class="tabs-btn${tabMode===1?' active':''}" id="tab-normal">覚醒前</button>
+        <button class="tabs-btn${tabMode===2?' active':''}" id="tab-awakened">覚醒後</button>
+      </div>
+    </div>`);
+    ELS.detail.prepend(tabRange);
+    
+    document.getElementById('tab-both').onclick = ()=>{ tabMode=0; showDetail(char, filter); };
+    document.getElementById('tab-normal').onclick = ()=>{ tabMode=1; showDetail(char, filter); };
+    document.getElementById('tab-awakened').onclick = ()=>{ tabMode=2; showDetail(char, filter); };
+
+    applyHighlightDOM(ELS.detail, filter);
+    if(ELS.captureBtn) ELS.captureBtn.style.display = 'inline-block';
+}
+
+/* =========================================
+   データ読み込み・ボタン生成 (元のロジック維持)
+   ========================================= */
+async function loadCharacters() {
+    const jsonUrl = 'characters/all_characters.json';
+    const cacheKeyData = 'kage_char_data_v3'; 
+    const cacheKeyTime = 'kage_char_time_v3'; 
+
+    try {
+        const headResp = await fetch(jsonUrl, { method: 'HEAD' });
+        if (!headResp.ok) throw new Error("Network response was not ok");
+        
+        const serverLastModified = headResp.headers.get('Last-Modified');
+        const localLastModified = localStorage.getItem(cacheKeyTime);
+        const localData = localStorage.getItem(cacheKeyData);
+
+        if (localData && localLastModified && serverLastModified === localLastModified) {
+            console.log("Using cached data");
+            characters = JSON.parse(localData);
+            initButtons();
+            updateList(true);
+            return; 
         }
-        // コロンがない、または未知の項目の場合は全体検索
-        return char._search.includes(token);
-    });
-  });
 
-  // --- 既存のボタンフィルタ処理 ---
-  if (selectedAttrs.size > 0) filtered = filtered.filter(c => selectedAttrs.has(c.attribute));
-  if (selectedRoles.size > 0) filtered = filtered.filter(c => selectedRoles.has(c.role));
-  if (selectedNames.size > 0) {
-    filtered = filtered.filter(c => {
-      const cleanName = c.name.split('[')[0].trim();
-      const names = cleanName.split(/[&＆]/).map(n => n.trim());
-      return names.some(n => selectedNames.has(n));
-    });
-  }
-  if (selectedGroups.size > 0) {
-    filtered = filtered.filter(c => (c.group || []).some(g => selectedGroups.has(g)));
-  }
-  if (selectedEffects.size > 0) {
-    if (effectMode === 'and') {
-      filtered = filtered.filter(c => {
-        const set = new Set((c._effects||[]));
-        for (const e of selectedEffects) if (!set.has(e)) return false;
-        return true;
-      });
-    } else {
-      filtered = filtered.filter(c => {
-        const set = new Set((c._effects||[]));
-        for (const e of selectedEffects) if (set.has(e)) return true;
-        return false;
-      });
-    }
-  }
+        console.log("Downloading new data...");
+        const resp = await fetch(jsonUrl);
+        if(resp.ok){
+            characters = await resp.json();
 
-  if (positionSorted) filtered.sort((a,b)=>(parseInt(a.position)||999)-(parseInt(b.position)||999));
+            // ★重要：元の「効果抽出」ロジックを完全再現
+            const extractEffects = (text, targetSet) => {
+                if (!text || typeof text !== 'string') return;
+                const matches = text.matchAll(CONFIG.REGEX.effects);
+                for (const m of matches) targetSet.add(m[1].trim());
+            };
+            const processSkillData = (data, targetSet) => {
+                if (!data) return;
+                if (Array.isArray(data)) data.forEach(item => processSkillData(item, targetSet));
+                else if (typeof data === 'object') {
+                    extractEffects(data.normal, targetSet);
+                    extractEffects(data.awakened, targetSet);
+                    extractEffects(data.effect, targetSet);
+                    extractEffects(data.description, targetSet);
+                } else if (typeof data === 'string') extractEffects(data, targetSet);
+            };
 
-  lastFiltered = filtered;
-  document.getElementById('hit-count').textContent=`ヒット件数: ${filtered.length}件`;
-  
-  // ▼▼▼ ハイライト用キーワードの作成 ▼▼▼
-  // 「特殊:被ダメ」なら「被ダメ」だけを取り出してハイライト対象にする
-  const highlightKeywords = filterKeywords.map(k => {
-      if (k.includes(':') || k.includes('：')) {
-          return k.split(/[:：]/)[1]; 
-      }
-      return k;
-  }).filter(k => k); // 空文字は除去
+            characters.forEach(c => {
+                // ★重要：検索対象文字列の生成ロジックを元に戻しました (JSON.stringify含む)
+                c._search = (c.name + " " + (c.group||[]).join(" ") + " " + JSON.stringify(c)).toLowerCase();
+                
+                const effectSet = new Set();
+                [c.ultimate, c.ex_ultimate, c.skill1, c.skill2, c.traits, c.combo, c.magic_item1, c.magic_item2].forEach(t => processSkillData(t, effectSet));
+                c._effects = Array.from(effectSet);
+            });
 
-  
-  // --- リスト描画 ---
-  list.innerHTML = ""; 
-  const fragment = document.createDocumentFragment();
+            try {
+                localStorage.setItem(cacheKeyData, JSON.stringify(characters));
+                localStorage.setItem(cacheKeyTime, serverLastModified);
+            } catch (e) { console.warn("Cache quota exceeded", e); }
 
-  filtered.forEach((char,idx)=>{
-    const li = document.createElement('li');
-    li.textContent = char.name;
-    
-    // ハイライト適用
-    applyHighlightDOM(li, highlightKeywords);
-    
-    // クリック時もハイライト情報を渡す
-    li.onclick = () => { tabMode=0; showDetail(char, highlightKeywords); selectedIdx=idx; highlightSelected(); };
-    fragment.appendChild(li);
-  });
-
-  list.appendChild(fragment);
-
-  if(filtered.length) {
-    if(resetSelect) selectedIdx=0;
-    if (selectedIdx >= filtered.length) selectedIdx = 0;
-    // 詳細画面にもハイライト情報を渡す
-    showDetail(filtered[selectedIdx], highlightKeywords);
-    highlightSelected();
-  } else { showDetail(null); }
+            initButtons();
+            updateList(true);
+        }
+    } catch (err) { console.error("Failed to load characters:", err); }
 }
 
+function initButtons() {
+    setupGroupButtons();
+    setupNameButtons();
+    setupEffectButtons();
+}
+
+function customSort(a, b, type) {
+    // ソートヘルパー関数も元のロジック通り
+    const getSortPriority = (text, type) => {
+        if (!text) return 99;
+        const charCode = text.charCodeAt(0);
+        const isKanji = (charCode >= 0x4e00 && charCode <= 0x9fff);
+        const isKatakana = (charCode >= 0x30a0 && charCode <= 0x30ff);
+        const isHiragana = (charCode >= 0x3040 && charCode <= 0x309f);
+
+        if (type === 'group') {
+            if (isKanji) return 1;
+            if (isKatakana) return 2;
+            if (isHiragana) return 3;
+            return 4;
+        } else if (type === 'name') {
+            if (isKatakana) return 1;
+            if (isKanji) return 2;
+            return 3;
+        }
+        return 99;
+    };
+    const priorityA = getSortPriority(a, type);
+    const priorityB = getSortPriority(b, type);
+    if (priorityA !== priorityB) return priorityA - priorityB;
+    return a.localeCompare(b, 'ja');
+}
+
+function setupGroupButtons() {
+    const container = ELS.groupBtns;
+    container.innerHTML = "";
+    const allGroups = new Set();
+    characters.forEach(char => char.group?.forEach(g => allGroups.add(g)));
+    
+    Array.from(allGroups)
+        .sort((a, b) => customSort(a, b, 'group'))
+        .forEach(g => {
+            const btn = document.createElement('button');
+            btn.textContent = g; btn.className = "group-btn";
+            btn.onclick = () => {
+                btn.classList.toggle('active');
+                if (selectedGroups.has(g)) selectedGroups.delete(g); else selectedGroups.add(g);
+                updateList(true);
+            };
+            container.appendChild(btn);
+        });
+}
+
+function setupNameButtons() {
+    const container = ELS.nameBtns;
+    container.innerHTML = "";
+    const allNames = new Set();
+    characters.forEach(c => c.name.split('[')[0].split(CONFIG.REGEX.splitName).forEach(n => allNames.add(n.trim())));
+    
+    Array.from(allNames)
+        .sort((a, b) => customSort(a, b, 'name'))
+        .forEach(n => {
+            const btn = document.createElement('button');
+            btn.textContent = n; btn.className = "group-btn";
+            btn.onclick = () => {
+                btn.classList.toggle('active');
+                if (selectedNames.has(n)) selectedNames.delete(n); else selectedNames.add(n);
+                updateList(true);
+            };
+            container.appendChild(btn);
+        });
+}
+
+function setupEffectButtons() {
+    const container = ELS.effectBtns;
+    container.innerHTML = "";
+    
+    const modeBtn = document.createElement('button');
+    modeBtn.id = "effect-mode-btn";
+    modeBtn.textContent = effectMode === 'and' ? "効果検索: AND" : "効果検索: OR";
+    modeBtn.className = "group-btn";
+    modeBtn.style.background = "#2d6b2d";
+    modeBtn.style.border = "1px solid #4b8f4b";
+    modeBtn.style.color = "#fff";
+    modeBtn.onclick = () => {
+        effectMode = (effectMode === 'and') ? 'or' : 'and';
+        modeBtn.textContent = effectMode === 'and' ? "効果検索: AND" : "効果検索: OR";
+        updateList(true);
+    };
+    container.appendChild(modeBtn);
+
+    const allEffects = new Set();
+    characters.forEach(c => (c._effects||[]).forEach(e => allEffects.add(e)));
+
+    Array.from(allEffects).sort((a,b) => a.localeCompare(b, 'ja')).forEach(e => {
+        const btn = document.createElement('button');
+        btn.textContent = e; btn.className = "group-btn";
+        btn.onclick = () => {
+            btn.classList.toggle('active');
+            if (selectedEffects.has(e)) selectedEffects.delete(e); else selectedEffects.add(e);
+            updateList(true);
+        };
+        container.appendChild(btn);
+    });
+}
 
 /* =========================================
-   画像キャプチャ機能 (html2canvas)
+   機能系（キャプチャ・パネル・高さ）
    ========================================= */
 function setupCaptureButton() {
-    const captureBtn = document.getElementById('capture-btn');
-    if (!captureBtn) return;
+    if (!ELS.captureBtn) return;
     
-    // ★修正: 読み込み待ち関数をここに内蔵させます（絶対に迷子になりません）
+    // 元のロジック: 画像読み込み待ち関数
     const waitImagesLoaded = (root) => {
         const images = Array.from(root.querySelectorAll('img'));
         return Promise.all(images.map(img => {
@@ -599,449 +755,135 @@ function setupCaptureButton() {
         }));
     };
 
-    captureBtn.addEventListener('click', async () => {
-        const detailArea = document.getElementById('detail');
-        if (!detailArea) return;
-          
-        captureBtn.disabled = true;
-        captureBtn.style.opacity = '0.5';
-          
-        const charNameElement = detailArea.querySelector('.char-title');
-        const safeName = charNameElement ? charNameElement.textContent.trim().replace(/[\/\\?%*:|"<>]/g, '_') : 'detail';
+    ELS.captureBtn.addEventListener('click', async () => {
+        if (!ELS.detail) return;
+        ELS.captureBtn.disabled = true;
+        ELS.captureBtn.style.opacity = '0.5';
+        
+        const charNameElement = ELS.detail.querySelector('.char-title');
+        const safeName = charNameElement ? charNameElement.textContent.trim().replace(CONFIG.REGEX.sanitize, '_') : 'detail';
         const now = new Date();
         const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
         const filename = `kage_${safeName}_${dateStr}.png`;
 
         let clone = null;
-          
         try {
-            console.log("Capture started...");
-
-            // 1. 画像読み込み待ち (内蔵関数を使用)
-            await waitImagesLoaded(detailArea);
-
-            // 2. 撮影用クローン作成
-            clone = detailArea.cloneNode(true);
-            
-            // 3. クローンをPC幅に強制設定
+            await waitImagesLoaded(ELS.detail);
+            clone = ELS.detail.cloneNode(true);
             Object.assign(clone.style, {
-                position: 'fixed',
-                top: '0',
-                left: '0',
-                width: '1100px',      
-                minWidth: '1100px',
-                maxWidth: 'none',
-                height: 'auto',
-                padding: '20px',
-                margin: '0',
-                background: '#232323', 
-                color: '#ffffff',
-                zIndex: '-9999',       
-                overflow: 'visible',
-                borderRadius: '0',
-                transform: 'none'
+                position: 'fixed', top: '0', left: '0', width: '1100px', minWidth: '1100px', maxWidth: 'none',
+                height: 'auto', padding: '20px', margin: '0', background: '#232323', color: '#ffffff',
+                zIndex: '-9999', overflow: 'visible', borderRadius: '0', transform: 'none'
             });
-
             clone.removeAttribute('id');
             document.body.appendChild(clone);
 
-            // 4. html2canvas実行
             const isMobile = window.innerWidth < 800;
             const canvas = await html2canvas(clone, {
-                scale: isMobile ? 1.5 : 2, 
-                useCORS: true,
-                allowTaint: false,
-                logging: true,
-                windowWidth: 1200,
-                backgroundColor: '#232323',
-                onclone: null 
+                scale: isMobile ? 1.5 : 2, useCORS: true, allowTaint: false, logging: true,
+                windowWidth: 1200, backgroundColor: '#232323'
             });
-
             showCaptureOverlay(canvas.toDataURL('image/png'), filename);
 
         } catch (err) { 
             console.error("Capture Failed:", err);
             alert('【NEW】エラー詳細:\n' + (err.message || err));
         } finally { 
-            if (clone && clone.parentNode) {
-                clone.parentNode.removeChild(clone);
-            }
-            captureBtn.disabled = false; 
-            captureBtn.style.opacity = ''; 
+            if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
+            ELS.captureBtn.disabled = false;
+            ELS.captureBtn.style.opacity = ''; 
         }
     });
 }
 
-/* =========================================
-   保存用オーバーレイ表示関数
-   ========================================= */
 function showCaptureOverlay(dataUrl, filename) {
-    // 既存のオーバーレイがあれば削除
     const existing = document.getElementById('capture-overlay');
     if (existing) existing.remove();
 
-    // オーバーレイ作成
     const overlay = document.createElement('div');
     overlay.id = 'capture-overlay';
     Object.assign(overlay.style, {
-        position: 'fixed', 
-        top: '0', 
-        left: '0', 
-        width: '100%', 
-        height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.85)', 
-        zIndex: '10000',
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center'
+        position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
+        backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '10000', display: 'flex',
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
     });
 
-    // 画像表示
     const img = document.createElement('img');
     img.src = dataUrl;
-    Object.assign(img.style, {
-        maxWidth: '90%', 
-        maxHeight: '80%', 
-        border: '2px solid #fff', 
-        marginBottom: '15px',
-        boxShadow: '0 0 20px rgba(0,0,0,0.5)'
-    });
+    Object.assign(img.style, { maxWidth: '90%', maxHeight: '80%', border: '2px solid #fff', marginBottom: '15px', boxShadow: '0 0 20px rgba(0,0,0,0.5)' });
 
-    // ボタンエリア
     const btnArea = document.createElement('div');
+    const createBtn = (text, bg, action, isLink) => {
+        const el = document.createElement(isLink ? 'a' : 'button');
+        el.textContent = text;
+        Object.assign(el.style, {
+            display: 'inline-block', padding: '10px 20px', background: bg, color: '#fff',
+            textDecoration: 'none', borderRadius: '5px', fontSize: '16px', cursor: 'pointer', margin: '0 10px', border: 'none'
+        });
+        if(isLink) { el.href = dataUrl; el.download = filename; }
+        else el.onclick = action;
+        return el;
+    };
 
-    // ダウンロードボタン
-    const dlBtn = document.createElement('a');
-    dlBtn.textContent = '画像を保存';
-    dlBtn.href = dataUrl;
-    dlBtn.download = filename;
-    Object.assign(dlBtn.style, {
-        display: 'inline-block', 
-        padding: '10px 20px', 
-        background: '#4CAF50', 
-        color: '#fff',
-        textDecoration: 'none', 
-        borderRadius: '5px', 
-        fontSize: '16px', 
-        cursor: 'pointer', 
-        margin: '0 10px',
-        border: '1px solid #388E3C'
-    });
+    btnArea.appendChild(createBtn('画像を保存', '#4CAF50', null, true));
+    btnArea.appendChild(createBtn('閉じる', '#f44336', () => overlay.remove(), false));
 
-    // 閉じるボタン
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '閉じる';
-    Object.assign(closeBtn.style, {
-        padding: '10px 20px', 
-        background: '#f44336', 
-        color: '#fff', 
-        border: '1px solid #d32f2f',
-        borderRadius: '5px', 
-        fontSize: '16px', 
-        cursor: 'pointer', 
-        margin: '0 10px'
-    });
-    closeBtn.onclick = () => overlay.remove();
-
-    btnArea.appendChild(dlBtn);
-    btnArea.appendChild(closeBtn);
     overlay.appendChild(img);
     overlay.appendChild(btnArea);
     document.body.appendChild(overlay);
 }
 
 function setupOptionPanel() {
-  const btn = document.getElementById('toggle-panel-btn');
-  const p = document.getElementById('level-control-panel');
-  
-  if (!btn || !p) return;
-
-  // 1. ボタンを押したときの開閉（トグル）動作
-  btn.onclick = () => {
-    const isHidden = p.style.display === 'none';
-    p.style.display = isHidden ? 'block' : 'none';
-    btn.classList.toggle('active', isHidden);
-  };
-
-  // 2. 【追加】画面のどこかをクリックしたときの判定
-  document.addEventListener('click', (e) => {
-    // パネルが閉じているなら何もしない
-    if (p.style.display === 'none') return;
-
-    // クリックされた要素が「ボタンの中」でも「パネルの中」でもない場合
-    if (!btn.contains(e.target) && !p.contains(e.target)) {
-      p.style.display = 'none';   // パネルを閉じる
-      btn.classList.remove('active'); // ボタンの選択状態を解除
-    }
-  });
-}
-/* =========================================
-   ソート用ヘルパー関数
-   ========================================= */
-function getSortPriority(text, type) {
-  if (!text) return 99;
-  const charCode = text.charCodeAt(0);
-
-  // Unicode範囲定義
-  const isKanji = (charCode >= 0x4e00 && charCode <= 0x9fff);
-  const isKatakana = (charCode >= 0x30a0 && charCode <= 0x30ff);
-  const isHiragana = (charCode >= 0x3040 && charCode <= 0x309f);
-
-  if (type === 'group') {
-    // グループ: 漢字(1) -> カタカナ(2) -> ひらがな(3) -> その他(4)
-    if (isKanji) return 1;
-    if (isKatakana) return 2;
-    if (isHiragana) return 3;
-    return 4;
-  } else if (type === 'name') {
-    // キャラ名: カタカナ(1) -> 漢字(2) -> その他(3)
-    if (isKatakana) return 1;
-    if (isKanji) return 2;
-    return 3;
-  }
-  return 99;
-}
-
-function customSort(a, b, type) {
-  const priorityA = getSortPriority(a, type);
-  const priorityB = getSortPriority(b, type);
-
-  // 優先度が異なる場合は優先度順
-  if (priorityA !== priorityB) {
-    return priorityA - priorityB;
-  }
-  // 優先度が同じ場合は文字列の昇順（あいうえお順など）
-  return a.localeCompare(b, 'ja');
-}
-
-/* =========================================
-   グループボタン自動生成・制御
-   ========================================= */
-function setupGroupButtons() {
-  const container = document.getElementById('group-btns');
-  const allGroups = new Set();
-  characters.forEach(char => char.group?.forEach(g => allGroups.add(g)));
-  
-  Array.from(allGroups)
-    .sort((a, b) => customSort(a, b, 'group'))
-    .forEach(g => {
-      const btn = document.createElement('button');
-      btn.textContent = g; btn.className = "group-btn";
-      btn.onclick = () => {
-        btn.classList.toggle('active');
-        if (selectedGroups.has(g)) selectedGroups.delete(g); else selectedGroups.add(g);
-        updateList(true);
-      };
-      container.appendChild(btn);
-    });
-}
-
-/* =========================================
-   キャラ名ボタン自動生成・制御
-   ========================================= */
-function setupNameButtons() {
-  const container = document.getElementById('name-btns');
-  const allNames = new Set();
-  characters.forEach(c => c.name.split('[')[0].split(/[&＆]/).forEach(n => allNames.add(n.trim())));
-  
-  Array.from(allNames)
-    .sort((a, b) => customSort(a, b, 'name'))
-    .forEach(n => {
-      const btn = document.createElement('button');
-      btn.textContent = n; btn.className = "group-btn";
-      btn.onclick = () => {
-        btn.classList.toggle('active');
-        if (selectedNames.has(n)) selectedNames.delete(n); else selectedNames.add(n);
-        updateList(true);
-      };
-      container.appendChild(btn);
-    });
-}
-
-/* =========================================
-   効果ボタン自動生成・制御
-   ========================================= */
-function setupEffectButtons() {
-  const container = document.getElementById('effect-btns');
-  
-  container.innerHTML = ""; 
-  effectModeBtn.className = "group-btn"; 
-  effectModeBtn.style.background = "#2d6b2d";
-  effectModeBtn.style.border = "1px solid #4b8f4b";
-  effectToggleBtn.style.setProperty('color', '#ffffff', 'important'); 
-  
-  container.appendChild(effectModeBtn); 
-
-  const allEffects = new Set();
-  characters.forEach(c => (c._effects||[]).forEach(e => allEffects.add(e)));
-
-  Array.from(allEffects).sort((a,b) => a.localeCompare(b, 'ja')).forEach(e => {
-    const btn = document.createElement('button');
-    btn.textContent = e; btn.className = "group-btn";
-    btn.onclick = () => {
-      btn.classList.toggle('active');
-      if (selectedEffects.has(e)) selectedEffects.delete(e); else selectedEffects.add(e);
-      updateList(true);
+    if (!ELS.panelBtn || !ELS.controlPanel) return;
+    ELS.panelBtn.onclick = () => {
+        const isHidden = ELS.controlPanel.style.display === 'none';
+        ELS.controlPanel.style.display = isHidden ? 'block' : 'none';
+        ELS.panelBtn.classList.toggle('active', isHidden);
     };
-    container.appendChild(btn);
-  });
-}
-
-/* =========================================
-   キャラ読み込み（効果抽出含む）
-   ========================================= */
-/* =========================================
-   高速化: キャラ読み込み & キャッシュ制御
-   ========================================= */
-async function loadCharacters() {
-  const jsonUrl = 'characters/all_characters.json';
-  const cacheKeyData = 'kage_char_data_v3'; 
-  const cacheKeyTime = 'kage_char_time_v3'; 
-
-  try {
-    const headResp = await fetch(jsonUrl, { method: 'HEAD' });
-    if (!headResp.ok) throw new Error("Network response was not ok");
-    
-    const serverLastModified = headResp.headers.get('Last-Modified');
-    const localLastModified = localStorage.getItem(cacheKeyTime);
-    const localData = localStorage.getItem(cacheKeyData);
-
-    if (localData && localLastModified && serverLastModified === localLastModified) {
-      console.log("Using cached data (No download)");
-      characters = JSON.parse(localData);
-      
-      setupGroupButtons();
-      setupNameButtons();
-      setupEffectButtons();
-      updateList(true);
-      return; 
-    }
-
-    console.log("Downloading new data...");
-    const resp = await fetch(jsonUrl);
-    if(resp.ok){
-      characters = await resp.json();
-
-      const extractEffects = (text, targetSet) => {
-        if (!text || typeof text !== 'string') return;
-        const matches = text.matchAll(/『([^』]+)』/g);
-        for (const m of matches) targetSet.add(m[1].trim());
-      };
-
-      const processSkillData = (data, targetSet) => {
-        if (!data) return;
-        if (Array.isArray(data)) {
-          data.forEach(item => processSkillData(item, targetSet));
-        } else if (typeof data === 'object') {
-          extractEffects(data.normal, targetSet);
-          extractEffects(data.awakened, targetSet);
-          extractEffects(data.effect, targetSet);
-          extractEffects(data.description, targetSet);
-        } else if (typeof data === 'string') {
-          extractEffects(data, targetSet);
+    document.addEventListener('click', (e) => {
+        if (ELS.controlPanel.style.display === 'none') return;
+        if (!ELS.panelBtn.contains(e.target) && !ELS.controlPanel.contains(e.target)) {
+            ELS.controlPanel.style.display = 'none';
+            ELS.panelBtn.classList.remove('active');
         }
-      };
-
-      characters.forEach(c => {
-        c._search = (c.name + " " + (c.group||[]).join(" ") + " " + JSON.stringify(c)).toLowerCase();
-        
-        const effectSet = new Set();
-        const targets = [c.ultimate, c.ex_ultimate, c.skill1, c.skill2, c.traits, c.combo, c.magic_item1, c.magic_item2];
-        targets.forEach(t => processSkillData(t, effectSet));
-        c._effects = Array.from(effectSet);
-      });
-
-      try {
-        localStorage.setItem(cacheKeyData, JSON.stringify(characters));
-        localStorage.setItem(cacheKeyTime, serverLastModified);
-      } catch (e) {
-        console.warn("Cache quota exceeded", e);
-      }
-
-      setupGroupButtons();
-      setupNameButtons();
-      setupEffectButtons();
-      updateList(true);
-    }
-  } catch (err) {
-    console.error("Failed to load characters:", err);
-  }
+    });
 }
 
-loadCharacters();
-
-/* =========================================
-   リスト高さ調整機能 (保存機能付き・完全版)
-   ========================================= */
 function setupListHeightControl() {
-  const select = document.getElementById('list-height-select');
-  const list = document.getElementById('list');
-  
-  if (!select || !list) return;
+    if (!ELS.listHeightSelect || !ELS.list) return;
+    const saved = localStorage.getItem('kage_list_height');
+    if (saved) ELS.listHeightSelect.value = saved;
 
-  // ★追加1: 前回の設定を読み込む
-  const savedHeight = localStorage.getItem('kage_list_height');
-  if (savedHeight) {
-    select.value = savedHeight;
-  }
+    const updateHeight = () => {
+        const val = ELS.listHeightSelect.value;
+        localStorage.setItem('kage_list_height', val);
+        
+        if (val === 'auto') {
+            if (window.innerWidth >= 900) {
+                const rect = ELS.list.getBoundingClientRect();
+                const available = window.innerHeight - rect.top - 20;
+                ELS.list.style.setProperty('height', `${Math.max(available, 100)}px`, 'important');
+                ELS.list.style.setProperty('max-height', 'none', 'important');
+            } else {
+                ELS.list.style.removeProperty('height');
+                ELS.list.style.removeProperty('max-height');
+            }
+        } else {
+            const count = parseInt(val);
+            const first = ELS.list.querySelector('li');
+            const h = first ? first.getBoundingClientRect().height : 40;
+            const style = window.getComputedStyle(ELS.list);
+            const extra = (parseFloat(style.paddingTop)||0) + (parseFloat(style.paddingBottom)||0) + (parseFloat(style.borderTopWidth)||0) + (parseFloat(style.borderBottomWidth)||0) + 1;
+            ELS.list.style.setProperty('height', `${(h * count) + extra}px`, 'important');
+            ELS.list.style.setProperty('max-height', 'none', 'important');
+        }
+    };
 
-  // 高さを適用するメイン関数
-  const updateHeight = () => {
-    const val = select.value;
-
-    // ★追加2: 設定を変更したら保存する
-    localStorage.setItem('kage_list_height', val);
-    
-    if (val === 'auto') {
-      // ■「自動」の場合
-      // PC (幅900px以上) は「画面の一番下まで」広げる
-      if (window.innerWidth >= 900) {
-        const rect = list.getBoundingClientRect();
-        // 画面の高さ - リストの上端位置 - 下部余白(20px)
-        const availableHeight = window.innerHeight - rect.top - 20; 
-        const finalHeight = Math.max(availableHeight, 100);
-
-        list.style.setProperty('height', `${finalHeight}px`, 'important');
-        list.style.setProperty('max-height', 'none', 'important');
-      } else {
-        // スマホはCSSの標準設定(50vh)に戻す
-        list.style.removeProperty('height');
-        list.style.removeProperty('max-height');
-      }
-    } else {
-      // ■「件数指定」の場合
-      const count = parseInt(val);
-      
-      const firstItem = list.querySelector('li');
-      const itemHeight = firstItem ? firstItem.getBoundingClientRect().height : 40;
-
-      const style = window.getComputedStyle(list);
-      const padTop = parseFloat(style.paddingTop) || 0;
-      const padBottom = parseFloat(style.paddingBottom) || 0;
-      const borderTop = parseFloat(style.borderTopWidth) || 0;
-      const borderBottom = parseFloat(style.borderBottomWidth) || 0;
-
-      const newHeight = (itemHeight * count) + padTop + padBottom + borderTop + borderBottom + 1;
-      
-      list.style.setProperty('height', `${newHeight}px`, 'important');
-      list.style.setProperty('max-height', 'none', 'important');
-    }
-  };
-
-  select.addEventListener('change', updateHeight);
-  window.addEventListener('resize', updateHeight);
-
-  const toggleBtnIds = ['toggle-panel-btn', 'group-toggle-btn', 'name-toggle-btn', 'effect-toggle-btn'];
-  toggleBtnIds.forEach(id => {
-    const btn = document.getElementById(id);
-    if (btn) {
-      btn.addEventListener('click', () => {
-        setTimeout(updateHeight, 50); 
-        setTimeout(updateHeight, 300);
-      });
-    }
-  });
-
-  setTimeout(updateHeight, 100);
+    ELS.listHeightSelect.addEventListener('change', updateHeight);
+    window.addEventListener('resize', updateHeight);
+    ['toggle-panel-btn', 'group-toggle-btn', 'name-toggle-btn', 'effect-toggle-btn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.addEventListener('click', () => { setTimeout(updateHeight, 50); setTimeout(updateHeight, 300); });
+    });
+    setTimeout(updateHeight, 100);
 }

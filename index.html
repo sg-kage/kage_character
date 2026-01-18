@@ -22,6 +22,7 @@
   <meta name="twitter:title" content="【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン">
   <meta name="twitter:description" content="カゲマスの全キャラ性能を検索できるデータベースサイト。スキル詳細、魔道具、覚醒前後の切り替え確認が可能です。">
   <meta name="twitter:image" content="https://sg-kage.github.io/kage_character/image/thumbnail.png?v=2">
+
   <script type="application/ld+json">
   {
     "@context": "http://schema.org",
@@ -49,9 +50,7 @@
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-79BGMS7Q1F', {
-      'anonymize_ip': true
-    });
+    gtag('config', 'G-79BGMS7Q1F', { 'anonymize_ip': true });
   </script>
 </head>
 <body>
@@ -78,16 +77,23 @@
       </div>
 
       <input id="filter" type="text" placeholder="キャラ名 スキル等 特殊:シールド 魔道具:パリィ など" aria-label="キャラクター検索フィルター">
+      
       <details class="search-help">
-        <summary>🔍検索コマンドの使い方(クリックで開く)</summary>
+        <summary>🔍検索コマンドの使い方</summary>
         <div class="help-content">
           <p>キーワードの前に<b>項目名:</b>をつけると、その場所だけを検索できます。</p>
           <ul class="help-list">
-            <li><code>特殊:</code> <code>魔道具:</code> <code>奥義:</code> <code>特技:</code> <code>コンボ:</code> <code>通常:</code></li>
+            <li><code>特殊:</code></li>
+            <li><code>魔道具:</code></li>
+            <li><code>奥義:</code></li>
+            <li><code>特技:</code></li>
+            <li><code>コンボ:</code></li>
+            <li><code>通常:</code></li>
           </ul>
           <p class="help-example">例：「特殊:シールド 魔道具:パリィ」</p>
         </div>
       </details>
+
       <div id="hit-row">
         <span id="hit-count"></span>
         <div class="button-group">
@@ -98,8 +104,9 @@
             <option value="15">15件</option>
             <option value="20">20件</option>
           </select>
-          </div>
+        </div>
       </div>
+      
       <ul id="list"></ul>
     </aside>
 
