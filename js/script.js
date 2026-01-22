@@ -158,9 +158,9 @@ function replaceDynamicValues(text, type) {
             }
         }
         
-        // 元コードの出力フォーマットを維持
+        // 原コードの出力フォーマットを維持
         if (isInf) return `<span class="lv-highlight">${min.toFixed(2)}～${max.toFixed(2)}</span>`;
-        return `<span class="lv-highlight">${val.toFixed(2)}</span>`; // toFixed(02) は toFixed(2) と同義
+        return `<span class="lv-highlight">${val.toFixed(2)}</span>`; 
     });
 }
 
@@ -205,7 +205,7 @@ function setupStaticButtons() {
     ELS.attrBtns.appendChild(attrFrag);
     updateAttrBtnColors();
 
-    // トグルボタン群（DOM生成ヘルパーを使用せず、元のロジック通り生成）
+    // トグルボタン群
     createToggleBtn("name-toggle-btn", "キャラ名 ▼", "name-btns");
     createToggleBtn("group-toggle-btn", "グループ ▼", "group-btns");
     createToggleBtn("effect-toggle-btn", "効果 ▼", "effect-btns");
@@ -227,7 +227,7 @@ function setupStaticButtons() {
         updateList(true);
     };
 
-    // 検索入力（デバウンス処理は維持）
+    // 検索入力
     let searchTimeout;
     ELS.filter.addEventListener('input', () => {
         clearTimeout(searchTimeout);
@@ -272,13 +272,11 @@ function updateAttrBtnColors() {
    検索・リスト表示ロジック
    ========================================= */
 function getCurrentFilterKeywords(){
-    // 全角スペース変換も含め、元のロジック通り
     return ELS.filter.value.normalize('NFKC').toLowerCase().replace(/　/g, ' ').trim().split(/[ ]+/).filter(k=>k);
 }
 
 function highlightText(text, keywords){ return text; } // プレースホルダ
 
-// DOM操作によるハイライト（高速化のためTreeWalker使用）
 function applyHighlightDOM(root, keywords) {
     if (!root || !keywords || !keywords.length) return;
     const safeWords = keywords.filter(k => k && k.trim()).map(k => k.replace(CONFIG.REGEX.unsafeChars, '\\$&'));
@@ -316,11 +314,9 @@ function applyHighlightDOM(root, keywords) {
     });
 }
 
-// ★重要：元の検索ロジックを完全に維持
 function updateList(resetSelect=false) {
     const filterKeywords = getCurrentFilterKeywords();
 
-    // 検索対象マップ
     const fieldMap = {
         "特殊": ["traits"], "特技": ["skill1", "skill2"], "奥義": ["ultimate","ex_ultimate"],
         "魔道具": ["magic_item1", "magic_item2"], "コンボ": ["combo"], "通常": ["normal_attack"]
@@ -329,7 +325,6 @@ function updateList(resetSelect=false) {
     let filtered = characters.filter(char => {
         if (!char._search) return false;
         
-        // AND検索ロジック
         const matchKeywords = filterKeywords.every(token => {
             if (token.includes(':') || token.includes('：')) {
                 let [key, val] = token.split(CONFIG.REGEX.splitColon);
@@ -345,7 +340,6 @@ function updateList(resetSelect=false) {
         });
         if (!matchKeywords) return false;
 
-        // 各種フィルタ
         if (selectedAttrs.size > 0 && !selectedAttrs.has(char.attribute)) return false;
         if (selectedRoles.size > 0 && !selectedRoles.has(char.role)) return false;
         if (selectedGroups.size > 0 && !(char.group || []).some(g => selectedGroups.has(g))) return false;
@@ -374,13 +368,11 @@ function updateList(resetSelect=false) {
     lastFiltered = filtered;
     ELS.hitCount.textContent = `ヒット件数: ${filtered.length}件`;
 
-    // ハイライトキーワード抽出
     const highlightKeywords = filterKeywords.map(k => {
         if (k.includes(':') || k.includes('：')) return k.split(CONFIG.REGEX.splitColon)[1];
         return k;
     }).filter(k => k);
 
-    // ★高速化: DocumentFragmentを使用（動作は変わらず描画だけ高速化）
     ELS.list.innerHTML = "";
     const fragment = document.createDocumentFragment();
 
@@ -389,7 +381,6 @@ function updateList(resetSelect=false) {
         li.textContent = char.name;
         applyHighlightDOM(li, highlightKeywords);
         
-        // クリックイベント（ID等は使わずクロージャで解決）
         li.onclick = () => { 
             tabMode = 0; 
             showDetail(char, highlightKeywords); 
@@ -411,7 +402,6 @@ function updateList(resetSelect=false) {
 }
 
 function highlightSelected() {
-    // 高速化: 直接クラス操作
     const items = ELS.list.children;
     for (let i = 0; i < items.length; i++) {
         if (i === selectedIdx) items[i].classList.add('selected');
@@ -424,7 +414,6 @@ function highlightSelected() {
    ========================================= */
 function comboBlock(combo, filter=[]) {
     let res = "";
-    // ★元の条件判定 (text && text !== "-") を厳密に維持
     if (Array.isArray(combo)) {
         res = combo
             .map(row => (typeof row === 'object') ? (row.effect ?? '') : row)
@@ -469,7 +458,6 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
             }
         }
         const text = replaceDynamicValues(skill, type);
-        // ★元の条件 (text === "-") ? "" を維持
         return (text === "-") ? "" : `<div>${highlightText(text, filter)}</div>`;
     }).filter(html => html !== "").join('<hr class="skill-sep">');
 }
@@ -499,6 +487,13 @@ function showDetail(char, filter=[]) {
         ELS.detail.textContent="該当キャラクターがありません。"; 
         if(ELS.captureBtn) ELS.captureBtn.style.display = 'none';
         return; 
+    }
+
+    // ★追加: キャラクター選択時にURLを書き換える
+    if (char.CharacterID) {
+        const url = new URL(window.location);
+        url.searchParams.set('id', char.CharacterID);
+        window.history.replaceState({}, '', url);
     }
     
     const attrColor = CONFIG.attributes[char.attribute] || "#E0E0E0";
@@ -546,7 +541,6 @@ function showDetail(char, filter=[]) {
 
     ELS.detail.innerHTML = mainContent;
     
-    // タブ生成
     const tabRange = document.createRange().createContextualFragment(`
     <div class="tabs-wrap" id="detail-tabs">
       <div class="tabs-buttons">
@@ -566,7 +560,7 @@ function showDetail(char, filter=[]) {
 }
 
 /* =========================================
-   データ読み込み・ボタン生成 (元のロジック維持)
+   データ読み込み・ボタン生成
    ========================================= */
 async function loadCharacters() {
     const jsonUrl = 'characters/all_characters.json';
@@ -585,7 +579,10 @@ async function loadCharacters() {
             console.log("Using cached data");
             characters = JSON.parse(localData);
             initButtons();
-            updateList(true);
+
+            // ★追加: キャッシュ使用時もURLパラメータをチェック
+            handleUrlParameter();
+
             return; 
         }
 
@@ -594,7 +591,6 @@ async function loadCharacters() {
         if(resp.ok){
             characters = await resp.json();
 
-            // ★重要：元の「効果抽出」ロジックを完全再現
             const extractEffects = (text, targetSet) => {
                 if (!text || typeof text !== 'string') return;
                 const matches = text.matchAll(CONFIG.REGEX.effects);
@@ -612,9 +608,7 @@ async function loadCharacters() {
             };
 
             characters.forEach(c => {
-                // ★重要：検索対象文字列の生成ロジックを元に戻しました (JSON.stringify含む)
                 c._search = (c.name + " " + (c.group||[]).join(" ") + " " + JSON.stringify(c)).toLowerCase();
-                
                 const effectSet = new Set();
                 [c.ultimate, c.ex_ultimate, c.skill1, c.skill2, c.traits, c.combo, c.magic_item1, c.magic_item2].forEach(t => processSkillData(t, effectSet));
                 c._effects = Array.from(effectSet);
@@ -626,9 +620,27 @@ async function loadCharacters() {
             } catch (e) { console.warn("Cache quota exceeded", e); }
 
             initButtons();
-            updateList(true);
+
+            // ★追加: 新規ダウンロード時もURLパラメータをチェック
+            handleUrlParameter();
         }
     } catch (err) { console.error("Failed to load characters:", err); }
+}
+
+// ★追加: URLパラメータを解析して初期表示を制御するヘルパー関数
+function handleUrlParameter() {
+    const params = new URLSearchParams(window.location.search);
+    const targetId = params.get('id');
+    if (targetId) {
+        const targetChar = characters.find(c => String(c.CharacterID) === targetId);
+        if (targetChar) {
+            lastFiltered = [targetChar];
+            showDetail(targetChar, []);
+            updateList(false);
+            return;
+        }
+    }
+    updateList(true);
 }
 
 function initButtons() {
@@ -638,7 +650,6 @@ function initButtons() {
 }
 
 function customSort(a, b, type) {
-    // ソートヘルパー関数も元のロジック通り
     const getSortPriority = (text, type) => {
         if (!text) return 99;
         const charCode = text.charCodeAt(0);
@@ -743,7 +754,6 @@ function setupEffectButtons() {
 function setupCaptureButton() {
     if (!ELS.captureBtn) return;
     
-    // 元のロジック: 画像読み込み待ち関数
     const waitImagesLoaded = (root) => {
         const images = Array.from(root.querySelectorAll('img'));
         return Promise.all(images.map(img => {
