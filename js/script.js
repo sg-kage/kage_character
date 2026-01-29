@@ -530,6 +530,8 @@ function showDetail(char, filter = []) {
                         width: 25%; 
                         max-width: 200px; 
                         height: auto; 
+                        min-height: auto;     /* iPhoneの引き伸ばし防止 */
+                        max-height: 200px;    /* 縦長になるのを強制停止 */
                         aspect-ratio: 1 / 1; 
                         object-fit: contain; 
                         border-radius: 8px; 
