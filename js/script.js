@@ -482,83 +482,152 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
     }).filter(s => s !== "").join('<hr class="skill-sep">'); 
 }
 
-function showDetail(char, filter=[]) {
-    if(!char){ 
-        ELS.detail.textContent="該当キャラクターがありません。"; 
-        if(ELS.captureBtn) ELS.captureBtn.style.display = 'none';
-        return; 
+/* =========================================
+   詳細表示ロジック
+   ========================================= */
+
+/**
+ * キャラクターの詳細を表示するメイン関数
+ * @param {Object} char - 表示対象のキャラクターオブジェクト
+ * @param {Array} filter - ハイライト用の検索キーワード
+ */
+function showDetail(char, filter = []) {
+    // 1. 該当なしのチェック
+    if (!char) {
+        ELS.detail.textContent = "該当キャラクターがありません。";
+        if (ELS.captureBtn) ELS.captureBtn.style.display = 'none';
+        return;
     }
 
-    // ★追加: キャラクター選択時にURLを書き換える
+    // 2. URLパラメータの更新 (ブラウザバックや共有用)
     if (char.CharacterID) {
         const url = new URL(window.location);
         url.searchParams.set('id', char.CharacterID);
         window.history.replaceState({}, '', url);
     }
-    
+
     const attrColor = CONFIG.attributes[char.attribute] || "#E0E0E0";
     const highlightDetail = (val) => (val && filter.length) ? highlightText(val, filter) : val;
 
+    // 3. 画像表示 (PNGからWebPに変更、Lazy対応)
     let imageHtml = "";
     if (showImages) {
         const base = "image/characters/";
-        const images = [base + char.name + ".png", base + char.name + "_Ex.png"];
-        imageHtml = `<div class="char-image-container">${images.map(img => `<img src="${img}" class="char-image" crossorigin="anonymous" onerror="this.style.display='none';">`).join("")}</div>`;
+        // 拡張子を .webp に変更
+        const images = [
+            { src: `${base}${char.name}.webp`, suffix: "" },
+            { src: `${base}${char.name}_Ex.webp`, suffix: " Ex" }
+        ];
+
+        imageHtml = `<div class="char-image-container" style="display:flex; gap:10px; justify-content:center; margin-bottom:15px;">
+            ${images.map(img => `
+                <img 
+                    src="${img.src}" 
+                    alt="${char.name}${img.suffix}"
+                    class="char-image" 
+                    crossorigin="anonymous" 
+                    loading="lazy" 
+                    decoding="async"
+                    style="max-width:48%; height:auto; border-radius:8px; border:1px solid #444;"
+                    onerror="this.onerror=null; this.src='${img.src.replace('.webp', '.png')}'; this.onerror=()=>this.style.display='none';"
+                >`).join("")}
+        </div>`;
     }
 
     const attributeClass = (attr) => ({"赤": "attr-red", "緑": "attr-green", "黄": "attr-yellow", "青": "attr-blue"}[attr] || "");
 
-    let mainContent = `<div class="char-detail-wrap">
-      <div class="char-title" style="color: ${attrColor}">${highlightDetail(char.name)}</div>
-      ${imageHtml}
-      <div class="char-basic">
-       <div class="char-basic-item"><span class="char-label">属性</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
-       <div class="char-basic-item"><span class="char-label">ロール</span><span class="char-value">${highlightDetail(char.role)}</span></div>
-       <div class="char-basic-item"><span class="char-label">ポジション</span><span class="char-value">${highlightDetail(char.position)}</span></div>
-       <div class="char-basic-item"><span class="char-label">グループ</span><span class="char-value">${(char.group||[]).join(', ')}</span></div>
-       <div class="char-basic-item"><span class="char-label">覚醒</span><span class="char-value">${char.arousal}</span></div>
-      </div>`;
+    // 4. 基本情報HTML構築
+    let mainContent = `
+    <div class="char-detail-wrap" style="padding:15px; background:#232323; color:#fff; border-radius:10px;">
+        <div class="char-title" style="color: ${attrColor}; font-size:1.5em; font-weight:bold; margin-bottom:10px; text-align:center;">
+            ${highlightDetail(char.name)}
+        </div>
+        ${imageHtml}
+        <div class="char-basic" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:8px; background:#333; padding:10px; border-radius:5px; margin-bottom:15px;">
+            <div class="char-basic-item"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px;">属性:</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
+            <div class="char-basic-item"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px;">ロール:</span><span class="char-value">${highlightDetail(char.role)}</span></div>
+            <div class="char-basic-item"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px;">ポジション:</span><span class="char-value">${highlightDetail(char.position)}</span></div>
+            <div class="char-basic-item"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px;">グループ:</span><span class="char-value">${(char.group || []).join(', ')}</span></div>
+            <div class="char-basic-item"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px;">別名:</span><span class="char-value">${highlightDetail(char.aliases || "")}</span></div>
+            <div class="char-basic-item"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px;">覚醒:</span><span class="char-value">${char.arousal}</span></div>
+        </div>`;
 
-    const sect = (title, data, isMag=false) => {
+    // 5. セクション表示 (テンプレートの順序に対応)
+    const sect = (title, data, isMag = false) => {
+        if (!data || (Array.isArray(data) && data.length === 0)) return ""; // 空なら表示しない
         let content;
-        if(tabMode === 0) content = skillBlockBothInline(data, filter, isMag);
-        else if(tabMode === 1) content = skillBlockCompare(data, filter, 1, isMag);
+        if (tabMode === 0) content = skillBlockBothInline(data, filter, isMag);
+        else if (tabMode === 1) content = skillBlockCompare(data, filter, 1, isMag);
         else content = skillBlockCompare(data, filter, 2, isMag);
-        return `<div class="char-section"><div class="char-section-title">${title}</div><div class="char-section-content">${content}</div></div>`;
+        
+        if (!content) return "";
+        return `
+        <div class="char-section" style="margin-bottom:15px; border-left:4px solid ${attrColor}; padding-left:10px;">
+            <div class="char-section-title" style="font-weight:bold; color:${attrColor}; margin-bottom:5px;">${title}</div>
+            <div class="char-section-content" style="line-height:1.6;">${content}</div>
+        </div>`;
     };
 
+    // 順序：ex_ultimate -> ultimate -> skill1 -> skill2 -> traits -> combo -> normal -> items
     mainContent += `
-    ${sect("究極奥義", char.ex_ultimate||[])}
-    ${sect("奥義", char.ultimate)}
-    ${sect("特技1", char.skill1)}
-    ${sect("特技2", char.skill2)}
-    ${sect("特殊", char.traits)}
-    <div class="char-section"><div class="char-section-title">コンボ</div><div class="char-section-content">${comboBlock(char.combo, filter)}</div></div>
-    ${sect("通常攻撃", char.normal_attack||[])}
-    ${sect("魔道具1", char.magic_item1, true)}
-    ${sect("魔道具2", char.magic_item2, true)}
+        ${sect("究極奥義", char.ex_ultimate)}
+        ${sect("奥義", char.ultimate)}
+        ${sect("特技1", char.skill1)}
+        ${sect("特技2", char.skill2)}
+        ${sect("特殊", char.traits)}
+        <div class="char-section" style="margin-bottom:15px; border-left:4px solid ${attrColor}; padding-left:10px;">
+            <div class="char-section-title" style="font-weight:bold; color:${attrColor}; margin-bottom:5px;">コンボ</div>
+            <div class="char-section-content">${comboBlock(char.combo, filter)}</div>
+        </div>
+        ${sect("通常攻撃", char.normal_attack)}
+        ${sect("魔道具1", char.magic_item1, true)}
+        ${sect("魔道具2", char.magic_item2, true)}
     </div>`;
 
+    // 6. DOMへの反映とタブの生成
     ELS.detail.innerHTML = mainContent;
     
     const tabRange = document.createRange().createContextualFragment(`
-    <div class="tabs-wrap" id="detail-tabs">
-      <div class="tabs-buttons">
-        <button class="tabs-btn${tabMode===0?' active':''}" id="tab-both">比較</button>
-        <button class="tabs-btn${tabMode===1?' active':''}" id="tab-normal">覚醒前</button>
-        <button class="tabs-btn${tabMode===2?' active':''}" id="tab-awakened">覚醒後</button>
+    <div class="tabs-wrap" id="detail-tabs" style="margin-bottom:10px;">
+      <div class="tabs-buttons" style="display:flex; gap:5px;">
+        <button class="tabs-btn${tabMode===0?' active':''}" id="tab-both" style="flex:1; padding:8px;">比較</button>
+        <button class="tabs-btn${tabMode===1?' active':''}" id="tab-normal" style="flex:1; padding:8px;">覚醒前</button>
+        <button class="tabs-btn${tabMode===2?' active':''}" id="tab-awakened" style="flex:1; padding:8px;">覚醒後</button>
       </div>
     </div>`);
     ELS.detail.prepend(tabRange);
     
-    document.getElementById('tab-both').onclick = ()=>{ tabMode=0; showDetail(char, filter); };
-    document.getElementById('tab-normal').onclick = ()=>{ tabMode=1; showDetail(char, filter); };
-    document.getElementById('tab-awakened').onclick = ()=>{ tabMode=2; showDetail(char, filter); };
+    // タブのイベント登録
+    document.getElementById('tab-both').onclick = () => { tabMode = 0; showDetail(char, filter); };
+    document.getElementById('tab-normal').onclick = () => { tabMode = 1; showDetail(char, filter); };
+    document.getElementById('tab-awakened').onclick = () => { tabMode = 2; showDetail(char, filter); };
 
+    // ハイライト適用
     applyHighlightDOM(ELS.detail, filter);
-    if(ELS.captureBtn) ELS.captureBtn.style.display = 'inline-block';
+    if (ELS.captureBtn) ELS.captureBtn.style.display = 'inline-block';
 }
 
+/**
+ * スクショ時に利用する画像読み込み待機関数 (重要)
+ */
+const waitImagesLoaded = async (root) => {
+    const images = Array.from(root.querySelectorAll('img'));
+    
+    return Promise.all(images.map(img => {
+        // loading="lazy" があるとスクショに写らないため解除
+        if (img.getAttribute('loading') === 'lazy') {
+            img.removeAttribute('loading');
+        }
+
+        if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+
+        return new Promise(resolve => {
+            img.onload = resolve;
+            img.onerror = resolve; // 読み込めなくても続行
+            if (!img.src) resolve();
+        });
+    }));
+};
 /* =========================================
    データ読み込み・ボタン生成
    ========================================= */
