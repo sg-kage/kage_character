@@ -515,9 +515,8 @@ function showDetail(char, filter = []) {
             { src: `${base}${char.name}_Ex.webp`, suffix: " Ex" }
         ];
 
-        // 対策：animation: none と transform: none を直接指定してスライドを防止
         imageHtml = `
-        <div class="char-image-container" style="display:flex; gap:10px; justify-content:center; margin-bottom:15px; min-height:200px;">
+        <div class="char-image-container" style="display:flex; gap:10px; justify-content:center; align-items: flex-start; margin-bottom:15px;">
             ${images.map(img => `
                 <img 
                     src="${img.src}" 
@@ -527,19 +526,18 @@ function showDetail(char, filter = []) {
                     loading="lazy" 
                     decoding="async"
                     style="
-                        width: 25%; 
-                        max-width: 200px; 
-                        height: auto; 
-                        min-height: auto;     /* iPhoneの引き伸ばし防止 */
-                        max-height: 200px;    /* 縦長になるのを強制停止 */
-                        aspect-ratio: 1 / 1; 
+                        display: block;
+                        width: 25%;
+                        max-width: 150px;      /* iPhone向けに最大幅を微調整 */
+                        height: auto;          /* 高さを自動計算に任せる */
                         object-fit: contain; 
-                        border-radius: 8px; 
+                        border-radius: 6px; 
                         border: 1px solid #444; 
                         background: #2a2a2a;
-                        animation: none !important; /* アニメーション停止 */
-                        transform: none !important; /* 位置固定 */
-                        transition: none !important; /* 遷移停止 */
+                        animation: none !important; 
+                        transform: none !important; 
+                        transition: none !important;
+                        flex: 0 0 auto;
                     "
                     onerror="this.onerror=null; this.src='${img.src.replace('.webp', '.png')}'; this.onerror=()=>this.style.display='none';"
                 >`).join("")}
