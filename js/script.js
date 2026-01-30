@@ -507,17 +507,20 @@ function showDetail(char, filter = []) {
     const highlightDetail = (val) => (val && filter.length) ? highlightText(val, filter) : val;
 
     // --- 画像表示セクション (動きの停止 & サイズ固定) ---
+// --- 画像表示セクション (1枚の時は1枚分の枠にする修正) ---
     let imageHtml = "";
     if (showImages) {
         const base = "image/characters/";
-        const images = [
+        // 1枚目と2枚目の定義
+        const imgData = [
             { src: `${base}${char.name}.webp`, suffix: "" },
             { src: `${base}${char.name}_Ex.webp`, suffix: " Ex" }
         ];
 
+        // 画像を表示する部分
         imageHtml = `
-        <div class="char-image-container" style="display:flex; gap:10px; justify-content:center; align-items: flex-start; margin-bottom:15px;">
-            ${images.map(img => `
+        <div class="char-image-container" style="display:flex; gap:10px; justify-content:center; align-items: flex-start; margin-bottom:15px; width: 100%;">
+            ${imgData.map(img => `
                 <img 
                     src="${img.src}" 
                     alt="${char.name}${img.suffix}"
@@ -527,9 +530,10 @@ function showDetail(char, filter = []) {
                     decoding="async"
                     style="
                         display: block;
-                        width: 25%;
-                        max-width: 150px;      /* iPhone向けに最大幅を微調整 */
-                        height: auto;          /* 高さを自動計算に任せる */
+                        width: auto;           /* 固定％をやめる */
+                        height: auto;
+                        max-width: 35%;        /* 最大でも画面の35%に抑える */
+                        max-height: 150px;     /* iPhoneでの縦伸び防止 */
                         object-fit: contain; 
                         border-radius: 6px; 
                         border: 1px solid #444; 
@@ -537,9 +541,9 @@ function showDetail(char, filter = []) {
                         animation: none !important; 
                         transform: none !important; 
                         transition: none !important;
-                        flex: 0 0 auto;
+                        flex: 0 1 auto;        /* 必要な分だけ幅を取る */
                     "
-                    onerror="this.onerror=null; this.src='${img.src.replace('.webp', '.png')}'; this.onerror=()=>this.style.display='none';"
+                    onerror="this.style.display='none';" 
                 >`).join("")}
         </div>`;
     }
