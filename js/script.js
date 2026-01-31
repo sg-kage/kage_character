@@ -500,9 +500,9 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
             
             if (awakened) {
                 return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}
-                  <span class="effect-label normal-label">通常</span>${highlightText(normal, filter)}
+                  <span class="effect-label normal-label">覚醒前</span>${highlightText(normal, filter)}
                   <div style="border-top: 1px dashed #555; margin: 6px 0 6px 0; opacity: 0.7;"></div>
-                  <span class="effect-label awakened-label">覚醒</span>${highlightText(awakened, filter)}
+                  <span class="effect-label awakened-label">覚醒後</span>${highlightText(awakened, filter)}
                 </div>`;
             } else {
                 return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}${highlightText(normal, filter)}</div>`;
@@ -601,17 +601,17 @@ function showDetail(char, filter = []) {
 
     const attributeClass = (attr) => ({"赤": "attr-red", "緑": "attr-green", "黄": "attr-yellow", "青": "attr-blue"}[attr] || "");
 
-    // --- 基本情報 (グループ・覚醒は各1行に固定) ---
     let mainContent = `
     <div class="char-detail-wrap" style="padding:15px; background:#232323; color:#fff; border-radius:10px;">
         <div class="char-title" style="color: ${attrColor}; font-size:1.5em; font-weight:bold; margin-bottom:10px; text-align:center;">
             ${highlightDetail(char.name)}
         </div>
         ${imageHtml}
-        <div class="char-basic" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:8px; background:#333; padding:10px; border-radius:5px; margin-bottom:15px;">
-            <div class="char-basic-item"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px;">属性:</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
-            <div class="char-basic-item"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px;">ロール:</span><span class="char-value">${highlightDetail(char.role)}</span></div>
-            <div class="char-basic-item"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px;">ポジション:</span><span class="char-value">${highlightDetail(char.position)}</span></div>
+        <div class="char-basic" style="display:grid; grid-template-columns: repeat(3, auto); justify-content: start; gap:15px; background:#333; padding:10px; border-radius:5px; margin-bottom:15px;">
+            <div class="char-basic-item" style="white-space:nowrap;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:4px;">属性:</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
+            <div class="char-basic-item" style="white-space:nowrap;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:4px;">ロール:</span><span class="char-value">${highlightDetail(char.role)}</span></div>
+            <div class="char-basic-item" style="white-space:nowrap;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:4px;">ポジション:</span><span class="char-value">${highlightDetail(char.position)}</span></div>
+            
             <div class="char-basic-item" style="grid-column: 1 / -1; border-top: 1px solid #444; padding-top: 4px;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px;">グループ:</span><span class="char-value">${(char.group || []).join(', ')}</span></div>
             <div class="char-basic-item" style="grid-column: 1 / -1; border-top: 1px solid #444; padding-top: 4px;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px;">覚醒:</span><span class="char-value">${char.arousal}</span></div>
         </div>`;
