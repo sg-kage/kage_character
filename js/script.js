@@ -376,11 +376,61 @@ function updateList(resetSelect=false) {
     ELS.list.innerHTML = "";
     const fragment = document.createDocumentFragment();
 
-    filtered.forEach((char,idx)=>{
+    filtered.forEach((char, idx) => {
         const li = document.createElement('li');
-        li.textContent = char.name;
-        applyHighlightDOM(li, highlightKeywords);
-        
+        li.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 10px;
+            height: 35px; /* 高さを固定 */
+            box-sizing: border-box;
+            cursor: pointer;
+        `;
+
+        // --- 1. 名前の前：通常画像 (name.webp) ---
+        if (showImages) {
+            const imgArea1 = document.createElement('div');
+            imgArea1.style.cssText = `width: 30px; height: 30px; flex-shrink: 0;`;
+            
+            const img1 = document.createElement('img');
+            img1.src = `image/characters/${char.name}.webp`;
+            img1.style.cssText = `
+                width: 30px; height: 30px; object-fit: cover; 
+                border-radius: 4px; border: 1px solid #555; background: #2a2a2a;
+            `;
+            img1.onerror = () => img1.style.visibility = 'hidden'; 
+            imgArea1.appendChild(img1);
+            li.appendChild(imgArea1);
+        }
+
+        // --- 2. キャラ名 ---
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = char.name;
+        nameSpan.style.cssText = `
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-shrink: 1; /* 名前が長すぎる場合は縮む */
+        `;
+        applyHighlightDOM(nameSpan, highlightKeywords);
+        li.appendChild(nameSpan);
+
+        // --- 3. 文字のすぐ右：Ex画像 (name_Ex.webp) ---
+        if (showImages) {
+            const img2 = document.createElement('img');
+            img2.src = `image/characters/${char.name}_Ex.webp`;
+            img2.style.cssText = `
+                width: 30px; height: 30px; object-fit: cover;
+                border-radius: 4px; border: 1px solid #555; background: #2a2a2a;
+                flex-shrink: 0;
+                margin-left: 2px; /* 名前との間にわずかな隙間 */
+            `;
+            // Exがないキャラはスペースを詰めたいので remove()
+            img2.onerror = () => img2.remove(); 
+            li.appendChild(img2);
+        }
+
         li.onclick = () => { 
             tabMode = 0; 
             showDetail(char, highlightKeywords); 
@@ -389,6 +439,7 @@ function updateList(resetSelect=false) {
         };
         fragment.appendChild(li);
     });
+
     ELS.list.appendChild(fragment);
 
     if(filtered.length) {
@@ -706,15 +757,32 @@ async function loadCharacters() {
 function handleUrlParameter() {
     const params = new URLSearchParams(window.location.search);
     const targetId = params.get('id');
+    
     if (targetId) {
+        // 全キャラの中からIDが一致するものを探す
         const targetChar = characters.find(c => String(c.CharacterID) === targetId);
         if (targetChar) {
-            lastFiltered = [targetChar];
-            showDetail(targetChar, []);
-            updateList(false);
-            return;
+            // 1. フィルタを一旦通してリストを生成
+            updateList(true); 
+            
+            // 2. 生成された lastFiltered の中から対象のインデックスを探す
+            const idx = lastFiltered.findIndex(c => String(c.CharacterID) === targetId);
+            
+            if (idx !== -1) {
+                selectedIdx = idx;
+                showDetail(targetChar, []);
+                highlightSelected();
+                
+                // 3. 選択された要素までスクロールさせる（親切設計）
+                const targetLi = ELS.list.children[idx];
+                if (targetLi) {
+                    targetLi.scrollIntoView({ block: 'nearest' });
+                }
+                return; // ここで終了
+            }
         }
     }
+    // パラメータがない、または見つからない場合は通常通り
     updateList(true);
 }
 
