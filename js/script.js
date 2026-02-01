@@ -5,7 +5,6 @@
 const CONFIG = {
     attributes: {"赤": "#FF6347", "緑": "#32CD32", "黄": "#FFD700", "青": "#1E90FF"},
     roles: ["アタッカー", "タンク", "サポーター"],
-    // 頻繁に使う正規表現を事前コンパイル（動作は変わりませんが高速になります）
     REGEX: {
         splitSpace: /[ 　]+/,
         splitColon: /[:：]/,
@@ -633,13 +632,13 @@ function showDetail(char, filter = []) {
             ${highlightDetail(char.name)}
         </div>
         ${imageHtml}
-        <div class="char-basic" style="display:grid; grid-template-columns: repeat(3, auto); justify-content: start; gap:15px; background:#333; padding:10px; border-radius:5px; margin-bottom:15px;">
-            <div class="char-basic-item" style="white-space:nowrap;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:4px;">属性:</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
-            <div class="char-basic-item" style="white-space:nowrap;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:4px;">ロール:</span><span class="char-value">${highlightDetail(char.role)}</span></div>
-            <div class="char-basic-item" style="white-space:nowrap;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:4px;">ポジション:</span><span class="char-value">${highlightDetail(char.position)}</span></div>
+        <div class="char-basic" style="display:grid; grid-template-columns: max-content max-content max-content; justify-content: start; gap:5px 12px; background:#333; padding:10px; border-radius:5px; margin-bottom:15px;">
+            <div class="char-basic-item" style="white-space:nowrap; min-width:auto;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:2px; min-width:auto;">属性:</span><span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span></div>
+            <div class="char-basic-item" style="white-space:nowrap; min-width:auto;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:2px; min-width:auto;">ロール:</span><span class="char-value">${highlightDetail(char.role)}</span></div>
+            <div class="char-basic-item" style="white-space:nowrap; min-width:auto;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:2px;">ポジション:</span><span class="char-value">${highlightDetail(char.position)}</span></div>
             
-            <div class="char-basic-item" style="grid-column: 1 / -1; border-top: 1px solid #444; padding-top: 4px;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px;">グループ:</span><span class="char-value">${(char.group || []).join(', ')}</span></div>
-            <div class="char-basic-item" style="grid-column: 1 / -1; border-top: 1px solid #444; padding-top: 4px;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px;">覚醒:</span><span class="char-value">${char.arousal}</span></div>
+            <div class="char-basic-item" style="grid-column: 1 / -1; border-top: 1px solid #444; padding-top: 4px; min-width:auto;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px; min-width:auto;">グループ:</span><span class="char-value">${(char.group || []).join(', ')}</span></div>
+            <div class="char-basic-item" style="grid-column: 1 / -1; border-top: 1px solid #444; padding-top: 4px; min-width:auto;"><span class="char-label" style="opacity:0.7; font-size:0.8em; margin-right:5px; min-width:auto;">覚醒:</span><span class="char-value">${char.arousal}</span></div>
         </div>`;
 
     // --- スキルセクション表示 (変更なし) ---
