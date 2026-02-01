@@ -82,6 +82,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedMag && savedMag !== 'inf') currentMagicLv = parseInt(savedMag);
     else if (savedMag === 'inf') currentMagicLv = 'inf';
 
+    // --- 【追加】Wi-Fi判定と画像ON/OFF初期値の設定 ---
+    const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const isWifi = conn && conn.type === 'wifi';
+
+    if (isWifi) {
+        showImages = true; // Wi-Fiなら自動ON（保存はしない）
+    } else {
+        // 外なら保存された設定を読み込む（なければデフォルトOFF）
+        showImages = localStorage.getItem('kage_show_img') === 'true';
+    }
+
+    if (ELS.imgBtn) {
+        ELS.imgBtn.textContent = showImages ? "画像: ON" : "画像: OFF";
+        ELS.imgBtn.classList.toggle("active", showImages);
+    }
+    // ----------------------------------------------
+
     // UI初期化
     initLevelUI();
     setupStaticButtons();
@@ -210,15 +227,24 @@ function setupStaticButtons() {
     createToggleBtn("group-toggle-btn", "グループ ▼", "group-btns");
     createToggleBtn("effect-toggle-btn", "効果 ▼", "effect-btns");
 
-    // 画像切り替え
+    // --- 画像切り替え（Wi-Fi時以外のみ保存） ---
     if (ELS.imgBtn) {
         ELS.imgBtn.onclick = () => {
             showImages = !showImages;
             ELS.imgBtn.textContent = showImages ? "画像: ON" : "画像: OFF";
             ELS.imgBtn.classList.toggle("active", showImages);
+            
+            // Wi-Fi判定：Wi-Fiでない（外にいる）時だけ、今の状態を保存する
+            const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+            const isWifi = conn && conn.type === 'wifi';
+            if (!isWifi) {
+                localStorage.setItem('kage_show_img', showImages);
+            }
+
             updateList(false);
         };
     }
+    // ----------------------------------------------
 
     // ソート
     ELS.sortBtn.onclick = () => {
