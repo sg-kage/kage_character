@@ -1,0 +1,643 @@
+/* =========================================
+   全体設定 (リセット・基本スタイル)
+   ========================================= */
+body {
+    background: #1c1c1c;
+    color: #E0E0E0;
+    font-family: 'Segoe UI', 'Meiryo', sans-serif;
+    margin: 0;
+    line-height: 1.3;
+}
+
+h1 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 15px 0 5px 15px;
+    line-height: 1.2;
+    color: #a0a0a0;
+    border-left: 3px solid #60cdff;
+    padding-left: 10px;
+}
+
+.sub-desc {
+    font-size: 0.8rem;
+    color: #888;
+    margin: 0 0 2px 15px;
+}
+
+.creator-link {
+    display: block;
+    text-align: center;
+    margin: 2em 0 1em 0;
+    font-size: 0.8em;
+    color: #E0E0E0;
+}
+.creator-link a {
+    color: #1E90FF;
+    text-decoration: none;
+    font-weight: bold;
+}
+.creator-link a:hover {
+    text-decoration: underline;
+}
+
+/* =========================================
+   レイアウト (コンテナ・サイドバー・メイン)
+   ========================================= */
+#container {
+    display: flex;
+    gap: 0.8em;
+    margin: auto;
+    padding: 0.8em;
+    flex-wrap: wrap;
+}
+
+#side {
+    min-width: 190px;
+    flex: 1;
+}
+
+#main {
+    flex: 2;
+    min-width: 260px;
+}
+
+/* =========================================
+   メインヘッダー & 操作ボタン (.header-btn)
+   ========================================= */
+/* 詳細エリア上のヘッダー */
+#detail-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    min-height: 24px;
+    position: relative; /* 基準位置 */
+}
+
+/* ヘッダー内ボタン共通スタイル (Lv設定, 画像, スクショ) */
+.header-btn {
+    font-size: 0.9rem;
+    padding: 5px 10px;
+    cursor: pointer;
+    background: #444;
+    color: #fff;
+    border: 1px solid #666;
+    border-radius: 4px;
+    transition: background 0.2s;
+    font-weight: bold;
+}
+.header-btn:hover {
+    background: #555;
+}
+.header-btn.active {
+    background: #2c5d8a; /* 青系のアクティブ色 */
+    border-color: #4a8bc2;
+}
+
+/* =========================================
+   レベル操作パネル (ポップアップ/ドロップダウン)
+   ========================================= */
+#level-control-panel {
+    /* 共通デザイン */
+    background: #2b2b2b;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #555;
+    font-size: 0.85rem;
+    
+    /* ポップアップ配置設定 */
+    position: absolute;
+    top: 100%;       /* ボタンの真下に表示 */
+    right: 0;        /* 右寄せ */
+    margin-top: 5px; /* ボタンとの隙間 */
+    z-index: 1000;   /* 最前面に表示 */
+    width: 290px;    /* パネル幅 */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6); /* 影をつけて浮き上がらせる */
+}
+
+/* スマホで右側が見切れないように調整 */
+@media (max-width: 480px) {
+    #level-control-panel {
+        right: -50px; /* 必要に応じて調整 */
+        width: 270px;
+    }
+}
+
+.control-row {
+    margin-bottom: 12px;
+}
+.control-row:last-child {
+    margin-bottom: 0;
+}
+
+.control-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    color: #ccc;
+    font-weight: bold;
+}
+
+/* 現在のレベル数値（オレンジ色） */
+#affinity-val,
+#magic-val {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin-left: 5px;
+}
+
+/* --- ボタン配置レイアウト --- */
+
+/* 魔道具ボタン：横並び */
+.magic-btn-group {
+    display: flex;
+    gap: 4px;
+    justify-content: space-between;
+}
+
+/* スキルボタン：11個配置 (1-10 + inf) */
+.skill-btn-group {
+    display: grid;
+    grid-template-columns: repeat(11, 1fr);
+    gap: 2px;
+    width: 100%;
+}
+
+/* --- レベルボタン共通スタイル --- */
+.magic-btn {
+    background: #444;
+    color: #eee;
+    border: 1px solid #555;
+    padding: 8px 0; /* サイズ調整 */
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: all 0.2s;
+    flex: 1;
+    text-align: center;
+}
+
+/* スキルボタン（多数）用の文字サイズ微調整 */
+.skill-btn-group .magic-btn {
+    font-size: 0.8rem;
+    padding: 8px 0;
+}
+
+.magic-btn:hover:not(.active) {
+    background: #555;
+}
+
+/* 選択中のボタン（オレンジ色） */
+.magic-btn.active {
+    background: #ff8c00;
+    border-color: #ff8c00;
+    color: #fff;
+}
+
+/* =========================================
+   検索・フィルタ・属性ボタン
+   ========================================= */
+#filter {
+    background: #2d2d2d;
+    width: 100%;
+    box-sizing: border-box;
+    margin-right: 0;
+    font-size: 0.95em;
+    color: #E0E0E0;
+    border: 1px solid #555;
+    padding: 4px;
+    border-radius: 4px;
+    margin-bottom: 0.5em;
+}
+
+/* ボタンの行：横並び */
+#filter-toggle-row {
+    display: flex;
+    gap: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+#attribute-row,
+#attribute-btns {
+    display: flex;
+    gap: 0.4em;
+    align-items: center;
+}
+#attribute-row {
+    margin-bottom: 0.4em;
+}
+
+/* 属性・ロールボタン共通 */
+.attr-btn {
+    background: #666666;
+    margin: 0;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4em 0.9em;
+    font-size: 0.95em;
+    font-weight: bold;
+    cursor: pointer;
+    color: #000 !important;
+    transition: background 0.15s, color 0.15s;
+}
+
+/* ロールボタン（少し小さめ） */
+#role-btns .attr-btn {
+    padding: 0.25em 0.7em;
+    font-size: 0.85em;
+    color: #E0E0E0 !important;
+}
+
+/* 各属性の色定義 */
+.attr-red { background: #FF6347 !important; color: #222 !important; }
+.attr-green { background: #32CD32 !important; color: #222 !important; }
+.attr-yellow { background: #FFD700 !important; color: #222 !important; }
+.attr-blue { background: #1E90FF !important; color: #fff !important; }
+
+/* =========================================
+   リスト・ヒット件数・操作ボタン
+   ========================================= */
+#hit-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    margin-bottom: 0.3em;
+    justify-content: space-between;
+}
+
+#hit-count {
+    font-size: 0.9em;
+    color: #E0E0E0;
+    font-weight: bold;
+}
+
+.button-group {
+    display: flex;
+    gap: 0.6em;
+}
+
+#list-height-select {
+    background: #444; /* 少し濃くして区別 */
+    color: #E0E0E0;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 0.2em 0.4em;
+    cursor: pointer;
+    font-size: 0.9em;
+    height: 100%;
+}
+#list-height-select:focus {
+    outline: none;
+    background: #555;
+}
+
+#sort-btn {
+    background: #888;
+    color: #E0E0E0;
+    border: none;
+    border-radius: 6px;
+    padding: 0.2em 0.8em;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background 0.15s;
+    margin-left: 0;
+}
+
+#sort-btn[aria-pressed="true"] {
+    background: orange;
+    color: #333;
+}
+
+/* キャラクターリスト */
+#list {
+    width: 100%;
+    height: 50vh;
+    max-height: 400px;
+    font-size: 0.9em;
+    border-radius: 6px;
+    background: #2b2b2b;
+    color: #E0E0E0;
+    padding: 0.2em;
+    overflow-y: auto;
+    margin: 0;
+    border: 1px solid #444;
+    list-style: none;
+}
+
+#list li {
+    padding: 3px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    border-bottom: 1px solid #3a3a3a;
+    font-size: 1rem;
+}
+#list li:hover {
+    background: #666;
+}
+li.selected {
+    background: #555;
+}
+
+/* =========================================
+   詳細表示エリア
+   ========================================= */
+
+#detail {
+    /* ヘッダーとのマージンは headerの margin-bottom で確保 */
+    background: #333;
+    color: #E0E0E0;
+    border-radius: 8px;
+    padding: 0.8em;
+    min-height: 200px;
+    box-shadow: 0 2px 8px #0007;
+    font-size: 0.9em;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.char-title {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 0.2em;
+    color: #FFD700;
+    text-align: center;
+}
+
+.char-image-container {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+}
+.char-image {
+    width: 90px;
+    height: auto;
+}
+
+.char-detail-wrap {
+    background: #282828;
+    border-radius: 8px;
+    padding: 0.4em;
+    margin-bottom: 0.4em;
+}
+
+/* 基本情報（属性・ロール等） */
+.char-basic {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    margin-bottom: 0.6em;
+}
+.char-basic-item {
+    display: flex;
+    align-items: center;
+    gap: 0.1em;
+    min-width: auto;
+}
+.char-label {
+    font-weight: bold;
+    color: #FFD700;
+    font-size: 0.95em;
+    min-width: auto
+}
+.char-value {
+    background: #444;
+    border-radius: 4px;
+    padding: 0 0.5em;
+    color: #E0E0E0;
+    font-size: 0.95em;
+    display: inline-block;
+    line-height: 1.5;
+}
+
+/* =========================================
+   タブUI & スキルセクション
+   ========================================= */
+.tabs-wrap {
+    margin: 0 0 1em 0;
+}
+.tabs-buttons {
+    display: flex;
+    gap: 0.5em;
+    margin-bottom: 0.8em;
+    justify-content: center;
+}
+.tabs-btn {
+    background: #353535;
+    color: #AEE7FE;
+    font-weight: bold;
+    font-size: 0.95em;
+    padding: 0.3em 1.5em;
+    border: none;
+    border-radius: 1.5em 1.5em 0 0;
+    box-shadow: 0 2px 8px #0004;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.14s;
+    position: relative;
+    top: 2px;
+    z-index: 1;
+}
+.tabs-btn.active {
+    background: linear-gradient(90deg, #2bc6ff 0%, #7ad5ff 100%);
+    color: #222;
+    box-shadow: 0 2px 10px #58e1ff66;
+    top: 0;
+    z-index: 2;
+}
+
+/* 各スキル・奥義の枠 */
+.char-section {
+    padding-top: 1px;
+    padding-left: 5px;
+    margin-bottom: 6px;
+    background: #353535;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px #0005;
+    box-sizing: border-box;
+}
+
+.char-section-title {
+    font-weight: bold;
+    color: #7ad5ff;
+    margin-bottom: 0;
+    font-size: 0.95em;
+    border-left: 3px solid #7ad5ff;
+    padding-left: 0.4em;
+    margin-top: 6px;
+    margin-bottom: 2px;
+}
+.char-section-content {
+    color: #fff;
+    line-height: 1.5;
+    font-size: 0.95em;
+    margin-bottom: 0.5em;
+    color: #E0E0E0;
+    padding: 0 8px 6px 8px;
+}
+
+/* 数値ハイライト（変動値） */
+.lv-highlight {
+    color: #ff8c00;
+    font-weight: normal;
+    background: transparent;
+    text-shadow: 0 0 5px rgba(255, 140, 0, 0.3);
+}
+
+/* コンボ表示 */
+.combo-row {
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #4d4d4d;
+}
+.combo-row:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+.combo-effect h3, .combo-effect p {
+    margin: 0;
+    padding: 0;
+}
+
+.effect-label {
+    display: inline-block;
+    font-size: 0.9em;
+    font-weight: bold;
+    border-radius: 3px;
+    padding: 0 4px;
+    margin-right: 0.4em;
+    margin-bottom: 0.1em;
+}
+.normal-label,
+.awakened-label {
+    background: #ff9800;
+    color: #222;
+}
+
+/* =========================================
+   画像キャプチャ（オーバーレイ）
+   ========================================= */
+/* スクショボタン自体は .header-btn でスタイル定義済み */
+
+#capture-overlay {
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* =========================================
+   レスポンシブ (スマホ向け調整)
+   ========================================= */
+@media (max-width: 700px) {
+    #container {
+        flex-direction: column;
+        gap: 0.5em;
+        padding: 0.5em;
+    }
+    #side, #main {
+        min-width: unset;
+        width: 100%;
+    }
+    #list {
+        height: 200px;
+    }
+    
+    #hit-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.2em;
+    }
+    #sort-btn {
+        margin-left: 0;
+    }
+    
+    /* スマホ時はヘッダーボタンを少し詰める */
+    #detail-header {
+        justify-content: flex-end; 
+    }
+}
+
+/* スキル・奥義内の区切り線 */
+.skill-sep {
+    border: 0;
+    border-bottom: 1px dashed #666;
+    margin: 1px 0;
+    height: 1px;
+    opacity: 0.5;
+    display: block;
+}
+
+@media screen and (min-width: 900px) {
+  #list {
+    height: calc(100vh - 300px) !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* =========================================
+   グループ・名前ボタン用スタイル (ドロップダウン)
+   ========================================= */
+
+#group-btns,
+#name-btns,
+#effect-btns {
+  display: none;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+  background: #222;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #444;
+}
+
+#group-btns.is-open,
+#name-btns.is-open,
+#effect-btns.is-open {
+  display: grid;
+}
+
+.group-btn {
+  background-color: #393864;
+  border: 2px solid #5d5c8d;
+  color: #ffffff;
+  padding: 6px 2px;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 4px;
+}
+
+.group-btn:hover {
+  background-color: #4a497a;
+}
+
+.group-btn.active {
+  background-color: #6a5acd;
+  border-color: #8476d1;
+  box-shadow: 0 0 6px #6a5acd;
+}
+
+/* =========================================
+   検索ハイライト
+   ========================================= */
+.hit {
+    color: #ff4444; /* 赤色で強調 */
+    font-weight: bold;
+    background: rgba(255, 68, 68, 0.1);
+}
+
+/* グループとキャラ名のボタンだけ文字を白にする */
+#group-toggle-btn,
+#name-toggle-btn,
+#effect-toggle-btn {
+    color: #ffffff !important;
+}
