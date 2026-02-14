@@ -771,7 +771,7 @@ function showDetail(char, filter = []) {
     // --- 基本情報（タイトル、属性、ロールなど） ---
     // 上下の隙間(padding/margin)を調整してコンパクトに表示
     let mainContent = `
-    <div class="char-detail-wrap" style="padding:15px; background:#232323; color:#fff; border-radius:10px;">
+    <div class="char-detail-wrap" style="padding:15px 1; background:#232323; color:#fff; border-radius:10px;">
         <div class="char-title" style="color: ${attrColor}; font-size:1.5em; font-weight:bold; margin-bottom:10px; text-align:center;">
             ${highlightDetail(char.name)}
         </div>

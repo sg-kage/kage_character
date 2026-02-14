@@ -51,7 +51,7 @@ h1 {
     /* gapを 1.618rem の半分に設定 */
     gap: 0.809em;
     margin: auto;
-    padding: 0.809em;
+    padding: 0.382em;
     flex-wrap: wrap;
 }
 
@@ -335,13 +335,15 @@ li.selected {
     background: #333;
     color: #E0E0E0;
     border-radius: 8.09px;
-    padding: 1.29em; /* 黄金比ジャンプ率を適用 */
+
+    /* 左右の余白を 1.29em(約20px) から 0.382em(約6px) へ大幅カット */
+    padding: 1.29em 0.382em; 
+    
     min-height: 200px;
     box-shadow: 0 2px 8.09px #0007;
     font-size: 0.9em;
     width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
+    box-sizing: border-box; /* 余白を削っても幅が壊れないように固定 */
 }
 
 .char-title {
@@ -366,8 +368,10 @@ li.selected {
 .char-detail-wrap {
     background: #282828;
     border-radius: 8px;
-    padding: 0.618em;
+    padding: 0.618em; /* ここの padding をさらに小さくするともっと広がります */
     margin-bottom: 0.618em;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .char-basic {
@@ -435,8 +439,8 @@ li.selected {
 }
 
 .char-section {
-    padding-top: 1px;
-    padding-left: 5px;
+    padding-top: 0.5px;
+    padding-left: 1px;
     margin-bottom: 9.7px; /* 6 * 1.618 */
     background: #353535;
     border-radius: 6.18px;
@@ -514,7 +518,7 @@ li.selected {
     #container {
         flex-direction: column;
         gap: 0.809em;
-        padding: 0.809em;
+        padding: 0.382em;
     }
     #side, #main {
         min-width: unset;
