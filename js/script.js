@@ -635,16 +635,16 @@ function comboBlock(combo, filter=[]) {
         res = combo
             .map(row => (typeof row === 'object') ? (row.effect ?? '') : row)
             .filter(text => text && text !== "-")
-            .map(text => `<div class="combo-row" style="border:none !important;"><span class="combo-effect">${highlightText(text, filter)}</span></div>`)
+            .map(text => `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${highlightText(text, filter)}</div></div>`)
             .join('<hr class="skill-sep">');
     } 
     else if (typeof combo === 'object' && combo !== null) {
         const effect = combo.effect ?? '';
-        if (effect && effect !== "-") res = `<div class="combo-row" style="border:none !important;"><span class="combo-effect">${highlightText(effect, filter)}</span></div>`;
+        if (effect && effect !== "-") res = `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${highlightText(effect, filter)}</div></div>`;
     } 
     else {
         const text = combo || '';
-        if (text && text !== "-") res = `<div class="combo-row" style="border:none !important;"><span class="combo-effect">${highlightText(text, filter)}</span></div>`;
+        if (text && text !== "-") res = `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${highlightText(text, filter)}</div></div>`;
     }
     return replaceDynamicValues(res, 'affinity');
 }
