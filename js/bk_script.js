@@ -54,7 +54,7 @@ let selectedRoles = new Set();
 
 // 計算・表示設定
 let currentAffinity = 3;      // 現在の好感度Lv
-let currentMagicLv = 5;        // 現在の魔力覚醒Lv（初期ボタンのactiveと一致）
+let currentMagicLv = 5;       // 現在の魔力覚醒Lv
 let effectMode = 'and';       // 効果検索モード ('and' | 'or')
 let tabMode = 0;              // 詳細タブモード (0:比較, 1:覚醒前, 2:覚醒後)
 let showImages = false;       // 画像表示フラグ
@@ -771,7 +771,7 @@ function showDetail(char, filter = []) {
     // --- 基本情報（タイトル、属性、ロールなど） ---
     // 上下の隙間(padding/margin)を調整してコンパクトに表示
     let mainContent = `
-    <div class="char-detail-wrap" style="padding:15px 12px; background:#232323; color:#fff; border-radius:10px;">
+    <div class="char-detail-wrap" style="padding:15px 1; background:#232323; color:#fff; border-radius:10px;">
         <div class="char-title" style="color: ${attrColor}; font-size:1.5em; font-weight:bold; margin-bottom:10px; text-align:center;">
             ${highlightDetail(char.name)}
         </div>
@@ -884,8 +884,8 @@ async function loadCharacters() {
 
         // キャッシュが有効ならそれを使用
         if (localData && localLastModified && serverLastModified === localLastModified) {
+            console.log("Using cached data");
             characters = JSON.parse(localData);
-            prepareSearchData(); // ★修正: キャッシュ時も検索用データを構築する
             initButtons();
             handleUrlParameter();
             return; 
@@ -936,25 +936,8 @@ function prepareSearchData() {
     };
 
     characters.forEach(c => {
-        // 全文検索用文字列の生成（必要なフィールドのみ結合し、誤検索・肥大化を防ぐ）
-        c._search = [
-            c.name,
-            c.attribute,
-            c.role,
-            String(c.position || ''),
-            c.arousal || '',
-            (c.group || []).join(' '),
-            c.aliases ? (Array.isArray(c.aliases) ? c.aliases.join(' ') : c.aliases) : '',
-            JSON.stringify(c.ultimate),
-            JSON.stringify(c.ex_ultimate),
-            JSON.stringify(c.skill1),
-            JSON.stringify(c.skill2),
-            JSON.stringify(c.traits),
-            JSON.stringify(c.combo),
-            JSON.stringify(c.magic_item1),
-            JSON.stringify(c.magic_item2),
-            JSON.stringify(c.normal_attack)
-        ].join(' ').toLowerCase();
+        // 全文検索用文字列の生成
+        c._search = (c.name + " " + (c.group||[]).join(" ") + " " + JSON.stringify(c)).toLowerCase();
         
         // 効果（『』で囲まれた文字）の抽出
         const effectSet = new Set();
@@ -1174,7 +1157,7 @@ function setupCaptureButton() {
                 scale: isMobile ? 1.5 : 2, 
                 useCORS: true, 
                 allowTaint: false, 
-                logging: false,
+                logging: true,
                 windowWidth: 1200, 
                 backgroundColor: '#232323'
             });
@@ -1182,7 +1165,7 @@ function setupCaptureButton() {
 
         } catch (err) { 
             console.error("Capture Failed:", err);
-            alert('キャプチャに失敗しました:\n' + (err.message || err));
+            alert('エラー詳細:\n' + (err.message || err));
         } finally { 
             if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
             ELS.captureBtn.disabled = false;
@@ -1299,21 +1282,12 @@ function setupListHeightControl() {
     ELS.listHeightSelect.addEventListener('change', updateHeight);
     window.addEventListener('resize', updateHeight);
     
-    // 他のUI展開時に高さを再計算（transitionendで正確なタイミングを取る）
+    // 他のUI展開時に高さを再計算
     ['toggle-panel-btn', 'group-toggle-btn', 'name-toggle-btn', 'effect-toggle-btn'].forEach(id => {
         const btn = document.getElementById(id);
-        if (btn) btn.addEventListener('click', () => {
-            // transitionがあればその終了後、なければ即時（最大350msのフォールバック付き）
-            const targetId = btn.id.replace('-toggle-btn', '-btns').replace('toggle-panel-btn', 'level-control-panel');
-            const panel = document.getElementById(targetId);
-            if (panel) {
-                let done = false;
-                const finish = () => { if (!done) { done = true; updateHeight(); } };
-                panel.addEventListener('transitionend', finish, { once: true });
-                setTimeout(finish, 350);
-            } else {
-                setTimeout(updateHeight, 50);
-            }
+        if (btn) btn.addEventListener('click', () => { 
+            setTimeout(updateHeight, 50); 
+            setTimeout(updateHeight, 300); 
         });
     });
     
