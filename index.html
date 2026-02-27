@@ -2,7 +2,6 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン</title>
   <meta name="description" content="『陰の実力者になりたくて！マスターオブガーデン（カゲマス）』の全キャラクターデータベースです。スキル効果、コンボ倍率、属性、ロール、専用魔道具の性能を検索できます。パーティ編成や攻略の参考に。">
@@ -41,7 +40,7 @@
   </script>
 
   <link rel="apple-touch-icon" href="image/kage.webp">
-  <link rel="icon" href="image/kage.webp" type="image/png">
+  <link rel="icon" href="image/kage.webp" type="image/webp">
 
   <link rel="stylesheet" href="style/style.css">
 
@@ -122,29 +121,29 @@
             <div class="control-row">
               <div class="control-label" style="color:#ddd; font-size:0.9em;">スキルLv: <span id="affinity-val">3</span></div>
               <div class="skill-btn-group">
-                <button class="magic-btn active" data-kind="affinity" data-lv="1" onclick="setAffinity(1)">1</button>
-                <button class="magic-btn" data-kind="affinity" data-lv="2" onclick="setAffinity(2)">2</button>
-                <button class="magic-btn" data-kind="affinity" data-lv="3" onclick="setAffinity(3)">3</button>
-                <button class="magic-btn" data-kind="affinity" data-lv="4" onclick="setAffinity(4)">4</button>
-                <button class="magic-btn" data-kind="affinity" data-lv="5" onclick="setAffinity(5)">5</button>
-                <button class="magic-btn" data-kind="affinity" data-lv="6" onclick="setAffinity(6)">6</button>
-                <button class="magic-btn" data-kind="affinity" data-lv="7" onclick="setAffinity(7)">7</button>
-                <button class="magic-btn" data-kind="affinity" data-lv="8" onclick="setAffinity(8)">8</button>
-                <button class="magic-btn" data-kind="affinity" data-lv="9" onclick="setAffinity(9)">9</button>
-                <button class="magic-btn" data-kind="affinity" data-lv="10" onclick="setAffinity(10)">10</button>
-                <button class="magic-btn" data-kind="affinity" data-lv="inf" onclick="setAffinity('inf')">∞</button>
+                <button class="magic-btn active" data-kind="affinity" data-lv="1">1</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="2">2</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="3">3</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="4">4</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="5">5</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="6">6</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="7">7</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="8">8</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="9">9</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="10">10</button>
+                <button class="magic-btn" data-kind="affinity" data-lv="inf">∞</button>
               </div>
             </div>
             
             <div class="control-row" style="margin-top: 12px;">
               <div class="control-label" style="color:#ddd; font-size:0.9em;">魔道具Lv: <span id="magic-val">5</span></div>
               <div class="magic-btn-group">
-                <button class="magic-btn active" data-kind="magic" data-lv="1" onclick="setMagicLv(1)">1</button>
-                <button class="magic-btn" data-kind="magic" data-lv="2" onclick="setMagicLv(2)">2</button>
-                <button class="magic-btn" data-kind="magic" data-lv="3" onclick="setMagicLv(3)">3</button>
-                <button class="magic-btn" data-kind="magic" data-lv="4" onclick="setMagicLv(4)">4</button>
-                <button class="magic-btn" data-kind="magic" data-lv="5" onclick="setMagicLv(5)">5</button>
-                <button class="magic-btn" data-kind="magic" data-lv="inf" onclick="setMagicLv('inf')">∞</button>
+                <button class="magic-btn active" data-kind="magic" data-lv="1">1</button>
+                <button class="magic-btn" data-kind="magic" data-lv="2">2</button>
+                <button class="magic-btn" data-kind="magic" data-lv="3">3</button>
+                <button class="magic-btn" data-kind="magic" data-lv="4">4</button>
+                <button class="magic-btn" data-kind="magic" data-lv="5">5</button>
+                <button class="magic-btn" data-kind="magic" data-lv="inf">∞</button>
               </div>
             </div>
           </div>
@@ -169,7 +168,7 @@
 
   <div id="modal-container"></div>
   
-  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="js/script.js"></script>
 </body>
 </html>

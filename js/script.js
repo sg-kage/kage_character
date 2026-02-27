@@ -170,22 +170,34 @@ function checkConnectionSettings() {
 function initLevelUI() {
     updateLevelDisplay('affinity', currentAffinity);
     updateLevelDisplay('magic', currentMagicLv);
+
+    // Lvボタンのクリックをイベント委譲で処理
+    const panel = document.getElementById('level-control-panel');
+    if (panel) {
+        panel.addEventListener('click', (e) => {
+            const btn = e.target.closest('.magic-btn');
+            if (!btn) return;
+            const kind = btn.dataset.kind;
+            const lv = btn.dataset.lv === 'inf' ? 'inf' : parseInt(btn.dataset.lv);
+            if (kind === 'affinity') setAffinity(lv);
+            else if (kind === 'magic') setMagicLv(lv);
+        });
+    }
 }
 
-// 外部からの呼び出し用（HTMLのonclick属性などで使用）
-window.setAffinity = function(lv) {
+function setAffinity(lv) {
     currentAffinity = lv;
     localStorage.setItem('kage_affinity', lv);
     updateLevelDisplay('affinity', lv);
     refreshDetail();
-};
+}
 
-window.setMagicLv = function(lv) {
+function setMagicLv(lv) {
     currentMagicLv = lv;
     localStorage.setItem('kage_magicLv', lv);
     updateLevelDisplay('magic', lv);
     refreshDetail();
-};
+}
 
 /**
  * レベル表示（数値テキストとボタンのアクティブ化）の更新
@@ -908,7 +920,12 @@ async function loadCharacters() {
             initButtons();
             handleUrlParameter();
         }
-    } catch (err) { console.error("Failed to load characters:", err); }
+    } catch (err) {
+        console.error("Failed to load characters:", err);
+        if (ELS.list) {
+            ELS.list.innerHTML = '<li style="color:#f88;padding:1em;">データの読み込みに失敗しました。<br>ページを再読み込みしてください。</li>';
+        }
+    }
 }
 
 /**
@@ -935,6 +952,15 @@ function prepareSearchData() {
         }
     };
 
+    // オブジェクト/配列から文字列値のみを再帰的に抽出（JSONキー名を除外）
+    const extractText = (val) => {
+        if (!val) return '';
+        if (typeof val === 'string') return val;
+        if (Array.isArray(val)) return val.map(extractText).join(' ');
+        if (typeof val === 'object') return Object.values(val).map(extractText).join(' ');
+        return '';
+    };
+
     characters.forEach(c => {
         // 全文検索用文字列の生成（必要なフィールドのみ結合し、誤検索・肥大化を防ぐ）
         c._search = [
@@ -945,15 +971,15 @@ function prepareSearchData() {
             c.arousal || '',
             (c.group || []).join(' '),
             c.aliases ? (Array.isArray(c.aliases) ? c.aliases.join(' ') : c.aliases) : '',
-            JSON.stringify(c.ultimate),
-            JSON.stringify(c.ex_ultimate),
-            JSON.stringify(c.skill1),
-            JSON.stringify(c.skill2),
-            JSON.stringify(c.traits),
-            JSON.stringify(c.combo),
-            JSON.stringify(c.magic_item1),
-            JSON.stringify(c.magic_item2),
-            JSON.stringify(c.normal_attack)
+            extractText(c.ultimate),
+            extractText(c.ex_ultimate),
+            extractText(c.skill1),
+            extractText(c.skill2),
+            extractText(c.traits),
+            extractText(c.combo),
+            extractText(c.magic_item1),
+            extractText(c.magic_item2),
+            extractText(c.normal_attack)
         ].join(' ').toLowerCase();
         
         // 効果（『』で囲まれた文字）の抽出
