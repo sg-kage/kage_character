@@ -56,7 +56,7 @@
 
   <header>
     <h1>カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン</h1>
-    <p class="sub-desc">カゲマスに登場するキャラクターの属性、スキル、魔道具性能を詳細に絞り込み検索できます。</p>
+    <p class="sub-desc">キャラクターの属性、スキル、魔道具性能を詳細に絞り込み検索できます。</p>
   </header>
 
   <div id="container">
@@ -65,20 +65,22 @@
 
       <div id="name-btns"></div>
       <div id="group-btns"></div>
-      <div id="effect-btns"></div> 
+      <div id="effect-btns"></div>
 
       <div id="attribute-row">
         <div id="attribute-btns"></div>
       </div>
 
-      <div id="role-row" style="display:flex; gap:0.5em; margin-bottom:0.8em;">
-       <div id="role-btns" style="display:flex; gap:0.5em;"></div>
+      <div id="role-row" style="display:flex; gap:5px;">
+        <div id="role-btns" style="display:flex; gap:5px;"></div>
       </div>
 
       <input id="filter" type="text" placeholder="キャラ名 スキル等 特殊:シールド 魔道具:パリィ など" aria-label="キャラクター検索フィルター">
-      
+
+      <div id="active-filters"></div>
+
       <details class="search-help">
-        <summary>🔍検索コマンドの使い方</summary>
+        <summary>検索コマンドの使い方</summary>
         <div class="help-content">
           <p>キーワードの前に<b>項目名:</b>をつけると、その場所だけを検索できます。</p>
           <ul class="help-list">
@@ -105,21 +107,20 @@
           </select>
         </div>
       </div>
-      
+
       <ul id="list"></ul>
     </aside>
 
     <main id="main">
       <div id="detail-header">
-        
         <button id="toggle-img-btn" class="header-btn">画像: OFF</button>
-        
+
         <div style="position: relative;">
-          <button id="toggle-panel-btn" class="header-btn" aria-expanded="false">⚙️ Lv設定</button>
-          
+          <button id="toggle-panel-btn" class="header-btn" aria-expanded="false">Lv設定</button>
+
           <div id="level-control-panel" style="display: none;">
             <div class="control-row">
-              <div class="control-label" style="color:#ddd; font-size:0.9em;">スキルLv: <span id="affinity-val">3</span></div>
+              <div class="control-label">スキルLv: <span id="affinity-val">3</span></div>
               <div class="skill-btn-group">
                 <button class="magic-btn active" data-kind="affinity" data-lv="1">1</button>
                 <button class="magic-btn" data-kind="affinity" data-lv="2">2</button>
@@ -134,9 +135,9 @@
                 <button class="magic-btn" data-kind="affinity" data-lv="inf">∞</button>
               </div>
             </div>
-            
+
             <div class="control-row" style="margin-top: 12px;">
-              <div class="control-label" style="color:#ddd; font-size:0.9em;">魔道具Lv: <span id="magic-val">5</span></div>
+              <div class="control-label">魔道具Lv: <span id="magic-val">5</span></div>
               <div class="magic-btn-group">
                 <button class="magic-btn active" data-kind="magic" data-lv="1">1</button>
                 <button class="magic-btn" data-kind="magic" data-lv="2">2</button>
@@ -149,9 +150,9 @@
           </div>
         </div>
 
-        <button id="capture-btn" class="header-btn" style="display: none;">📷 スクショ</button>
+        <button id="capture-btn" class="header-btn" style="display: none;">スクショ</button>
       </div>
-      
+
       <div id="detail"></div>
     </main>
   </div>
@@ -167,7 +168,7 @@
   </footer>
 
   <div id="modal-container"></div>
-  
+
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="js/script.js"></script>
 </body>

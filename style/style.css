@@ -1,131 +1,454 @@
 /* =========================================
-   全体設定 (リセット・基本スタイル)
+   CSS Variables & Design Tokens
    ========================================= */
-body {
-    background: #1c1c1c;
-    color: #E0E0E0;
-    font-family: 'Segoe UI', 'Meiryo', sans-serif;
-    margin: 0;
-    /* 黄金比に近い行間設定 (1.618) */
-    line-height: 1.618;
-}
+:root {
+    --bg-primary: #1c1c1c;
+    --bg-secondary: #232323;
+    --bg-card: #2b2b2b;
+    --bg-card-hover: #363636;
+    --bg-input: #2d2d2d;
+    --bg-elevated: #333333;
 
-h1 {
-    /* ベース 0.8rem に対して 1.618倍のジャンプ率 */
-    font-size: 1.29rem;
-    font-weight: 500;
-    margin: 15px 0 5px 15px;
-    line-height: 1.2;
-    color: #a0a0a0;
-    border-left: 3px solid #60cdff;
-    padding-left: 10px;
-}
+    --text-primary: #e8e8f0;
+    --text-secondary: #9999b0;
+    --text-muted: #666688;
 
-.sub-desc {
-    font-size: 0.8rem;
-    color: #888;
-    margin: 0 0 2px 15px;
-}
+    --accent: #60cdff;
+    --accent-glow: rgba(96, 205, 255, 0.15);
+    --accent-dim: #3a8abf;
+    --gold: #ffd700;
+    --gold-dim: rgba(255, 215, 0, 0.12);
+    --orange: #ff8c00;
 
-.creator-link {
-    display: block;
-    text-align: center;
-    margin: 2.618em 0 1.618em 0; /* 黄金比マージン */
-    font-size: 0.8em;
-    color: #E0E0E0;
-}
-.creator-link a {
-    color: #1E90FF;
-    text-decoration: none;
-    font-weight: bold;
-}
-.creator-link a:hover {
-    text-decoration: underline;
+    --border: #3a3a3a;
+    --border-light: #4a4a4a;
+
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 20px rgba(96, 205, 255, 0.08);
+
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.25s ease;
 }
 
 /* =========================================
-   レイアウト (コンテナ・サイドバー・メイン)
+   Reset & Base
+   ========================================= */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Segoe UI', 'Meiryo', 'Hiragino Sans', sans-serif;
+    line-height: 1.6;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* =========================================
+   Header
+   ========================================= */
+header {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, #12121f 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 12px;
+    position: relative;
+    overflow: hidden;
+}
+
+header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+h1 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-left: 3px solid var(--accent);
+    padding-left: 12px;
+    line-height: 1.4;
+    letter-spacing: 0.02em;
+}
+
+.sub-desc {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    padding-left: 16px;
+}
+
+/* =========================================
+   Layout Container
    ========================================= */
 #container {
     display: flex;
-    /* gapを 1.618rem の半分に設定 */
-    gap: 0.809em;
-    margin: auto;
-    padding: 0.382em;
+    gap: 12px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 12px;
     flex-wrap: wrap;
 }
 
 #side {
-    min-width: 190px;
+    min-width: 200px;
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 #main {
-    /* 比率はご要望通り 2 を維持 */
-    flex: 2;
-    min-width: 260px;
+    flex: 2.2;
+    min-width: 280px;
 }
 
 /* =========================================
-   メインヘッダー & 操作ボタン (.header-btn)
+   Filter Toggle Row
+   ========================================= */
+#filter-toggle-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* =========================================
+   Attribute & Role Buttons
+   ========================================= */
+#attribute-row {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+#attribute-btns {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+#role-row {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 0 !important;
+}
+
+#role-btns {
+    display: flex;
+    gap: 5px;
+}
+
+.attr-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 0.88em;
+    font-weight: 700;
+    cursor: pointer;
+    color: #000 !important;
+    transition: all var(--transition-fast);
+    background: #555;
+    position: relative;
+}
+
+.attr-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.15);
+}
+
+.attr-btn:active {
+    transform: translateY(0);
+}
+
+#role-btns .attr-btn {
+    padding: 4px 10px;
+    font-size: 0.82em;
+    color: var(--text-primary) !important;
+    background: #3a3a50;
+    border: 1px solid var(--border-light);
+}
+
+#role-btns .attr-btn:hover {
+    background: #4a4a60;
+}
+
+.attr-red { background: #FF6347 !important; color: #1a1a1a !important; }
+.attr-green { background: #32CD32 !important; color: #1a1a1a !important; }
+.attr-yellow { background: #FFD700 !important; color: #1a1a1a !important; }
+.attr-blue { background: #1E90FF !important; color: #fff !important; }
+
+/* =========================================
+   Search Input
+   ========================================= */
+#filter {
+    width: 100%;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-size: 0.92em;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    outline: none;
+}
+
+#filter:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+#filter::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
+/* =========================================
+   Search Help (details/summary)
+   ========================================= */
+.search-help {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    font-size: 0.85em;
+}
+
+.search-help summary {
+    padding: 6px 10px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    user-select: none;
+    transition: color var(--transition-fast);
+}
+
+.search-help summary:hover {
+    color: var(--accent);
+}
+
+.search-help[open] summary {
+    border-bottom: 1px solid var(--border);
+    color: var(--accent);
+}
+
+.help-content {
+    padding: 8px 12px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.help-list {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    margin: 4px 0;
+}
+
+.help-list li code {
+    background: var(--bg-elevated);
+    color: var(--accent);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: 'Consolas', 'Menlo', monospace;
+}
+
+.help-example {
+    color: var(--text-muted);
+    font-size: 0.88em;
+    margin-top: 4px;
+}
+
+/* =========================================
+   Hit Row & Controls
+   ========================================= */
+#hit-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+#hit-count {
+    font-size: 0.85em;
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.button-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+#sort-btn {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px 12px;
+    cursor: pointer;
+    font-size: 0.85em;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+}
+
+#sort-btn:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-light);
+}
+
+#sort-btn[aria-pressed="true"] {
+    background: var(--orange);
+    color: #1a1a1a;
+    border-color: var(--orange);
+}
+
+#list-height-select {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+
+#list-height-select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* =========================================
+   Character List
+   ========================================= */
+#list {
+    width: 100%;
+    height: 50vh;
+    max-height: 420px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 4px;
+    overflow-y: auto;
+    list-style: none;
+    font-size: 0.9em;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-light) transparent;
+}
+
+#list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#list::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 3px;
+}
+
+#list li {
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    transition: background var(--transition-fast);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+#list li:last-child {
+    border-bottom: none;
+}
+
+#list li:hover {
+    background: var(--bg-card-hover);
+}
+
+li.selected {
+    background: rgba(96, 205, 255, 0.1) !important;
+    border-left: 3px solid var(--accent);
+    padding-left: 7px;
+}
+
+/* =========================================
+   Detail Header Buttons
    ========================================= */
 #detail-header {
     display: flex;
     justify-content: flex-end;
     align-items: center;
     gap: 8px;
-    margin-bottom: 6.18px; /* 黄金比ベースの微調整 */
+    margin-bottom: 8px;
     min-height: 24px;
     position: relative;
 }
 
 .header-btn {
-    font-size: 0.9rem;
-    padding: 5px 12px; /* 黄金比に近いアスペクト */
+    font-size: 0.85rem;
+    padding: 6px 14px;
     cursor: pointer;
-    background: #444;
-    color: #fff;
-    border: 1px solid #666;
-    border-radius: 4px;
-    transition: background 0.2s;
-    font-weight: bold;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    font-weight: 600;
 }
+
 .header-btn:hover {
-    background: #555;
+    background: var(--bg-card-hover);
+    border-color: var(--border-light);
 }
+
 .header-btn.active {
-    background: #2c5d8a;
-    border-color: #4a8bc2;
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: #fff;
 }
 
 /* =========================================
-   レベル操作パネル (ポップアップ/ドロップダウン)
+   Level Control Panel
    ========================================= */
 #level-control-panel {
-    background: #2b2b2b;
-    padding: 10px;
-    border-radius: 6.18px; /* 黄金比丸み */
-    border: 1px solid #555;
+    background: var(--bg-card);
+    padding: 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
     font-size: 0.85rem;
     position: absolute;
     top: 100%;
     right: 0;
-    margin-top: 5px;
+    margin-top: 6px;
     z-index: 1000;
-    width: 290px;
-    box-shadow: 0 4px 12.36px rgba(0,0,0,0.6); /* 拡散値を黄金比に */
-}
-
-@media (max-width: 480px) {
-    #level-control-panel {
-        right: -50px;
-        width: 270px;
-    }
+    width: 300px;
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(10px);
 }
 
 .control-row {
-    margin-bottom: 12.36px; /* 黄金比ベースの余白 */
+    margin-bottom: 12px;
 }
+
 .control-row:last-child {
     margin-bottom: 0;
 }
@@ -135,16 +458,17 @@ h1 {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 6px;
-    color: #ccc;
-    font-weight: bold;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9em;
 }
 
 #affinity-val,
 #magic-val {
-    font-weight: bold;
+    font-weight: 700;
     font-size: 1.1em;
     margin-left: 5px;
-    color: #ff8c00;
+    color: var(--orange);
 }
 
 .magic-btn-group {
@@ -161,416 +485,301 @@ h1 {
 }
 
 .magic-btn {
-    background: #444;
-    color: #eee;
-    border: 1px solid #555;
-    padding: 8.09px 0; /* 黄金比余白 */
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    padding: 7px 0;
     cursor: pointer;
     border-radius: 4px;
-    font-size: 0.9rem;
-    font-weight: bold;
-    transition: all 0.2s;
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: all var(--transition-fast);
     flex: 1;
     text-align: center;
 }
 
 .skill-btn-group .magic-btn {
-    font-size: 0.8rem;
-    padding: 8.09px 0;
+    font-size: 0.78rem;
+    padding: 7px 0;
 }
 
 .magic-btn:hover:not(.active) {
-    background: #555;
+    background: var(--bg-card-hover);
+    border-color: var(--border-light);
 }
 
 .magic-btn.active {
-    background: #ff8c00;
-    border-color: #ff8c00;
+    background: var(--orange);
+    border-color: var(--orange);
     color: #fff;
+    box-shadow: 0 0 8px rgba(255, 140, 0, 0.3);
 }
 
 /* =========================================
-   検索・フィルタ・属性ボタン
-   ========================================= */
-#filter {
-    background: #2d2d2d;
-    width: 100%;
-    box-sizing: border-box;
-    margin-right: 0;
-    font-size: 0.95em;
-    color: #E0E0E0;
-    border: 1px solid #555;
-    padding: 6.18px; /* 黄金比パディング */
-    border-radius: 4px;
-    margin-bottom: 0.618em;
-}
-
-#filter-toggle-row {
-    display: flex;
-    gap: 0.618em;
-    margin-bottom: 0.618em;
-}
-
-#attribute-row,
-#attribute-btns {
-    display: flex;
-    gap: 0.4em;
-    align-items: center;
-}
-#attribute-row {
-    margin-bottom: 0.4em;
-}
-
-.attr-btn {
-    background: #666666;
-    margin: 0;
-    border: none;
-    border-radius: 6.18px; /* 黄金比角丸 */
-    padding: 0.4em 0.9em;
-    font-size: 0.95em;
-    font-weight: bold;
-    cursor: pointer;
-    color: #000 !important;
-    transition: background 0.15s, color 0.15s;
-}
-
-#role-btns .attr-btn {
-    padding: 0.25em 0.7em;
-    font-size: 0.85em;
-    color: #E0E0E0 !important;
-}
-
-.attr-red { background: #FF6347 !important; color: #222 !important; }
-.attr-green { background: #32CD32 !important; color: #222 !important; }
-.attr-yellow { background: #FFD700 !important; color: #222 !important; }
-.attr-blue { background: #1E90FF !important; color: #fff !important; }
-
-/* =========================================
-   リスト・ヒット件数・操作ボタン
-   ========================================= */
-#hit-row {
-    display: flex;
-    align-items: center;
-    gap: 0.618em;
-    margin-bottom: 0.382em; /* 1 - 0.618 = 0.382 (黄金比の残差) */
-    justify-content: space-between;
-}
-
-#hit-count {
-    font-size: 0.9em;
-    color: #E0E0E0;
-    font-weight: bold;
-}
-
-.button-group {
-    display: flex;
-    gap: 0.618em;
-}
-
-#list-height-select {
-    background: #444;
-    color: #E0E0E0;
-    border: 1px solid #555;
-    border-radius: 4px;
-    padding: 0.2em 0.4em;
-    cursor: pointer;
-    font-size: 0.9em;
-    height: 100%;
-}
-#list-height-select:focus {
-    outline: none;
-    background: #555;
-}
-
-#sort-btn {
-    background: #888;
-    color: #E0E0E0;
-    border: none;
-    border-radius: 4px;
-    padding: 0.2em 0.809em; /* 黄金比パディング */
-    cursor: pointer;
-    font-size: 0.9em;
-    transition: background 0.15s;
-    margin-left: 0;
-}
-
-#sort-btn[aria-pressed="true"] {
-    background: orange;
-    color: #333;
-}
-
-#list {
-    width: 100%;
-    height: 50vh;
-    max-height: 400px;
-    font-size: 0.9em;
-    border-radius: 6.18px;
-    background: #2b2b2b;
-    color: #E0E0E0;
-    padding: 0.382em;
-    overflow-y: auto;
-    margin: 0;
-    border: 1px solid #444;
-    list-style: none;
-}
-
-#list li {
-    padding: 4.94px 10px; /* 黄金比微調整 */
-    cursor: pointer;
-    border-radius: 4px;
-    border-bottom: 1px solid #3a3a3a;
-    font-size: 1rem;
-}
-#list li:hover {
-    background: #666;
-}
-li.selected {
-    background: #555;
-}
-
-/* =========================================
-   詳細表示エリア
+   Detail Area
    ========================================= */
 #detail {
-    background: #333;
-    color: #E0E0E0;
-    border-radius: 8.09px;
-
-    /* 左右の余白を 1.29em(約20px) から 0.382em(約6px) へ大幅カット */
-    padding: 1.29em 0.382em; 
-    
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border-radius: var(--radius-lg);
+    padding: 20px 12px;
     min-height: 200px;
-    box-shadow: 0 2px 8.09px #0007;
+    box-shadow: var(--shadow-md);
     font-size: 0.9em;
     width: 100%;
-    box-sizing: border-box; /* 余白を削っても幅が壊れないように固定 */
+    border: 1px solid var(--border);
 }
 
 .char-title {
-    /* ベースフォント 0.9rem の 1.618倍 = 約1.45rem */
     font-size: 1.45rem;
-    font-weight: bold;
-    margin-bottom: 0.382em;
-    color: #FFD700;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--gold);
     text-align: center;
+    letter-spacing: 0.03em;
 }
 
 .char-image-container {
     display: flex;
     justify-content: center;
-    gap: 4px;
+    gap: 10px;
 }
+
 .char-image {
     width: 90px;
     height: auto;
+    border-radius: var(--radius-sm);
 }
 
 .char-detail-wrap {
-    background: #282828;
-    border-radius: 8px;
-    padding: 0.618em; /* ここの padding をさらに小さくするともっと広がります */
-    margin-bottom: 0.618em;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    margin-bottom: 10px;
     width: 100%;
-    box-sizing: border-box;
+    border: 1px solid var(--border);
 }
 
+/* Basic Info Grid */
+.char-info-grid {
+    background: var(--bg-elevated);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    margin-bottom: 14px;
+    border: 1px solid var(--border);
+}
+
+.char-info-row-top {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    margin-bottom: 4px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+}
+
+.char-info-row-bottom {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 2px;
+}
+
+.char-info-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.char-info-wide {
+    white-space: normal;
+}
+
+.char-label {
+    font-weight: 700;
+    color: var(--gold);
+    font-size: 0.8em;
+    opacity: 0.8;
+    flex-shrink: 0;
+}
+
+.char-label::after {
+    content: ':';
+}
+
+.char-value {
+    background: var(--bg-elevated);
+    border-radius: 4px;
+    padding: 1px 8px;
+    color: var(--text-primary);
+    font-size: 0.92em;
+    display: inline-block;
+    line-height: 1.6;
+}
+
+.char-value-plain {
+    background: none;
+    padding: 0;
+    font-size: 0.88em;
+    word-break: break-all;
+    line-height: 1.4;
+}
+
+/* Legacy classes kept for compatibility */
 .char-basic {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.618em;
-    margin-bottom: 0.809em;
+    gap: 8px;
+    margin-bottom: 10px;
 }
+
 .char-basic-item {
     display: flex;
     align-items: center;
-    gap: 0.2em;
-    min-width: auto;
-}
-.char-label {
-    font-weight: bold;
-    color: #FFD700;
-    font-size: 0.95em;
-    min-width: auto;
-}
-.char-value {
-    background: #444;
-    border-radius: 4px;
-    padding: 0 0.618em;
-    color: #E0E0E0;
-    font-size: 0.95em;
-    display: inline-block;
-    line-height: 1.618;
+    gap: 3px;
 }
 
 /* =========================================
-   タブUI & スキルセクション
+   Tabs
    ========================================= */
 .tabs-wrap {
-    margin: 0 0 1.618em 0;
-}
-.tabs-buttons {
-    display: flex;
-    gap: 0.618em;
-    margin-bottom: 0.809em;
-    justify-content: center;
-}
-.tabs-btn {
-    background: #353535;
-    color: #AEE7FE;
-    font-weight: bold;
-    font-size: 0.95em;
-    padding: 0.382em 1.618em; /* 黄金比パディング */
-    border: none;
-    border-radius: 1.618em 1.618em 0 0;
-    box-shadow: 0 2px 8px #0004;
-    cursor: pointer;
-    outline: none;
-    transition: all 0.14s;
-    position: relative;
-    top: 2px;
-    z-index: 1;
-}
-.tabs-btn.active {
-    background: linear-gradient(90deg, #2bc6ff 0%, #7ad5ff 100%);
-    color: #222;
-    box-shadow: 0 2px 10px #58e1ff66;
-    top: 0;
-    z-index: 2;
+    margin: 0 0 14px 0;
 }
 
+.tabs-buttons {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 4px;
+    border: 1px solid var(--border);
+}
+
+.tabs-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.9em;
+    padding: 8px 20px;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    outline: none;
+    transition: all var(--transition-fast);
+    flex: 1;
+    text-align: center;
+}
+
+.tabs-btn:hover:not(.active) {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.tabs-btn.active {
+    background: linear-gradient(135deg, var(--accent) 0%, #4db8e8 100%);
+    color: #0f0f13;
+    font-weight: 700;
+    box-shadow: 0 2px 12px rgba(96, 205, 255, 0.25);
+}
+
+/* =========================================
+   Skill Sections
+   ========================================= */
 .char-section {
-    padding-top: 0.5px;
-    padding-left: 1px;
-    margin-bottom: 9.7px; /* 6 * 1.618 */
-    background: #353535;
-    border-radius: 6.18px;
-    box-shadow: 0 1px 4px #0005;
-    box-sizing: border-box;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    margin-bottom: 10px;
+    padding: 2px 2px 2px 4px;
+    border: 1px solid var(--border);
+    overflow: hidden;
 }
 
 .char-section-title {
-    font-weight: bold;
-    color: #7ad5ff;
-    margin-bottom: 0;
-    font-size: 1rem;
-    border-left: 3px solid #7ad5ff;
-    padding-left: 0.618em;
-    margin-top: 6.18px;
-    margin-bottom: 3.82px;
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.95rem;
+    border-left: 3px solid var(--accent);
+    padding-left: 10px;
+    margin: 8px 0 4px 0;
 }
+
 .char-section-content {
-    color: #E0E0E0;
-    /* スキル説明の可読性を黄金比(1.618)に固定 */
-    line-height: 1.618;
-    font-size: 0.95em;
-    margin-bottom: 0.809em;
-    padding: 0 10px 8.09px 10px;
+    color: var(--text-primary);
+    line-height: 1.65;
+    font-size: 0.93em;
+    padding: 2px 12px 10px 12px;
 }
 
 .lv-highlight {
-    color: #ff8c00;
-    font-weight: normal;
+    color: var(--orange);
+    font-weight: 600;
     background: transparent;
-    text-shadow: 0 0 5px rgba(255, 140, 0, 0.3);
+    text-shadow: 0 0 6px rgba(255, 140, 0, 0.25);
 }
 
 .combo-row {
-    margin-bottom: 6.18px;
-    padding-bottom: 6.18px;
-    border-bottom: 1px solid #4d4d4d;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
 }
+
 .combo-row:last-child {
     border-bottom: none;
     margin-bottom: 0;
     padding-bottom: 0;
 }
-.combo-effect h3, .combo-effect p {
+
+.combo-effect h3,
+.combo-effect p {
     margin: 0;
     padding: 0;
 }
 
 .effect-label {
     display: inline-block;
-    font-size: 0.9em;
-    font-weight: bold;
-    border-radius: 3px;
-    padding: 0 4px;
-    margin-right: 0.618em;
-    margin-bottom: 0.2em;
+    font-size: 0.82em;
+    font-weight: 700;
+    border-radius: 4px;
+    padding: 1px 8px;
+    margin-right: 8px;
+    margin-bottom: 2px;
+    letter-spacing: 0.03em;
 }
-.normal-label,
+
+.normal-label {
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    color: #1a1a1a;
+}
+
 .awakened-label {
-    background: #ff9800;
-    color: #222;
-}
-
-/* =========================================
-   画像キャプチャ (オーバーレイ)
-   ========================================= */
-#capture-overlay {
-    font-family: 'Segoe UI', sans-serif;
-}
-
-/* =========================================
-   レスポンシブ (スマホ向け調整)
-   ========================================= */
-@media (max-width: 700px) {
-    #container {
-        flex-direction: column;
-        gap: 0.809em;
-        padding: 0.382em;
-    }
-    #side, #main {
-        min-width: unset;
-        width: 100%;
-    }
-    #list {
-        height: 200px;
-    }
-    #hit-row {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.382em;
-    }
-    #sort-btn {
-        margin-left: 0;
-    }
-    #detail-header {
-        justify-content: flex-end; 
-    }
+    background: linear-gradient(135deg, #ff9800, #e65100);
+    color: #1a1a1a;
 }
 
 .skill-sep {
     border: 0;
-    border-bottom: 1px dashed #666;
-    margin: 2px 0;
-    height: 1px;
+    border-bottom: 1px dashed var(--border-light);
+    margin: 4px 0;
     opacity: 0.5;
-    display: block;
-}
-
-@media screen and (min-width: 900px) {
-    #list {
-        height: calc(100vh - 300px) !important;
-        overflow-y: auto !important;
-    }
 }
 
 /* =========================================
-   グループ・名前ボタン用スタイル (ドロップダウン)
+   Group/Name/Effect Dropdown Panels
    ========================================= */
 #group-btns,
 #name-btns,
 #effect-btns {
     display: none;
     grid-template-columns: repeat(3, 1fr);
-    gap: 6.18px;
-    margin-top: 6.18px;
-    margin-bottom: 12.36px;
-    background: #222;
+    gap: 5px;
+    margin-top: 4px;
+    margin-bottom: 8px;
+    background: var(--bg-secondary);
     padding: 10px;
-    border-radius: 6.18px;
-    border: 1px solid #444;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
 }
 
 #group-btns.is-open,
@@ -580,41 +789,522 @@ li.selected {
 }
 
 .group-btn {
-    background-color: #393864;
-    border: 2px solid #5d5c8d;
-    color: #ffffff;
-    padding: 7.4px 2px; /* 高さ調整 */
-    font-size: 11px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 7px 4px;
+    font-size: 0.72em;
     cursor: pointer;
     text-align: center;
-    transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transition: all var(--transition-fast);
+    box-shadow: none;
     width: 100%;
-    box-sizing: border-box;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
 }
 
 .group-btn:hover {
-    background-color: #4a497a;
+    background: var(--bg-card-hover);
+    border-color: var(--border-light);
 }
 
 .group-btn.active {
-    background-color: #6a5acd;
+    background: linear-gradient(135deg, #6a5acd, #5b4fc4);
     border-color: #8476d1;
-    box-shadow: 0 0 6.18px #6a5acd;
-}
-
-/* =========================================
-   検索ハイライト
-   ========================================= */
-.hit {
-    color: #ff4444;
-    font-weight: bold;
-    background: rgba(255, 68, 68, 0.1);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(106, 90, 205, 0.3);
+    font-weight: 700;
 }
 
 #group-toggle-btn,
 #name-toggle-btn,
 #effect-toggle-btn {
-    color: #ffffff !important;
+    color: #fff !important;
+}
+
+/* =========================================
+   Search Highlight
+   ========================================= */
+.hit {
+    color: #ff5555;
+    font-weight: 700;
+    background: rgba(255, 85, 85, 0.1);
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+/* =========================================
+   Footer
+   ========================================= */
+.creator-link {
+    display: block;
+    text-align: center;
+    margin: 30px 0 20px 0;
+    padding: 16px 12px;
+    font-size: 0.78em;
+    color: var(--text-secondary);
+    border-top: 1px solid var(--border);
+    line-height: 1.8;
+}
+
+.creator-link a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color var(--transition-fast);
+}
+
+.creator-link a:hover {
+    color: #8ddbff;
+    text-decoration: underline;
+}
+
+.creator-link small {
+    display: block;
+    margin-top: 8px;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+/* =========================================
+   Capture Overlay
+   ========================================= */
+#capture-overlay {
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* =========================================
+   Terms Modal
+   ========================================= */
+#terms-modal-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+#terms-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px 24px;
+    max-width: 440px;
+    width: 90%;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    color: var(--text-primary);
+    line-height: 1.8;
+    font-size: 0.92em;
+}
+
+#terms-modal-text {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+#terms-modal-text a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+#terms-modal-text a:hover {
+    text-decoration: underline;
+}
+
+#show-original-terms-btn {
+    background: var(--bg-elevated);
+    color: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 6px 14px;
+    cursor: pointer;
+    font-size: 0.88em;
+    margin: 8px 0;
+    transition: all var(--transition-fast);
+}
+
+#show-original-terms-btn:hover {
+    background: var(--bg-card-hover);
+}
+
+#agree-btn,
+#deny-btn {
+    padding: 10px 28px;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 700;
+    margin: 0 8px;
+    transition: all var(--transition-fast);
+}
+
+#agree-btn {
+    background: linear-gradient(135deg, #4CAF50, #388E3C);
+    color: #fff;
+}
+
+#agree-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+#deny-btn {
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+}
+
+#deny-btn:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+/* Original Terms Modal */
+#original-terms-modal-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+#original-terms-modal-bg.hidden {
+    display: none;
+}
+
+#original-terms-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 24px 20px;
+    max-width: 400px;
+    width: 85%;
+    text-align: left;
+    box-shadow: var(--shadow-lg);
+    color: var(--text-primary);
+    line-height: 1.8;
+    font-size: 0.9em;
+}
+
+#original-terms-modal b {
+    color: var(--gold);
+}
+
+#close-original-terms-btn {
+    display: block;
+    margin: 12px auto 0;
+    padding: 8px 24px;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.92em;
+    transition: all var(--transition-fast);
+}
+
+#close-original-terms-btn:hover {
+    background: var(--bg-card-hover);
+}
+
+/* =========================================
+   Responsive: Desktop (wide)
+   ========================================= */
+@media screen and (min-width: 900px) {
+    #list {
+        height: calc(100vh - 300px) !important;
+        overflow-y: auto !important;
+    }
+}
+
+/* =========================================
+   Responsive: Mobile
+   ========================================= */
+@media (max-width: 700px) {
+    #container {
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px;
+    }
+
+    #side,
+    #main {
+        min-width: unset;
+        width: 100%;
+    }
+
+    #list {
+        height: 40vh;
+        min-height: 180px;
+        max-height: 320px;
+    }
+
+    #hit-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    #detail-header {
+        justify-content: flex-end;
+    }
+
+    #detail {
+        border-radius: var(--radius-md);
+        padding: 14px 8px;
+    }
+
+    h1 {
+        font-size: 0.95rem;
+    }
+
+    .tabs-btn {
+        padding: 7px 10px;
+        font-size: 0.85em;
+    }
+
+    .group-btn {
+        font-size: 0.68em;
+        padding: 6px 2px;
+    }
+
+    #group-btns,
+    #name-btns,
+    #effect-btns {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+        padding: 8px;
+    }
+
+    #terms-modal {
+        padding: 20px 16px;
+        font-size: 0.85em;
+    }
+
+    /* 属性・ロールボタン横スクロール */
+    #attribute-row,
+    #role-row {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap !important;
+        scrollbar-width: none;
+    }
+
+    #attribute-row::-webkit-scrollbar,
+    #role-row::-webkit-scrollbar {
+        display: none;
+    }
+
+    #attribute-btns,
+    #role-btns {
+        flex-wrap: nowrap !important;
+    }
+
+    /* タッチフィードバック */
+    button:active,
+    .attr-btn:active,
+    .group-btn:active,
+    .header-btn:active,
+    .magic-btn:active,
+    .tabs-btn:active {
+        transform: scale(0.95);
+        opacity: 0.85;
+    }
+
+    /* レベルパネルをモバイルでは中央固定表示 */
+    #level-control-panel {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        right: auto !important;
+        width: min(90vw, 310px) !important;
+        margin-top: 0 !important;
+    }
+
+    /* お気に入りスターを大きく */
+    .fav-star {
+        font-size: 1.1em;
+        padding: 4px;
+    }
+
+    /* フィルタピルを小さく */
+    .filter-pill {
+        font-size: 0.7em;
+        padding: 2px 5px 2px 7px;
+    }
+}
+
+@media (max-width: 480px) {
+    #level-control-panel {
+        width: min(92vw, 300px) !important;
+    }
+}
+
+/* =========================================
+   Loading & Empty States
+   ========================================= */
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 12px;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    gap: 8px;
+    list-style: none;
+}
+
+.loading-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+    color: var(--text-secondary);
+    font-size: 0.92em;
+    text-align: center;
+    gap: 8px;
+    min-height: 180px;
+}
+
+.empty-state-icon {
+    font-size: 2em;
+    opacity: 0.4;
+    margin-bottom: 4px;
+}
+
+.empty-state-sub {
+    font-size: 0.82em;
+    color: var(--text-muted);
+}
+
+/* =========================================
+   Active Filter Pills
+   ========================================= */
+#active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: 0;
+}
+
+#active-filters:empty {
+    display: none;
+}
+
+.filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(96, 205, 255, 0.08);
+    border: 1px solid rgba(96, 205, 255, 0.25);
+    border-radius: 12px;
+    padding: 2px 6px 2px 9px;
+    font-size: 0.75em;
+    color: var(--accent);
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+}
+
+.filter-pill:hover {
+    background: rgba(96, 205, 255, 0.15);
+}
+
+.filter-pill-remove {
+    cursor: pointer;
+    font-size: 1.15em;
+    line-height: 1;
+    opacity: 0.6;
+    padding: 0 2px;
+    transition: opacity var(--transition-fast);
+}
+
+.filter-pill-remove:hover {
+    opacity: 1;
+}
+
+/* =========================================
+   Favorites
+   ========================================= */
+.fav-star {
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    flex-shrink: 0;
+    transition: color var(--transition-fast), transform var(--transition-fast);
+    user-select: none;
+    opacity: 0.4;
+    line-height: 1;
+    padding: 2px;
+}
+
+.fav-star:hover {
+    opacity: 0.8;
+    transform: scale(1.2);
+}
+
+.fav-star.is-fav {
+    color: var(--gold);
+    opacity: 1;
+}
+
+#fav-filter-btn {
+    font-size: 0.85em;
+    padding: 4px 10px;
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+#fav-filter-btn:hover {
+    background: var(--bg-card-hover);
+}
+
+#fav-filter-btn.active {
+    background: var(--gold-dim);
+    color: var(--gold);
+    border-color: rgba(255, 215, 0, 0.4);
+}
+
+/* =========================================
+   Selection & Focus styles
+   ========================================= */
+::selection {
+    background: rgba(96, 205, 255, 0.3);
+    color: #fff;
+}
+
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }

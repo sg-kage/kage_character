@@ -59,6 +59,10 @@ let effectMode = 'and';       // 効果検索モード ('and' | 'or')
 let tabMode = 0;              // 詳細タブモード (0:比較, 1:覚醒前, 2:覚醒後)
 let showImages = false;       // 画像表示フラグ
 
+// お気に入り
+let favorites = new Set();
+let showFavoritesOnly = false;
+
 /**
  * DOM要素のキャッシュ
  * 頻繁にアクセスする要素を事前に取得しておくことで高速化を図る
@@ -89,6 +93,9 @@ const ELS = {
     panelBtn: document.getElementById('toggle-panel-btn'),
     controlPanel: document.getElementById('level-control-panel'),
     
+    // フィルターピル
+    activeFilters: document.getElementById('active-filters'),
+
     // 動的取得が必要なNodeList用アクセサ
     getAffinityBtns: () => document.querySelectorAll('.magic-btn[data-kind="affinity"]'),
     getMagicBtns: () => document.querySelectorAll('.magic-btn[data-kind="magic"]')
@@ -108,20 +115,25 @@ document.addEventListener('DOMContentLoaded', () => {
     style.textContent = `.skill-sep { border: 0; border-bottom: 1px dashed #666; margin: 8px 0; opacity: 0.5; }`;
     document.head.appendChild(style);
 
-    // 2. ローカルストレージからの設定読み込み
+    // 2. ローディング表示
+    ELS.list.innerHTML = '<li class="loading-state"><div class="loading-spinner"></div>データを読み込み中...</li>';
+    ELS.detail.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128270;</div>キャラクターを選択してください</div>';
+
+    // 3. ローカルストレージからの設定読み込み
     loadSavedSettings();
 
-    // 3. Wi-Fi判定と画像表示設定
+    // 4. Wi-Fi判定と画像表示設定
     checkConnectionSettings();
 
-    // 4. UIコンポーネントの初期化
+    // 5. UIコンポーネントの初期化
     initLevelUI();
     setupStaticButtons();
     setupOptionPanel();
     setupCaptureButton();
     setupListHeightControl();
-    
-    // 5. データロード開始
+    setupKeyboardNavigation();
+
+    // 6. データロード開始
     loadCharacters();
 });
 
@@ -131,12 +143,18 @@ document.addEventListener('DOMContentLoaded', () => {
 function loadSavedSettings() {
     const savedAff = localStorage.getItem('kage_affinity');
     const savedMag = localStorage.getItem('kage_magicLv');
-    
+
     if (savedAff && savedAff !== 'inf') currentAffinity = parseInt(savedAff);
     else if (savedAff === 'inf') currentAffinity = 'inf';
 
     if (savedMag && savedMag !== 'inf') currentMagicLv = parseInt(savedMag);
     else if (savedMag === 'inf') currentMagicLv = 'inf';
+
+    // お気に入り読み込み
+    try {
+        const savedFav = localStorage.getItem('kage_favorites');
+        if (savedFav) favorites = new Set(JSON.parse(savedFav));
+    } catch (e) { /* ignore */ }
 }
 
 /**
@@ -336,6 +354,19 @@ function setupStaticButtons() {
         };
     }
 
+    // --- お気に入りフィルタボタン ---
+    const favBtn = document.createElement('button');
+    favBtn.id = 'fav-filter-btn';
+    favBtn.textContent = '★';
+    favBtn.title = 'お気に入りのみ表示';
+    favBtn.onclick = () => {
+        showFavoritesOnly = !showFavoritesOnly;
+        favBtn.classList.toggle('active', showFavoritesOnly);
+        updateList(true);
+    };
+    const buttonGroup = document.querySelector('.button-group');
+    if (buttonGroup) buttonGroup.prepend(favBtn);
+
     // --- ソートボタン ---
     ELS.sortBtn.onclick = () => {
         positionSorted = !positionSorted;
@@ -481,7 +512,10 @@ function updateList(resetSelect=false) {
     // --- フィルタリング実行 ---
     let filtered = characters.filter(char => {
         if (!char._search) return false;
-        
+
+        // 0. お気に入りフィルタ
+        if (showFavoritesOnly && !favorites.has(String(char.CharacterID))) return false;
+
         // 1. テキスト検索（キーワードごとのAND検索）
         const matchKeywords = filterKeywords.every(token => {
             // コロンを含む場合は特定フィールド検索
@@ -548,25 +582,31 @@ function updateList(resetSelect=false) {
     filtered.forEach((char, idx) => {
         const li = document.createElement('li');
         li.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 0 10px;
-            height: 35px;
-            box-sizing: border-box;
-            cursor: pointer;
+            display:flex; align-items:center; gap:6px;
+            padding:0 10px; height:35px;
         `;
+
+        // 0. お気に入りスター
+        const charId = String(char.CharacterID);
+        const favStar = document.createElement('span');
+        favStar.className = 'fav-star' + (favorites.has(charId) ? ' is-fav' : '');
+        favStar.textContent = favorites.has(charId) ? '★' : '☆';
+        favStar.onclick = (e) => {
+            e.stopPropagation();
+            toggleFavorite(charId);
+        };
+        li.appendChild(favStar);
 
         // 1. 名前の前：通常画像 (name.webp)
         if (showImages) {
             const imgArea1 = document.createElement('div');
-            imgArea1.style.cssText = `width: 30px; height: 30px; flex-shrink: 0;`;
-            
+            imgArea1.style.cssText = `width:30px; height:30px; flex-shrink:0;`;
+
             const img1 = document.createElement('img');
             img1.src = `image/characters/${char.name}.webp`;
             img1.style.cssText = `
-                width: 30px; height: 30px; object-fit: cover; 
-                border-radius: 4px; border: 1px solid #555; background: #2a2a2a;
+                width:30px; height:30px; object-fit:cover;
+                border-radius:4px; border:1px solid #3a3a3a; background:#2d2d2d;
             `;
             img1.onerror = () => img1.style.visibility = 'hidden'; 
             imgArea1.appendChild(img1);
@@ -590,10 +630,9 @@ function updateList(resetSelect=false) {
             const img2 = document.createElement('img');
             img2.src = `image/characters/${char.name}_Ex.webp`;
             img2.style.cssText = `
-                width: 30px; height: 30px; object-fit: cover;
-                border-radius: 4px; border: 1px solid #555; background: #2a2a2a;
-                flex-shrink: 0;
-                margin-left: 2px;
+                width:30px; height:30px; object-fit:cover;
+                border-radius:4px; border:1px solid #3a3a3a; background:#2d2d2d;
+                flex-shrink:0; margin-left:2px;
             `;
             // Ex画像がないキャラは要素ごと削除して隙間を詰める
             img2.onerror = () => img2.remove(); 
@@ -618,8 +657,16 @@ function updateList(resetSelect=false) {
         showDetail(filtered[selectedIdx], highlightKeywords);
         highlightSelected();
     } else {
-        showDetail(null);
+        // 空状態メッセージ
+        if (characters.length > 0) {
+            ELS.list.innerHTML = '<li class="loading-state" style="flex-direction:column; gap:4px;">該当するキャラクターが見つかりません<span style="font-size:0.8em; opacity:0.6;">フィルタ条件を変えてみてください</span></li>';
+            ELS.detail.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128270;</div>該当するキャラクターが見つかりません</div>';
+        }
+        if (ELS.captureBtn) ELS.captureBtn.style.display = 'none';
     }
+
+    // フィルタピル更新
+    updateActiveFilterPills();
 }
 
 /**
@@ -682,7 +729,7 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
             if (awakened) {
                 return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}
                   <span class="effect-label normal-label">覚醒前</span>${highlightText(normal, filter)}
-                  <div style="border-top: 1px dashed #555; margin: 6px 0 6px 0; opacity: 0.7;"></div>
+                  <div style="border-top:1px dashed #3a3a3a; margin:6px 0; opacity:0.7;"></div>
                   <span class="effect-label awakened-label">覚醒後</span>${highlightText(awakened, filter)}
                 </div>`;
             } else {
@@ -724,7 +771,7 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
  */
 function showDetail(char, filter = []) {
     if (!char) {
-        ELS.detail.textContent = "該当キャラクターがありません。";
+        ELS.detail.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128270;</div>キャラクターを選択してください</div>';
         if (ELS.captureBtn) ELS.captureBtn.style.display = 'none';
         return;
     }
@@ -749,31 +796,24 @@ function showDetail(char, filter = []) {
         ];
 
         imageHtml = `
-        <div class="char-image-container" style="display:flex; gap:10px; justify-content:center; align-items: flex-start; margin-bottom:15px; width: 100%;">
+        <div class="char-image-container" style="display:flex; gap:12px; justify-content:center; align-items:flex-start; margin-bottom:16px; width:100%;">
             ${imgData.map(img => `
-                <img 
-                    src="${img.src}" 
+                <img
+                    src="${img.src}"
                     alt="${char.name}${img.suffix}"
-                    class="char-image" 
-                    crossorigin="anonymous" 
-                    loading="lazy" 
+                    class="char-image"
+                    crossorigin="anonymous"
+                    loading="lazy"
                     decoding="async"
                     style="
-                        display: block;
-                        width: auto;
-                        height: auto;
-                        max-width: 35%;        /* 画面の35%に抑える */
-                        max-height: 150px;     /* 縦伸び防止 */
-                        object-fit: contain; 
-                        border-radius: 6px; 
-                        border: 1px solid #444; 
-                        background: #2a2a2a;
-                        animation: none !important; 
-                        transform: none !important; 
-                        transition: none !important;
-                        flex: 0 1 auto;
+                        display:block; width:auto; height:auto;
+                        max-width:35%; max-height:150px;
+                        object-fit:contain; border-radius:8px;
+                        border:1px solid #3a3a3a; background:#2d2d2d;
+                        animation:none !important; transform:none !important;
+                        transition:none !important; flex:0 1 auto;
                     "
-                    onerror="this.style.display='none';" 
+                    onerror="this.style.display='none';"
                 >`).join("")}
         </div>`;
     }
@@ -783,36 +823,35 @@ function showDetail(char, filter = []) {
     // --- 基本情報（タイトル、属性、ロールなど） ---
     // 上下の隙間(padding/margin)を調整してコンパクトに表示
     let mainContent = `
-    <div class="char-detail-wrap" style="padding:15px 12px; background:#232323; color:#fff; border-radius:10px;">
-        <div class="char-title" style="color: ${attrColor}; font-size:1.5em; font-weight:bold; margin-bottom:10px; text-align:center;">
+    <div class="char-detail-wrap">
+        <div class="char-title" style="color:${attrColor};">
             ${highlightDetail(char.name)}
         </div>
         ${imageHtml}
-        
-        <div class="char-basic" style="display:block !important; background:#333; padding:4px 8px; border-radius:5px; margin-bottom:15px;">
-            <div style="display:flex; flex-wrap:nowrap; gap:6px; margin-bottom:2px;">
-                <div style="white-space:nowrap; min-width:auto; display:flex; align-items:center;">
-                    <span style="opacity:0.7; font-size:0.8em; margin-right:1px; color:#FFD700; font-weight:bold;">属性:</span>
-                    <span class="char-value ${attributeClass(char.attribute)}" style="min-width:auto; padding:0 4px;">${highlightDetail(char.attribute)}</span>
+
+        <div class="char-info-grid">
+            <div class="char-info-row-top">
+                <div class="char-info-item">
+                    <span class="char-label">属性</span>
+                    <span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span>
                 </div>
-                <div style="white-space:nowrap; min-width:auto; display:flex; align-items:center;">
-                    <span style="opacity:0.7; font-size:0.8em; margin-right:1px; color:#FFD700; font-weight:bold;">ロール:</span>
-                    <span class="char-value" style="min-width:auto; padding:0 4px;">${highlightDetail(char.role)}</span>
+                <div class="char-info-item">
+                    <span class="char-label">ロール</span>
+                    <span class="char-value">${highlightDetail(char.role)}</span>
                 </div>
-                <div style="white-space:nowrap; min-width:auto; display:flex; align-items:center;">
-                    <span style="opacity:0.7; font-size:0.8em; margin-right:1px; color:#FFD700; font-weight:bold;">ポジション:</span>
-                    <span class="char-value" style="min-width:auto; padding:0 4px;">${highlightDetail(char.position)}</span>
+                <div class="char-info-item">
+                    <span class="char-label">ポジション</span>
+                    <span class="char-value">${highlightDetail(char.position)}</span>
                 </div>
             </div>
-            
-            <div style="border-top: 1px solid #444; padding-top: 2px; display:flex; flex-direction:column; gap:0px;">
-                <div style="white-space:normal !important; min-width:auto; line-height:1.2; padding-top:2px; display:flex; align-items:flex-start;">
-                    <span style="opacity:0.7; font-size:0.8em; margin-right:5px; color:#FFD700; font-weight:bold; flex-shrink:0;">グループ:</span>
-                    <span class="char-value" style="min-width:auto; background:none; padding:0; font-size:0.9em; word-break:break-all;">${(char.group || []).join(', ')}</span>
+            <div class="char-info-row-bottom">
+                <div class="char-info-item char-info-wide">
+                    <span class="char-label">グループ</span>
+                    <span class="char-value char-value-plain">${(char.group || []).join(', ')}</span>
                 </div>
-                <div style="white-space:normal !important; min-width:auto; line-height:1.2; padding-top:2px; display:flex; align-items:flex-start;">
-                    <span style="opacity:0.7; font-size:0.8em; margin-right:5px; color:#FFD700; font-weight:bold; flex-shrink:0;">覚醒:</span>
-                    <span class="char-value" style="min-width:auto; background:none; padding:0; font-size:0.9em; word-break:break-all;">${char.arousal}</span>
+                <div class="char-info-item char-info-wide">
+                    <span class="char-label">覚醒</span>
+                    <span class="char-value char-value-plain">${char.arousal}</span>
                 </div>
             </div>
         </div>`;
@@ -827,9 +866,9 @@ function showDetail(char, filter = []) {
         
         if (!content) return "";
         return `
-        <div class="char-section" style="margin-bottom:15px; border-left:4px solid ${attrColor}; padding-left:10px;">
-            <div class="char-section-title" style="font-weight:bold; color:${attrColor}; margin-bottom:5px;">${title}</div>
-            <div class="char-section-content" style="line-height:1.6;">${content}</div>
+        <div class="char-section" style="border-left:3px solid ${attrColor};">
+            <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">${title}</div>
+            <div class="char-section-content">${content}</div>
         </div>`;
     };
 
@@ -840,8 +879,8 @@ function showDetail(char, filter = []) {
         ${sect("特技1", char.skill1)}
         ${sect("特技2", char.skill2)}
         ${sect("特殊", char.traits)}
-        <div class="char-section" style="margin-bottom:15px; border-left:4px solid ${attrColor}; padding-left:10px;">
-            <div class="char-section-title" style="font-weight:bold; color:${attrColor}; margin-bottom:5px;">コンボ</div>
+        <div class="char-section" style="border-left:3px solid ${attrColor};">
+            <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">コンボ</div>
             <div class="char-section-content">${comboBlock(char.combo, filter)}</div>
         </div>
         ${sect("通常攻撃", char.normal_attack)}
@@ -853,11 +892,11 @@ function showDetail(char, filter = []) {
     
     // --- タブ生成 ---
     const tabRange = document.createRange().createContextualFragment(`
-    <div class="tabs-wrap" id="detail-tabs" style="margin-bottom:10px;">
-      <div class="tabs-buttons" style="display:flex; gap:5px;">
-        <button class="tabs-btn${tabMode===0?' active':''}" id="tab-both" style="flex:1; padding:8px; cursor:pointer;">比較</button>
-        <button class="tabs-btn${tabMode===1?' active':''}" id="tab-normal" style="flex:1; padding:8px; cursor:pointer;">覚醒前</button>
-        <button class="tabs-btn${tabMode===2?' active':''}" id="tab-awakened" style="flex:1; padding:8px; cursor:pointer;">覚醒後</button>
+    <div class="tabs-wrap" id="detail-tabs">
+      <div class="tabs-buttons">
+        <button class="tabs-btn${tabMode===0?' active':''}" id="tab-both">比較</button>
+        <button class="tabs-btn${tabMode===1?' active':''}" id="tab-normal">覚醒前</button>
+        <button class="tabs-btn${tabMode===2?' active':''}" id="tab-awakened">覚醒後</button>
       </div>
     </div>`);
     ELS.detail.prepend(tabRange);
@@ -1185,11 +1224,11 @@ function setupCaptureButton() {
             // キャプチャ用に一時的なクローンを作成（スタイルを強制適用）
             clone = ELS.detail.cloneNode(true);
             Object.assign(clone.style, {
-                position: 'fixed', top: '0', left: '0', 
+                position: 'fixed', top: '0', left: '0',
                 width: '1100px', minWidth: '1100px', maxWidth: 'none',
-                height: 'auto', padding: '20px', margin: '0', 
-                background: '#232323', color: '#ffffff',
-                zIndex: '-9999', overflow: 'visible', 
+                height: 'auto', padding: '20px', margin: '0',
+                background: '#232323', color: '#E0E0E0',
+                zIndex: '-9999', overflow: 'visible',
                 borderRadius: '0', transform: 'none'
             });
             clone.removeAttribute('id');
@@ -1201,8 +1240,8 @@ function setupCaptureButton() {
                 useCORS: true, 
                 allowTaint: false, 
                 logging: false,
-                windowWidth: 1200, 
-                backgroundColor: '#232323'
+                windowWidth: 1200,
+                backgroundColor: '#1a1a24'
             });
             showCaptureOverlay(canvas.toDataURL('image/png'), filename);
 
@@ -1344,4 +1383,234 @@ function setupListHeightControl() {
     });
     
     setTimeout(updateHeight, 100);
+}
+
+
+/* =========================================
+   9. お気に入り機能
+   ========================================= */
+
+function toggleFavorite(charId) {
+    if (favorites.has(charId)) {
+        favorites.delete(charId);
+    } else {
+        favorites.add(charId);
+    }
+    saveFavorites();
+    updateList(false);
+}
+
+function saveFavorites() {
+    try {
+        localStorage.setItem('kage_favorites', JSON.stringify([...favorites]));
+    } catch (e) { /* ignore */ }
+}
+
+
+/* =========================================
+   10. キーボードナビゲーション
+   ========================================= */
+
+function setupKeyboardNavigation() {
+    document.addEventListener('keydown', (e) => {
+        // 入力フィールドにフォーカス中は矢印キーを無視（Escapeは例外）
+        const activeTag = document.activeElement?.tagName;
+        const isInputFocused = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
+
+        if (e.key === 'Escape') {
+            e.preventDefault();
+
+            // 1. キャプチャオーバーレイを閉じる
+            const overlay = document.getElementById('capture-overlay');
+            if (overlay) { overlay.remove(); return; }
+
+            // 2. レベルパネルを閉じる
+            if (ELS.controlPanel && ELS.controlPanel.style.display !== 'none') {
+                ELS.controlPanel.style.display = 'none';
+                if (ELS.panelBtn) ELS.panelBtn.classList.remove('active');
+                return;
+            }
+
+            // 3. ドロップダウンパネルを閉じる
+            const openPanels = document.querySelectorAll('#group-btns.is-open, #name-btns.is-open, #effect-btns.is-open');
+            if (openPanels.length > 0) {
+                openPanels.forEach(p => p.classList.remove('is-open'));
+                return;
+            }
+
+            // 4. 検索フィールドをクリア or フォーカス解除
+            if (isInputFocused) {
+                document.activeElement.blur();
+                return;
+            }
+            if (ELS.filter.value) {
+                ELS.filter.value = '';
+                updateList(true);
+                return;
+            }
+            return;
+        }
+
+        // 入力中は矢印/Enterを無視
+        if (isInputFocused) return;
+        if (!lastFiltered.length) return;
+
+        const highlightKeywords = getCurrentFilterKeywords().map(k => {
+            if (k.includes(':') || k.includes('：')) return k.split(CONFIG.REGEX.splitColon)[1];
+            return k;
+        }).filter(k => k);
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (selectedIdx < lastFiltered.length - 1) {
+                selectedIdx++;
+                tabMode = 0;
+                showDetail(lastFiltered[selectedIdx], highlightKeywords);
+                highlightSelected();
+                scrollToSelected();
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (selectedIdx > 0) {
+                selectedIdx--;
+                tabMode = 0;
+                showDetail(lastFiltered[selectedIdx], highlightKeywords);
+                highlightSelected();
+                scrollToSelected();
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (lastFiltered[selectedIdx]) {
+                tabMode = 0;
+                showDetail(lastFiltered[selectedIdx], highlightKeywords);
+                highlightSelected();
+            }
+        }
+    });
+}
+
+function scrollToSelected() {
+    const targetLi = ELS.list.children[selectedIdx];
+    if (targetLi) {
+        targetLi.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+}
+
+
+/* =========================================
+   11. アクティブフィルタ ピル表示
+   ========================================= */
+
+function updateActiveFilterPills() {
+    if (!ELS.activeFilters) return;
+    const frag = document.createDocumentFragment();
+
+    // 属性
+    selectedAttrs.forEach(attr => {
+        frag.appendChild(createFilterPill(`属性: ${attr}`, () => {
+            selectedAttrs.delete(attr);
+            updateAttrBtnColors();
+            updateList(true);
+        }));
+    });
+
+    // ロール
+    selectedRoles.forEach(role => {
+        frag.appendChild(createFilterPill(`ロール: ${role}`, () => {
+            selectedRoles.delete(role);
+            updateRoleBtnColors();
+            updateList(true);
+        }));
+    });
+
+    // グループ
+    selectedGroups.forEach(g => {
+        frag.appendChild(createFilterPill(`グループ: ${g}`, () => {
+            selectedGroups.delete(g);
+            // グループボタンの active クラスも解除
+            const btns = ELS.groupBtns.querySelectorAll('.group-btn');
+            btns.forEach(btn => { if (btn.textContent === g) btn.classList.remove('active'); });
+            updateList(true);
+        }));
+    });
+
+    // キャラ名
+    selectedNames.forEach(n => {
+        frag.appendChild(createFilterPill(`キャラ: ${n}`, () => {
+            selectedNames.delete(n);
+            const btns = ELS.nameBtns.querySelectorAll('.group-btn');
+            btns.forEach(btn => { if (btn.textContent === n) btn.classList.remove('active'); });
+            updateList(true);
+        }));
+    });
+
+    // 効果
+    selectedEffects.forEach(e => {
+        frag.appendChild(createFilterPill(`効果: ${e}`, () => {
+            selectedEffects.delete(e);
+            const btns = ELS.effectBtns.querySelectorAll('.group-btn');
+            btns.forEach(btn => { if (btn.textContent === e) btn.classList.remove('active'); });
+            updateList(true);
+        }));
+    });
+
+    // お気に入りフィルタ
+    if (showFavoritesOnly) {
+        frag.appendChild(createFilterPill('★ お気に入り', () => {
+            showFavoritesOnly = false;
+            const favBtn = document.getElementById('fav-filter-btn');
+            if (favBtn) favBtn.classList.remove('active');
+            updateList(true);
+        }));
+    }
+
+    ELS.activeFilters.innerHTML = '';
+    ELS.activeFilters.appendChild(frag);
+
+    // トグルボタンのカウント表示を更新
+    updateToggleBtnCounts();
+}
+
+function createFilterPill(text, onRemove) {
+    const pill = document.createElement('span');
+    pill.className = 'filter-pill';
+    pill.textContent = text;
+
+    const x = document.createElement('span');
+    x.className = 'filter-pill-remove';
+    x.textContent = '×';
+    x.onclick = (e) => {
+        e.stopPropagation();
+        onRemove();
+    };
+    pill.appendChild(x);
+    return pill;
+}
+
+function updateToggleBtnCounts() {
+    const nameBtn = document.getElementById('name-toggle-btn');
+    const groupBtn = document.getElementById('group-toggle-btn');
+    const effectBtn = document.getElementById('effect-toggle-btn');
+
+    if (nameBtn) {
+        const isOpen = ELS.nameBtns.classList.contains('is-open');
+        const arrow = isOpen ? '▲' : '▼';
+        nameBtn.textContent = selectedNames.size > 0
+            ? `キャラ名${arrow} (${selectedNames.size})`
+            : `キャラ名${arrow}`;
+    }
+    if (groupBtn) {
+        const isOpen = ELS.groupBtns.classList.contains('is-open');
+        const arrow = isOpen ? '▲' : '▼';
+        groupBtn.textContent = selectedGroups.size > 0
+            ? `グループ${arrow} (${selectedGroups.size})`
+            : `グループ${arrow}`;
+    }
+    if (effectBtn) {
+        const isOpen = ELS.effectBtns.classList.contains('is-open');
+        const arrow = isOpen ? '▲' : '▼';
+        effectBtn.textContent = selectedEffects.size > 0
+            ? `効果${arrow} (${selectedEffects.size})`
+            : `効果${arrow}`;
+    }
 }
