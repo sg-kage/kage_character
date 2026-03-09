@@ -581,12 +581,16 @@ function updateList(resetSelect=false) {
 
     filtered.forEach((char, idx) => {
         const li = document.createElement('li');
-        li.style.cssText = `
-            display:flex; align-items:center; gap:6px;
-            padding:0 10px; height:35px;
-        `;
 
-        // 0. お気に入りスター
+        // 0. 属性カラードット
+        const attrDot = document.createElement('span');
+        attrDot.className = 'attr-dot';
+        const dotColor = CONFIG.attributes[char.attribute] || '#888';
+        attrDot.style.color = dotColor;
+        attrDot.style.background = dotColor;
+        li.appendChild(attrDot);
+
+        // 1. お気に入りスター
         const charId = String(char.CharacterID);
         const favStar = document.createElement('span');
         favStar.className = 'fav-star' + (favorites.has(charId) ? ' is-fav' : '');
@@ -597,45 +601,32 @@ function updateList(resetSelect=false) {
         };
         li.appendChild(favStar);
 
-        // 1. 名前の前：通常画像 (name.webp)
+        // 2. 名前の前：通常画像 (name.webp)
         if (showImages) {
             const imgArea1 = document.createElement('div');
-            imgArea1.style.cssText = `width:30px; height:30px; flex-shrink:0;`;
+            imgArea1.className = 'list-img-area';
 
             const img1 = document.createElement('img');
             img1.src = `image/characters/${char.name}.webp`;
-            img1.style.cssText = `
-                width:30px; height:30px; object-fit:cover;
-                border-radius:4px; border:1px solid #3a3a3a; background:#2d2d2d;
-            `;
-            img1.onerror = () => img1.style.visibility = 'hidden'; 
+            img1.className = 'list-img';
+            img1.onerror = () => img1.style.visibility = 'hidden';
             imgArea1.appendChild(img1);
             li.appendChild(imgArea1);
         }
 
-        // 2. キャラ名
+        // 3. キャラ名
         const nameSpan = document.createElement('span');
         nameSpan.textContent = char.name;
-        nameSpan.style.cssText = `
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex-shrink: 1;
-        `;
+        nameSpan.className = 'list-name';
         applyHighlightDOM(nameSpan, highlightKeywords);
         li.appendChild(nameSpan);
 
-        // 3. 文字の右：Ex画像 (name_Ex.webp)
+        // 4. 文字の右：Ex画像 (name_Ex.webp)
         if (showImages) {
             const img2 = document.createElement('img');
             img2.src = `image/characters/${char.name}_Ex.webp`;
-            img2.style.cssText = `
-                width:30px; height:30px; object-fit:cover;
-                border-radius:4px; border:1px solid #3a3a3a; background:#2d2d2d;
-                flex-shrink:0; margin-left:2px;
-            `;
-            // Ex画像がないキャラは要素ごと削除して隙間を詰める
-            img2.onerror = () => img2.remove(); 
+            img2.className = 'list-img-ex';
+            img2.onerror = () => img2.remove();
             li.appendChild(img2);
         }
 
@@ -796,7 +787,7 @@ function showDetail(char, filter = []) {
         ];
 
         imageHtml = `
-        <div class="char-image-container" style="display:flex; gap:12px; justify-content:center; align-items:flex-start; margin-bottom:16px; width:100%;">
+        <div class="char-image-container">
             ${imgData.map(img => `
                 <img
                     src="${img.src}"
@@ -805,14 +796,6 @@ function showDetail(char, filter = []) {
                     crossorigin="anonymous"
                     loading="lazy"
                     decoding="async"
-                    style="
-                        display:block; width:auto; height:auto;
-                        max-width:35%; max-height:150px;
-                        object-fit:contain; border-radius:8px;
-                        border:1px solid #3a3a3a; background:#2d2d2d;
-                        animation:none !important; transform:none !important;
-                        transition:none !important; flex:0 1 auto;
-                    "
                     onerror="this.style.display='none';"
                 >`).join("")}
         </div>`;
