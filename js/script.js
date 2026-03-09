@@ -1210,21 +1210,23 @@ function setupCaptureButton() {
                 position: 'fixed', top: '0', left: '0',
                 width: '1100px', minWidth: '1100px', maxWidth: 'none',
                 height: 'auto', padding: '20px', margin: '0',
-                background: '#232323', color: '#E0E0E0',
+                background: '#1c1c28', color: '#e8e8f0',
                 zIndex: '-9999', overflow: 'visible',
-                borderRadius: '0', transform: 'none'
+                borderRadius: '0', transform: 'none',
+                fontFamily: "'Inter', 'Noto Sans JP', 'Segoe UI', 'Meiryo', 'Hiragino Sans', sans-serif"
             });
             clone.removeAttribute('id');
             document.body.appendChild(clone);
 
-            const isMobile = window.innerWidth < 800;
+            const dpr = window.devicePixelRatio || 1;
+            const captureScale = Math.max(2, Math.min(dpr, 3));
             const canvas = await html2canvas(clone, {
-                scale: isMobile ? 1.5 : 2, 
-                useCORS: true, 
-                allowTaint: false, 
+                scale: captureScale,
+                useCORS: true,
+                allowTaint: false,
                 logging: false,
                 windowWidth: 1200,
-                backgroundColor: '#1a1a24'
+                backgroundColor: '#1c1c28'
             });
             showCaptureOverlay(canvas.toDataURL('image/png'), filename);
 

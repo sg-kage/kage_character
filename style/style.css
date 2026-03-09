@@ -1406,6 +1406,47 @@ li.selected {
         font-size: 0.7em;
         padding: 2px 5px 2px 7px;
     }
+
+    /* character detail mobile optimization */
+    .char-title {
+        font-size: 1.2rem;
+    }
+
+    .char-image-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .char-image {
+        max-width: 60%;
+        max-height: 200px;
+    }
+
+    .char-info-row-top {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .char-section-content {
+        font-size: 0.88em;
+        padding: 4px 10px 10px 10px;
+    }
+
+    .effect-label {
+        font-size: 0.75em;
+        padding: 2px 8px;
+    }
+
+    /* header buttons wrap on small screens */
+    #detail-header {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .header-btn {
+        font-size: 0.8rem;
+        padding: 6px 12px;
+    }
 }
 
 @media (max-width: 480px) {
