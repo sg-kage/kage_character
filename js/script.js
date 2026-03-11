@@ -1216,10 +1216,31 @@ function setupCaptureButton() {
                 fontFamily: "'Inter', 'Noto Sans JP', 'Segoe UI', 'Meiryo', 'Hiragino Sans', sans-serif"
             });
             clone.removeAttribute('id');
+
+            // ★ モバイルCSS メディアクエリがクローン子要素に影響するのを防止
+            // （ビューポートが700px以下でもデスクトップレイアウトを強制）
+            clone.querySelectorAll('.char-image-container').forEach(el => {
+                Object.assign(el.style, { flexDirection: 'row', alignItems: 'flex-start' });
+            });
+            clone.querySelectorAll('.char-image').forEach(el => {
+                Object.assign(el.style, { maxWidth: '35%', maxHeight: '150px' });
+            });
+            clone.querySelectorAll('.char-title').forEach(el => {
+                el.style.fontSize = '1.5rem';
+            });
+            clone.querySelectorAll('.char-section-content').forEach(el => {
+                Object.assign(el.style, { fontSize: '', padding: '' });
+            });
+            clone.querySelectorAll('.char-info-row-top').forEach(el => {
+                Object.assign(el.style, { flexWrap: 'nowrap', gap: '8px' });
+            });
+
             document.body.appendChild(clone);
 
+            // ★ モバイルではscale=2に制限（巨大Canvasによる暗黙ダウンスケール防止）
             const dpr = window.devicePixelRatio || 1;
-            const captureScale = Math.max(2, Math.min(dpr, 3));
+            const isMobile = window.innerWidth <= 700;
+            const captureScale = isMobile ? 2 : Math.max(2, Math.min(dpr, 3));
             const canvas = await html2canvas(clone, {
                 scale: captureScale,
                 useCORS: true,
@@ -1228,7 +1249,11 @@ function setupCaptureButton() {
                 windowWidth: 1200,
                 backgroundColor: '#1c1c28'
             });
-            showCaptureOverlay(canvas.toDataURL('image/png'), filename);
+
+            // ★ toBlob + ObjectURL で省メモリ化（モバイル向け）
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const blobUrl = URL.createObjectURL(blob);
+            showCaptureOverlay(blobUrl, filename);
 
         } catch (err) { 
             console.error("Capture Failed:", err);
@@ -1245,9 +1270,14 @@ function setupCaptureButton() {
 /**
  * キャプチャ結果を表示するオーバーレイの生成
  */
-function showCaptureOverlay(dataUrl, filename) {
+function showCaptureOverlay(blobUrl, filename) {
     const existing = document.getElementById('capture-overlay');
-    if (existing) existing.remove();
+    if (existing) {
+        // 前回の blob URL を解放
+        const prevImg = existing.querySelector('img');
+        if (prevImg && prevImg.src.startsWith('blob:')) URL.revokeObjectURL(prevImg.src);
+        existing.remove();
+    }
 
     const overlay = document.createElement('div');
     overlay.id = 'capture-overlay';
@@ -1258,12 +1288,20 @@ function showCaptureOverlay(dataUrl, filename) {
     });
 
     const img = document.createElement('img');
-    img.src = dataUrl;
-    Object.assign(img.style, { 
-        maxWidth: '90%', maxHeight: '80%', 
-        border: '2px solid #fff', marginBottom: '15px', 
-        boxShadow: '0 0 20px rgba(0,0,0,0.5)' 
+    img.src = blobUrl;
+    Object.assign(img.style, {
+        maxWidth: '90%', maxHeight: '80%',
+        border: '2px solid #fff', marginBottom: '15px',
+        boxShadow: '0 0 20px rgba(0,0,0,0.5)',
+        imageRendering: 'auto',       // ★ ブラウザ最適な縮小アルゴリズムを使用
+        objectFit: 'contain'           // ★ アスペクト比維持
     });
+
+    // ★ blob URL のクリーンアップ関数
+    const cleanup = () => {
+        if (blobUrl.startsWith('blob:')) URL.revokeObjectURL(blobUrl);
+        overlay.remove();
+    };
 
     const btnArea = document.createElement('div');
     const createBtn = (text, bg, action, isLink) => {
@@ -1271,16 +1309,16 @@ function showCaptureOverlay(dataUrl, filename) {
         el.textContent = text;
         Object.assign(el.style, {
             display: 'inline-block', padding: '10px 20px', background: bg, color: '#fff',
-            textDecoration: 'none', borderRadius: '5px', fontSize: '16px', 
+            textDecoration: 'none', borderRadius: '5px', fontSize: '16px',
             cursor: 'pointer', margin: '0 10px', border: 'none'
         });
-        if(isLink) { el.href = dataUrl; el.download = filename; }
+        if(isLink) { el.href = blobUrl; el.download = filename; }
         else el.onclick = action;
         return el;
     };
 
     btnArea.appendChild(createBtn('画像を保存', '#4CAF50', null, true));
-    btnArea.appendChild(createBtn('閉じる', '#f44336', () => overlay.remove(), false));
+    btnArea.appendChild(createBtn('閉じる', '#f44336', cleanup, false));
 
     overlay.appendChild(img);
     overlay.appendChild(btnArea);
