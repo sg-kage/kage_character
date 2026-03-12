@@ -1162,36 +1162,65 @@ function setupEffectButtons() {
  */
 function setupCaptureButton() {
     if (!ELS.captureBtn) return;
-    
+
     // 画像のロード完了を待つヘルパー
     const waitImagesLoaded = (root) => {
         const images = Array.from(root.querySelectorAll('img'));
-        if (images.length === 0) return Promise.resolve(); // 画像がない場合は即続行
+        if (images.length === 0) return Promise.resolve();
 
         return Promise.all(images.map(img => {
-            // スクショ時にlazy属性を解除して確実に読み込ませる
             if (img.getAttribute('loading') === 'lazy') {
                 img.removeAttribute('loading');
             }
-            // すでに読み込み済み（またはキャッシュあり）なら解決
             if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
 
             return new Promise(resolve => {
                 img.onload = resolve;
-                // ★修正点: 画像がエラーになっても止まらないようにする
-                img.onerror = resolve; 
+                img.onerror = resolve;
                 if (!img.src) resolve();
-                // ★修正点: 2.5秒経っても反応がない場合は強制的に次へ進む
-                setTimeout(resolve, 2500); 
+                setTimeout(resolve, 2500);
             });
         }));
+    };
+
+    // アンシャープマスク（Canvas後処理でテキストの輪郭を鮮明化）
+    const sharpenCanvas = (src) => {
+        const w = src.width, h = src.height;
+        const dst = document.createElement('canvas');
+        dst.width = w; dst.height = h;
+        const srcCtx = src.getContext('2d');
+        const dstCtx = dst.getContext('2d');
+        const imageData = srcCtx.getImageData(0, 0, w, h);
+        const d = imageData.data;
+        const copy = new Uint8ClampedArray(d);
+
+        // 3x3 シャープネスカーネル（軽量）
+        //  0 -1  0
+        // -1  5 -1
+        //  0 -1  0
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const i = (y * w + x) * 4;
+                for (let c = 0; c < 3; c++) {
+                    d[i + c] = Math.min(255, Math.max(0,
+                        5 * copy[i + c]
+                        - copy[i + c - w * 4]         // 上
+                        - copy[i + c + w * 4]         // 下
+                        - copy[i + c - 4]             // 左
+                        - copy[i + c + 4]             // 右
+                    ));
+                }
+            }
+        }
+        dstCtx.putImageData(imageData, 0, 0);
+        return dst;
     };
 
     ELS.captureBtn.addEventListener('click', async () => {
         if (!ELS.detail) return;
         ELS.captureBtn.disabled = true;
         ELS.captureBtn.style.opacity = '0.5';
-        
+
         // ファイル名生成
         const charNameElement = ELS.detail.querySelector('.char-title');
         const safeName = charNameElement ? charNameElement.textContent.trim().replace(CONFIG.REGEX.sanitize, '_') : 'detail';
@@ -1201,9 +1230,8 @@ function setupCaptureButton() {
 
         let clone = null;
         try {
-            // ★修正点: クローン作成前に画像をチェック（元の要素に対して）
             await waitImagesLoaded(ELS.detail);
-            
+
             // キャプチャ用に一時的なクローンを作成（スタイルを強制適用）
             clone = ELS.detail.cloneNode(true);
             Object.assign(clone.style, {
@@ -1217,8 +1245,26 @@ function setupCaptureButton() {
             });
             clone.removeAttribute('id');
 
-            // ★ モバイルCSS メディアクエリがクローン子要素に影響するのを防止
-            // （ビューポートが700px以下でもデスクトップレイアウトを強制）
+            // CSS変数のrgba半透明色を不透明色に置換（html2canvasの色合成ズレ防止）
+            clone.style.setProperty('--bg-primary', '#0f0f14');
+            clone.style.setProperty('--bg-secondary', '#16161e');
+            clone.style.setProperty('--bg-card', '#1c1c28');
+            clone.style.setProperty('--bg-card-hover', '#24243a');
+            clone.style.setProperty('--bg-input', '#1a1a26');
+            clone.style.setProperty('--bg-elevated', '#22223a');
+            clone.style.setProperty('--border', '#1a1a22');
+            clone.style.setProperty('--border-light', '#2a2a38');
+            clone.style.setProperty('--border-accent', '#1e3a4a');
+            clone.style.setProperty('--accent-glow', '#141e28');
+            clone.style.setProperty('--accent-subtle', '#111318');
+            clone.style.setProperty('--gold-dim', '#1e1c14');
+            clone.style.setProperty('--shadow-sm', '0 2px 8px #000000');
+            clone.style.setProperty('--shadow-md', '0 4px 24px #000000');
+            clone.style.setProperty('--shadow-lg', '0 8px 40px #000000');
+            clone.style.setProperty('--shadow-glow', 'none');
+            clone.style.setProperty('--shadow-card', '0 2px 12px #000000');
+
+            // モバイルCSS メディアクエリがクローン子要素に影響するのを防止
             clone.querySelectorAll('.char-image-container').forEach(el => {
                 Object.assign(el.style, { flexDirection: 'row', alignItems: 'flex-start' });
             });
@@ -1237,11 +1283,10 @@ function setupCaptureButton() {
 
             document.body.appendChild(clone);
 
-            // ★ モバイルではscale=2に制限（巨大Canvasによる暗黙ダウンスケール防止）
             const dpr = window.devicePixelRatio || 1;
             const isMobile = window.innerWidth <= 700;
             const captureScale = isMobile ? 2 : Math.max(2, Math.min(dpr, 3));
-            const canvas = await html2canvas(clone, {
+            const rawCanvas = await html2canvas(clone, {
                 scale: captureScale,
                 useCORS: true,
                 allowTaint: false,
@@ -1250,18 +1295,20 @@ function setupCaptureButton() {
                 backgroundColor: '#1c1c28'
             });
 
-            // ★ toBlob + ObjectURL で省メモリ化（モバイル向け）
+            // シャープネス後処理でテキストの濁りを軽減
+            const canvas = sharpenCanvas(rawCanvas);
+
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
             const blobUrl = URL.createObjectURL(blob);
             showCaptureOverlay(blobUrl, filename);
 
-        } catch (err) { 
+        } catch (err) {
             console.error("Capture Failed:", err);
             alert('キャプチャに失敗しました:\n' + (err.message || err));
-        } finally { 
+        } finally {
             if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
             ELS.captureBtn.disabled = false;
-            ELS.captureBtn.style.opacity = ''; 
+            ELS.captureBtn.style.opacity = '';
         }
     });
 }
