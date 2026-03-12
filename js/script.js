@@ -1183,37 +1183,29 @@ function setupCaptureButton() {
         }));
     };
 
-    // アンシャープマスク（Canvas後処理でテキストの輪郭を鮮明化）
-    const sharpenCanvas = (src) => {
-        const w = src.width, h = src.height;
-        const dst = document.createElement('canvas');
-        dst.width = w; dst.height = h;
-        const srcCtx = src.getContext('2d');
-        const dstCtx = dst.getContext('2d');
-        const imageData = srcCtx.getImageData(0, 0, w, h);
-        const d = imageData.data;
-        const copy = new Uint8ClampedArray(d);
-
-        // 3x3 シャープネスカーネル（軽量）
-        //  0 -1  0
-        // -1  5 -1
-        //  0 -1  0
-        for (let y = 1; y < h - 1; y++) {
-            for (let x = 1; x < w - 1; x++) {
-                const i = (y * w + x) * 4;
-                for (let c = 0; c < 3; c++) {
-                    d[i + c] = Math.min(255, Math.max(0,
-                        5 * copy[i + c]
-                        - copy[i + c - w * 4]         // 上
-                        - copy[i + c + w * 4]         // 下
-                        - copy[i + c - 4]             // 左
-                        - copy[i + c + 4]             // 右
-                    ));
-                }
+    // キャプチャ用CSSを注入（rgba半透明をhtml2canvas向け不透明色に変換）
+    const CAPTURE_STYLE_ID = 'capture-override-style';
+    const injectCaptureCSS = () => {
+        if (document.getElementById(CAPTURE_STYLE_ID)) return;
+        const style = document.createElement('style');
+        style.id = CAPTURE_STYLE_ID;
+        style.textContent = `
+            .capture-target,
+            .capture-target * {
+                --border: #1a1a22 !important;
+                --border-light: #2a2a38 !important;
+                --border-accent: #1e3a4a !important;
+                --accent-glow: #141e28 !important;
+                --accent-subtle: #111318 !important;
+                --gold-dim: #1e1c14 !important;
+                --shadow-sm: 0 2px 8px #000 !important;
+                --shadow-md: 0 4px 24px #000 !important;
+                --shadow-lg: 0 8px 40px #000 !important;
+                --shadow-glow: none !important;
+                --shadow-card: 0 2px 12px #000 !important;
             }
-        }
-        dstCtx.putImageData(imageData, 0, 0);
-        return dst;
+        `;
+        document.head.appendChild(style);
     };
 
     ELS.captureBtn.addEventListener('click', async () => {
@@ -1232,37 +1224,17 @@ function setupCaptureButton() {
         try {
             await waitImagesLoaded(ELS.detail);
 
-            // キャプチャ用に一時的なクローンを作成（スタイルを強制適用）
             clone = ELS.detail.cloneNode(true);
+            clone.classList.add('capture-target');
             Object.assign(clone.style, {
                 position: 'fixed', top: '0', left: '0',
                 width: '1100px', minWidth: '1100px', maxWidth: 'none',
                 height: 'auto', padding: '20px', margin: '0',
-                background: '#1c1c28', color: '#e8e8f0',
+                background: '#232323', color: '#ffffff',
                 zIndex: '-9999', overflow: 'visible',
-                borderRadius: '0', transform: 'none',
-                fontFamily: "'Inter', 'Noto Sans JP', 'Segoe UI', 'Meiryo', 'Hiragino Sans', sans-serif"
+                borderRadius: '0', transform: 'none'
             });
             clone.removeAttribute('id');
-
-            // CSS変数のrgba半透明色を不透明色に置換（html2canvasの色合成ズレ防止）
-            clone.style.setProperty('--bg-primary', '#0f0f14');
-            clone.style.setProperty('--bg-secondary', '#16161e');
-            clone.style.setProperty('--bg-card', '#1c1c28');
-            clone.style.setProperty('--bg-card-hover', '#24243a');
-            clone.style.setProperty('--bg-input', '#1a1a26');
-            clone.style.setProperty('--bg-elevated', '#22223a');
-            clone.style.setProperty('--border', '#1a1a22');
-            clone.style.setProperty('--border-light', '#2a2a38');
-            clone.style.setProperty('--border-accent', '#1e3a4a');
-            clone.style.setProperty('--accent-glow', '#141e28');
-            clone.style.setProperty('--accent-subtle', '#111318');
-            clone.style.setProperty('--gold-dim', '#1e1c14');
-            clone.style.setProperty('--shadow-sm', '0 2px 8px #000000');
-            clone.style.setProperty('--shadow-md', '0 4px 24px #000000');
-            clone.style.setProperty('--shadow-lg', '0 8px 40px #000000');
-            clone.style.setProperty('--shadow-glow', 'none');
-            clone.style.setProperty('--shadow-card', '0 2px 12px #000000');
 
             // モバイルCSS メディアクエリがクローン子要素に影響するのを防止
             clone.querySelectorAll('.char-image-container').forEach(el => {
@@ -1281,22 +1253,19 @@ function setupCaptureButton() {
                 Object.assign(el.style, { flexWrap: 'nowrap', gap: '8px' });
             });
 
+            injectCaptureCSS();
             document.body.appendChild(clone);
 
-            const dpr = window.devicePixelRatio || 1;
             const isMobile = window.innerWidth <= 700;
-            const captureScale = isMobile ? 2 : Math.max(2, Math.min(dpr, 3));
-            const rawCanvas = await html2canvas(clone, {
+            const captureScale = isMobile ? 1.5 : 2;
+            const canvas = await html2canvas(clone, {
                 scale: captureScale,
                 useCORS: true,
                 allowTaint: false,
                 logging: false,
                 windowWidth: 1200,
-                backgroundColor: '#1c1c28'
+                backgroundColor: '#232323'
             });
-
-            // シャープネス後処理でテキストの濁りを軽減
-            const canvas = sharpenCanvas(rawCanvas);
 
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
             const blobUrl = URL.createObjectURL(blob);

@@ -1387,11 +1387,13 @@ li.selected {
     /* level panel center on mobile */
     #level-control-panel {
         position: fixed !important;
-        top: 50% !important;
+        top: 45% !important;
         left: 50% !important;
         transform: translate(-50%, -50%) !important;
         right: auto !important;
         width: min(90vw, 310px) !important;
+        max-height: 80vh !important;
+        overflow-y: auto !important;
         margin-top: 0 !important;
     }
 
