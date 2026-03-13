@@ -39,6 +39,8 @@
   }
   </script>
 
+  <meta name="theme-color" content="#0d0d18">
+
   <link rel="apple-touch-icon" href="image/kage.webp">
   <link rel="icon" href="image/kage.webp" type="image/webp">
 
@@ -103,7 +105,7 @@
       <div id="hit-row">
         <span id="hit-count"></span>
         <div class="button-group">
-          <button id="sort-btn" aria-pressed="false">ポジ順</button>
+          <button id="sort-btn" aria-pressed="false" aria-label="ポジション順ソート切替">ポジ順</button>
           <select id="list-height-select" aria-label="リスト表示件数">
             <option value="auto">自動</option>
             <option value="10">10件</option>
@@ -118,10 +120,10 @@
 
     <main id="main">
       <div id="detail-header">
-        <button id="toggle-img-btn" class="header-btn">画像: OFF</button>
+        <button id="toggle-img-btn" class="header-btn" aria-label="キャラクター画像の表示切替">画像: OFF</button>
 
         <div style="position: relative;">
-          <button id="toggle-panel-btn" class="header-btn" aria-expanded="false">Lv設定</button>
+          <button id="toggle-panel-btn" class="header-btn" aria-expanded="false" aria-label="スキル・魔道具レベル設定パネル">Lv設定</button>
 
           <div id="level-control-panel" style="display: none;">
             <div class="control-row">
@@ -155,7 +157,7 @@
           </div>
         </div>
 
-        <button id="capture-btn" class="header-btn" style="display: none;">スクショ</button>
+        <button id="capture-btn" class="header-btn" style="display: none;" aria-label="キャラクター詳細のスクリーンショット保存">スクショ</button>
       </div>
 
       <div id="detail"></div>

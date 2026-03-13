@@ -133,7 +133,13 @@ document.addEventListener('DOMContentLoaded', () => {
     setupListHeightControl();
     setupKeyboardNavigation();
 
-    // 6. データロード開始
+    // 6. shimmerアニメーション最適化（バックグラウンド時に停止）
+    document.addEventListener('visibilitychange', () => {
+        const header = document.querySelector('header');
+        if (header) header.classList.toggle('paused', document.hidden);
+    });
+
+    // 7. データロード開始
     loadCharacters();
 });
 
@@ -203,16 +209,21 @@ function initLevelUI() {
     }
 }
 
+function safeSetItem(key, value) {
+    try { localStorage.setItem(key, value); }
+    catch (e) { console.warn('localStorage quota exceeded:', key); }
+}
+
 function setAffinity(lv) {
     currentAffinity = lv;
-    localStorage.setItem('kage_affinity', lv);
+    safeSetItem('kage_affinity', lv);
     updateLevelDisplay('affinity', lv);
     refreshDetail();
 }
 
 function setMagicLv(lv) {
     currentMagicLv = lv;
-    localStorage.setItem('kage_magicLv', lv);
+    safeSetItem('kage_magicLv', lv);
     updateLevelDisplay('magic', lv);
     refreshDetail();
 }
@@ -347,7 +358,7 @@ function setupStaticButtons() {
             const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
             const isWifi = conn && conn.type === 'wifi';
             if (!isWifi) {
-                localStorage.setItem('kage_show_img', showImages);
+                safeSetItem('kage_show_img', showImages);
             }
 
             updateList(false); // リスト再描画（画像枠の生成/削除）
@@ -609,6 +620,7 @@ function updateList(resetSelect=false) {
             const img1 = document.createElement('img');
             img1.src = `image/characters/${char.name}.webp`;
             img1.className = 'list-img';
+            img1.loading = 'lazy';
             img1.onerror = () => img1.style.visibility = 'hidden';
             imgArea1.appendChild(img1);
             li.appendChild(imgArea1);
@@ -626,6 +638,7 @@ function updateList(resetSelect=false) {
             const img2 = document.createElement('img');
             img2.src = `image/characters/${char.name}_Ex.webp`;
             img2.className = 'list-img-ex';
+            img2.loading = 'lazy';
             img2.onerror = () => img2.remove();
             li.appendChild(img2);
         }
@@ -1351,16 +1364,38 @@ function setupOptionPanel() {
         const isHidden = ELS.controlPanel.style.display === 'none';
         ELS.controlPanel.style.display = isHidden ? 'block' : 'none';
         ELS.panelBtn.classList.toggle('active', isHidden);
+        if (isHidden) positionPanel();
     };
+
+    function positionPanel() {
+        if (window.innerWidth <= 700) {
+            // モバイル: 画面中央に配置
+            const pw = Math.min(window.innerWidth * 0.9, 310);
+            ELS.controlPanel.style.top = '45%';
+            ELS.controlPanel.style.left = '50%';
+            ELS.controlPanel.style.right = 'auto';
+            ELS.controlPanel.style.transform = 'translate(-50%, -50%)';
+            ELS.controlPanel.style.width = pw + 'px';
+        } else {
+            // デスクトップ: ボタン直下に配置
+            const rect = ELS.panelBtn.getBoundingClientRect();
+            ELS.controlPanel.style.top = (rect.bottom + 6) + 'px';
+            ELS.controlPanel.style.right = (window.innerWidth - rect.right) + 'px';
+            ELS.controlPanel.style.left = 'auto';
+            ELS.controlPanel.style.transform = 'none';
+            ELS.controlPanel.style.width = '300px';
+        }
+    }
     
-    // パネル外クリックで閉じる処理
-    document.addEventListener('click', (e) => {
+    // パネル外クリックで閉じる処理（名前付き関数で重複登録を防止）
+    function handlePanelOutsideClick(e) {
         if (ELS.controlPanel.style.display === 'none') return;
         if (!ELS.panelBtn.contains(e.target) && !ELS.controlPanel.contains(e.target)) {
             ELS.controlPanel.style.display = 'none';
             ELS.panelBtn.classList.remove('active');
         }
-    });
+    }
+    document.addEventListener('click', handlePanelOutsideClick);
 }
 
 /**
@@ -1374,7 +1409,7 @@ function setupListHeightControl() {
 
     const updateHeight = () => {
         const val = ELS.listHeightSelect.value;
-        localStorage.setItem('kage_list_height', val);
+        safeSetItem('kage_list_height', val);
         
         if (val === 'auto') {
             // PC画面では残り高さを計算して埋める
@@ -1451,7 +1486,7 @@ function saveFavorites() {
    ========================================= */
 
 function setupKeyboardNavigation() {
-    document.addEventListener('keydown', (e) => {
+    function handleKeyboardNav(e) {
         // 入力フィールドにフォーカス中は矢印キーを無視（Escapeは例外）
         const activeTag = document.activeElement?.tagName;
         const isInputFocused = activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT';
@@ -1525,7 +1560,8 @@ function setupKeyboardNavigation() {
                 highlightSelected();
             }
         }
-    });
+    }
+    document.addEventListener('keydown', handleKeyboardNav);
 }
 
 function scrollToSelected() {

@@ -118,6 +118,17 @@ header::before {
     background: linear-gradient(90deg, transparent 0%, var(--accent) 30%, #a78bfa 50%, var(--accent) 70%, transparent 100%);
     background-size: 200% 100%;
     animation: shimmer 6s ease-in-out infinite;
+    animation-play-state: running;
+}
+
+header.paused::before {
+    animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    header::before {
+        animation: none;
+    }
 }
 
 @keyframes shimmer {
@@ -631,10 +642,7 @@ li.selected {
     border-radius: var(--radius-md);
     border: 1px solid var(--border-light);
     font-size: 0.85rem;
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 6px;
+    position: fixed;
     z-index: 1000;
     width: 300px;
     box-shadow: var(--shadow-lg), 0 0 30px rgba(0, 0, 0, 0.3);
@@ -851,19 +859,6 @@ li.selected {
     line-height: 1.4;
 }
 
-/* Legacy classes kept for compatibility */
-.char-basic {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 10px;
-}
-
-.char-basic-item {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-}
 
 /* =========================================
    Tabs
@@ -1384,17 +1379,10 @@ li.selected {
         opacity: 0.85;
     }
 
-    /* level panel center on mobile */
+    /* level panel: mobile overrides handled by JS positionPanel() */
     #level-control-panel {
-        position: fixed !important;
-        top: 45% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        right: auto !important;
-        width: min(90vw, 310px) !important;
-        max-height: 80vh !important;
-        overflow-y: auto !important;
-        margin-top: 0 !important;
+        max-height: 80vh;
+        overflow-y: auto;
     }
 
     /* larger fav star for touch */
