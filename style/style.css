@@ -638,11 +638,14 @@ li.selected {
    ========================================= */
 #level-control-panel {
     background: var(--bg-card);
-    padding: 16px;
+    padding: 14px;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-light);
     font-size: 0.85rem;
-    position: fixed;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 6px;
     z-index: 1000;
     width: 300px;
     box-shadow: var(--shadow-lg), 0 0 30px rgba(0, 0, 0, 0.3);
@@ -1379,7 +1382,6 @@ li.selected {
         opacity: 0.85;
     }
 
-    /* level panel: mobile overrides handled by JS positionPanel() */
     #level-control-panel {
         max-height: 80vh;
         overflow-y: auto;

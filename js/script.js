@@ -1364,29 +1364,8 @@ function setupOptionPanel() {
         const isHidden = ELS.controlPanel.style.display === 'none';
         ELS.controlPanel.style.display = isHidden ? 'block' : 'none';
         ELS.panelBtn.classList.toggle('active', isHidden);
-        if (isHidden) positionPanel();
     };
 
-    function positionPanel() {
-        if (window.innerWidth <= 700) {
-            // モバイル: 画面中央に配置
-            const pw = Math.min(window.innerWidth * 0.9, 310);
-            ELS.controlPanel.style.top = '45%';
-            ELS.controlPanel.style.left = '50%';
-            ELS.controlPanel.style.right = 'auto';
-            ELS.controlPanel.style.transform = 'translate(-50%, -50%)';
-            ELS.controlPanel.style.width = pw + 'px';
-        } else {
-            // デスクトップ: ボタン直下に配置
-            const rect = ELS.panelBtn.getBoundingClientRect();
-            ELS.controlPanel.style.top = (rect.bottom + 6) + 'px';
-            ELS.controlPanel.style.right = (window.innerWidth - rect.right) + 'px';
-            ELS.controlPanel.style.left = 'auto';
-            ELS.controlPanel.style.transform = 'none';
-            ELS.controlPanel.style.width = '300px';
-        }
-    }
-    
     // パネル外クリックで閉じる処理（名前付き関数で重複登録を防止）
     function handlePanelOutsideClick(e) {
         if (ELS.controlPanel.style.display === 'none') return;
