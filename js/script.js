@@ -1205,12 +1205,18 @@ function setupCaptureButton() {
         style.textContent = `
             .capture-target,
             .capture-target * {
-                --border: #1a1a22 !important;
-                --border-light: #2a2a38 !important;
-                --border-accent: #1e3a4a !important;
-                --accent-glow: #141e28 !important;
-                --accent-subtle: #111318 !important;
-                --gold-dim: #1e1c14 !important;
+                --bg-primary: #0f0f14 !important;
+                --bg-secondary: #16161e !important;
+                --bg-card: #1c1c28 !important;
+                --bg-card-hover: #24243a !important;
+                --bg-input: #1a1a26 !important;
+                --bg-elevated: #22223a !important;
+                --border: #2a2a3a !important;
+                --border-light: #3a3a50 !important;
+                --border-accent: #1e4a6a !important;
+                --accent-glow: #0d1a24 !important;
+                --accent-subtle: #0d1218 !important;
+                --gold-dim: #2a2500 !important;
                 --shadow-sm: 0 2px 8px #000 !important;
                 --shadow-md: 0 4px 24px #000 !important;
                 --shadow-lg: 0 8px 40px #000 !important;
@@ -1243,7 +1249,7 @@ function setupCaptureButton() {
                 position: 'fixed', top: '0', left: '0',
                 width: '1100px', minWidth: '1100px', maxWidth: 'none',
                 height: 'auto', padding: '20px', margin: '0',
-                background: '#232323', color: '#ffffff',
+                background: '#0f0f14', color: '#e8e8f0',
                 zIndex: '-9999', overflow: 'visible',
                 borderRadius: '0', transform: 'none'
             });
@@ -1276,8 +1282,8 @@ function setupCaptureButton() {
                 useCORS: true,
                 allowTaint: false,
                 logging: false,
-                windowWidth: 1200,
-                backgroundColor: '#232323'
+                windowWidth: 1100,
+                backgroundColor: '#0f0f14'
             });
 
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
