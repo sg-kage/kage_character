@@ -1385,7 +1385,7 @@ function setupCaptureButton() {
                 background: '#0f0f14', color: '#e8e8f0',
                 zIndex: '-9999', overflow: 'visible',
                 borderRadius: '0', transform: 'none',
-                opacity: '0', pointerEvents: 'none'
+                pointerEvents: 'none'
             });
             clone.removeAttribute('id');
 
