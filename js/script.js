@@ -162,13 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupListHeightControl();
     setupKeyboardNavigation();
 
-    // 6. shimmerアニメーション最適化（バックグラウンド時に停止）
-    document.addEventListener('visibilitychange', () => {
-        const header = document.querySelector('header');
-        if (header) header.classList.toggle('paused', document.hidden);
-    });
-
-    // 7. データロード開始
+    // 6. データロード開始
     loadCharacters();
 });
 
@@ -1065,6 +1059,8 @@ async function loadCharacters() {
         }
     } finally {
         isLoadingCharacters = false;
+        const header = document.querySelector('header');
+        if (header) header.classList.add('paused');
     }
 }
 
