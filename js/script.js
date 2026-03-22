@@ -1379,12 +1379,13 @@ function setupCaptureButton() {
             clone = ELS.detail.cloneNode(true);
             clone.classList.add('capture-target');
             Object.assign(clone.style, {
-                position: 'fixed', top: '0', left: '0',
+                position: 'fixed', top: '0', left: '-9999px',
                 width: '1100px', minWidth: '1100px', maxWidth: 'none',
                 height: 'auto', padding: '20px', margin: '0',
                 background: '#0f0f14', color: '#e8e8f0',
                 zIndex: '-9999', overflow: 'visible',
-                borderRadius: '0', transform: 'none'
+                borderRadius: '0', transform: 'none',
+                opacity: '0', pointerEvents: 'none'
             });
             clone.removeAttribute('id');
 
