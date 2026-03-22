@@ -51,6 +51,8 @@ let selectedNames = new Set();
 let selectedEffects = new Set();
 let selectedAttrs = new Set();
 let selectedRoles = new Set();
+let selectedGachas = new Set();
+let selectedRarities = new Set();
 
 // 計算・表示設定
 let currentAffinity = 3;      // 現在の好感度Lv
@@ -79,6 +81,8 @@ const ELS = {
     // ボタンエリア
     attrBtns: document.getElementById('attribute-btns'),
     roleBtns: document.getElementById('role-btns'),
+    gachaBtns: document.getElementById('gacha-btns'),
+    rarityBtns: document.getElementById('rarity-btns'),
     groupBtns: document.getElementById('group-btns'),
     nameBtns: document.getElementById('name-btns'),
     effectBtns: document.getElementById('effect-btns'),
@@ -378,6 +382,8 @@ function setupStaticButtons() {
     createToggleBtn("name-toggle-btn", "キャラ名▼", "name-btns");
     createToggleBtn("group-toggle-btn", "グループ▼", "group-btns");
     createToggleBtn("effect-toggle-btn", "効果▼", "effect-btns");
+    createToggleBtn("gacha-toggle-btn", "ガチャ▼", "gacha-btns");
+    createToggleBtn("rarity-toggle-btn", "レア度▼", "rarity-btns");
 
     // --- 画像ON/OFFボタン ---
     if (ELS.imgBtn) {
@@ -470,6 +476,7 @@ function updateRoleBtnColors() {
 function updateAttrBtnColors() {
     updateBtnColors(attrBtnMap, selectedAttrs, (attr) => CONFIG.attributes[attr]);
 }
+
 
 
 /* =========================================
@@ -583,6 +590,8 @@ function updateList(resetSelect=false) {
         // 2. ボタンフィルタ判定
         if (selectedAttrs.size > 0 && !selectedAttrs.has(char.attribute)) return false;
         if (selectedRoles.size > 0 && !selectedRoles.has(char.role)) return false;
+        if (selectedGachas.size > 0 && !selectedGachas.has(char.gacha)) return false;
+        if (selectedRarities.size > 0 && !selectedRarities.has(char.rarity)) return false;
         if (selectedGroups.size > 0 && !(char.group || []).some(g => selectedGroups.has(g))) return false;
         
         // 名前フィルタ（バリエーション違いを同一視）
@@ -898,6 +907,14 @@ function showDetail(char, filter = []) {
                     <span class="char-label">ポジション</span>
                     <span class="char-value">${highlightDetail(char.position)}</span>
                 </div>
+                <div class="char-info-item">
+                    <span class="char-label">レア度</span>
+                    <span class="char-value">${highlightDetail(char.rarity)}</span>
+                </div>
+                <div class="char-info-item">
+                    <span class="char-label">ガチャ</span>
+                    <span class="char-value">${highlightDetail(char.gacha)}</span>
+                </div>
             </div>
             <div class="char-info-row-bottom">
                 <div class="char-info-item char-info-wide">
@@ -1148,6 +1165,8 @@ function initButtons() {
     setupGroupButtons();
     setupNameButtons();
     setupEffectButtons();
+    setupGachaButtons();
+    setupRarityButtons();
 }
 
 /**
@@ -1177,6 +1196,36 @@ function customSort(a, b, type) {
     const priorityB = getSortPriority(b, type);
     if (priorityA !== priorityB) return priorityA - priorityB;
     return a.localeCompare(b, 'ja');
+}
+
+function setupGachaButtons() {
+    const container = ELS.gachaBtns;
+    container.innerHTML = "";
+    ["フェス","恒常","季節","コラボ"].forEach(g => {
+        const btn = document.createElement('button');
+        btn.textContent = g; btn.className = "group-btn";
+        btn.onclick = () => {
+            btn.classList.toggle('active');
+            if (selectedGachas.has(g)) selectedGachas.delete(g); else selectedGachas.add(g);
+            updateList(true);
+        };
+        container.appendChild(btn);
+    });
+}
+
+function setupRarityButtons() {
+    const container = ELS.rarityBtns;
+    container.innerHTML = "";
+    ["SS","S","A"].forEach(r => {
+        const btn = document.createElement('button');
+        btn.textContent = r; btn.className = "group-btn";
+        btn.onclick = () => {
+            btn.classList.toggle('active');
+            if (selectedRarities.has(r)) selectedRarities.delete(r); else selectedRarities.add(r);
+            updateList(true);
+        };
+        container.appendChild(btn);
+    });
 }
 
 function setupGroupButtons() {
@@ -1604,7 +1653,7 @@ function setupKeyboardNavigation() {
             }
 
             // 3. ドロップダウンパネルを閉じる
-            const openPanels = document.querySelectorAll('#group-btns.is-open, #name-btns.is-open, #effect-btns.is-open');
+            const openPanels = document.querySelectorAll('#group-btns.is-open, #name-btns.is-open, #effect-btns.is-open, #gacha-btns.is-open, #rarity-btns.is-open');
             if (openPanels.length > 0) {
                 openPanels.forEach(p => p.classList.remove('is-open'));
                 return;
@@ -1682,6 +1731,8 @@ function updateActiveFilterPills() {
     const pillDefs = [
         { set: selectedAttrs, label: '属性', colorFn: updateAttrBtnColors, container: null },
         { set: selectedRoles, label: 'ロール', colorFn: updateRoleBtnColors, container: null },
+        { set: selectedGachas, label: 'ガチャ', colorFn: null, container: ELS.gachaBtns },
+        { set: selectedRarities, label: 'レア度', colorFn: null, container: ELS.rarityBtns },
         { set: selectedGroups, label: 'グループ', colorFn: null, container: ELS.groupBtns },
         { set: selectedNames, label: 'キャラ', colorFn: null, container: ELS.nameBtns },
         { set: selectedEffects, label: '効果', colorFn: null, container: ELS.effectBtns },
@@ -1760,5 +1811,21 @@ function updateToggleBtnCounts() {
         effectBtn.textContent = selectedEffects.size > 0
             ? `効果${arrow} (${selectedEffects.size})`
             : `効果${arrow}`;
+    }
+    const gachaBtn = document.getElementById('gacha-toggle-btn');
+    if (gachaBtn) {
+        const isOpen = ELS.gachaBtns.classList.contains('is-open');
+        const arrow = isOpen ? '▲' : '▼';
+        gachaBtn.textContent = selectedGachas.size > 0
+            ? `ガチャ${arrow} (${selectedGachas.size})`
+            : `ガチャ${arrow}`;
+    }
+    const rarityBtn = document.getElementById('rarity-toggle-btn');
+    if (rarityBtn) {
+        const isOpen = ELS.rarityBtns.classList.contains('is-open');
+        const arrow = isOpen ? '▲' : '▼';
+        rarityBtn.textContent = selectedRarities.size > 0
+            ? `レア度${arrow} (${selectedRarities.size})`
+            : `レア度${arrow}`;
     }
 }

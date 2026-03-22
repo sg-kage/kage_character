@@ -1022,7 +1022,9 @@ li.selected {
    ========================================= */
 #group-btns,
 #name-btns,
-#effect-btns {
+#effect-btns,
+#gacha-btns,
+#rarity-btns {
     display: none;
     grid-template-columns: repeat(3, 1fr);
     gap: 5px;
@@ -1037,7 +1039,9 @@ li.selected {
 
 #group-btns.is-open,
 #name-btns.is-open,
-#effect-btns.is-open {
+#effect-btns.is-open,
+#gacha-btns.is-open,
+#rarity-btns.is-open {
     display: grid;
     animation: fadeSlideUp 0.2s ease-out;
 }
@@ -1328,7 +1332,9 @@ li.selected {
 
     #group-btns,
     #name-btns,
-    #effect-btns {
+    #effect-btns,
+    #gacha-btns,
+    #rarity-btns {
         grid-template-columns: repeat(3, 1fr);
     }
 }
@@ -1392,7 +1398,9 @@ li.selected {
 
     #group-btns,
     #name-btns,
-    #effect-btns {
+    #effect-btns,
+    #gacha-btns,
+    #rarity-btns {
         grid-template-columns: repeat(3, 1fr);
         gap: 4px;
         padding: 8px;
