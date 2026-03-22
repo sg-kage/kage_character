@@ -77,8 +77,8 @@
         <div id="attribute-btns"></div>
       </div>
 
-      <div id="role-row" style="display:flex; gap:5px;">
-        <div id="role-btns" style="display:flex; gap:5px;"></div>
+      <div id="role-row">
+        <div id="role-btns"></div>
       </div>
 
       <div id="gacha-btns"></div>
@@ -126,10 +126,10 @@
       <div id="detail-header">
         <button id="toggle-img-btn" class="header-btn" aria-label="キャラクター画像の表示切替">画像: OFF</button>
 
-        <div style="position: relative;">
+        <div class="level-panel-wrap">
           <button id="toggle-panel-btn" class="header-btn" aria-expanded="false" aria-label="スキル・魔道具レベル設定パネル">Lv設定</button>
 
-          <div id="level-control-panel" style="display: none;">
+          <div id="level-control-panel" class="is-hidden">
             <div class="control-row">
               <div class="control-label">スキルLv: <span id="affinity-val">3</span></div>
               <div class="skill-btn-group">
@@ -147,7 +147,7 @@
               </div>
             </div>
 
-            <div class="control-row" style="margin-top: 12px;">
+            <div class="control-row">
               <div class="control-label">魔道具Lv: <span id="magic-val">5</span></div>
               <div class="magic-btn-group">
                 <button class="magic-btn active" data-kind="magic" data-lv="1">1</button>
@@ -161,7 +161,7 @@
           </div>
         </div>
 
-        <button id="capture-btn" class="header-btn" style="display: none;" aria-label="キャラクター詳細のスクリーンショット保存">スクショ</button>
+        <button id="capture-btn" class="header-btn is-hidden" aria-label="キャラクター詳細のスクリーンショット保存">スクショ</button>
       </div>
 
       <div id="detail"></div>

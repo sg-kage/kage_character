@@ -17,10 +17,10 @@
 const CONFIG = {
     // 属性ごとのカラーコード定義
     attributes: {
-        "赤": "#FF6347", // 赤
-        "緑": "#32CD32", // 緑
-        "黄": "#FFD700", // 黄
-        "青": "#1E90FF"  // 青
+        "赤": "#d4605a",
+        "緑": "#4aad72",
+        "黄": "#c9a84a",
+        "青": "#3d7cba"
     },
     // キャラクターの役割定義
     roles: ["アタッカー", "タンク", "サポーター"],
@@ -710,7 +710,7 @@ function updateList(resetSelect=false) {
             ELS.list.innerHTML = '<li class="loading-state" style="flex-direction:column; gap:4px;">該当するキャラクターが見つかりません<span style="font-size:0.8em; opacity:0.6;">フィルタ条件を変えてみてください</span></li>';
             ELS.detail.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128270;</div>該当するキャラクターが見つかりません</div>';
         }
-        if (ELS.captureBtn) ELS.captureBtn.style.display = 'none';
+        if (ELS.captureBtn) ELS.captureBtn.classList.add('is-hidden');
     }
 
     // フィルタピル更新
@@ -838,7 +838,7 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
 function showDetail(char, filter = []) {
     if (!char) {
         ELS.detail.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128270;</div>キャラクターを選択してください</div>';
-        if (ELS.captureBtn) ELS.captureBtn.style.display = 'none';
+        if (ELS.captureBtn) ELS.captureBtn.classList.add('is-hidden');
         return;
     }
 
@@ -974,7 +974,7 @@ function showDetail(char, filter = []) {
     // 生成後のDOMに対してハイライト適用
     applyHighlightDOM(ELS.detail, filter);
     
-    if (ELS.captureBtn) ELS.captureBtn.style.display = 'inline-block';
+    if (ELS.captureBtn) ELS.captureBtn.classList.remove('is-hidden');
 }
 
 
@@ -1059,8 +1059,6 @@ async function loadCharacters() {
         }
     } finally {
         isLoadingCharacters = false;
-        const header = document.querySelector('header');
-        if (header) header.classList.add('paused');
     }
 }
 
@@ -1520,17 +1518,19 @@ function setupOptionPanel() {
     if (!ELS.panelBtn || !ELS.controlPanel) return;
     
     ELS.panelBtn.onclick = () => {
-        const isHidden = ELS.controlPanel.style.display === 'none';
-        ELS.controlPanel.style.display = isHidden ? 'block' : 'none';
+        const isHidden = ELS.controlPanel.classList.contains('is-hidden');
+        ELS.controlPanel.classList.toggle('is-hidden', !isHidden);
         ELS.panelBtn.classList.toggle('active', isHidden);
+        ELS.panelBtn.setAttribute('aria-expanded', String(isHidden));
     };
 
     // パネル外クリックで閉じる処理（名前付き関数で重複登録を防止）
     function handlePanelOutsideClick(e) {
-        if (ELS.controlPanel.style.display === 'none') return;
+        if (ELS.controlPanel.classList.contains('is-hidden')) return;
         if (!ELS.panelBtn.contains(e.target) && !ELS.controlPanel.contains(e.target)) {
-            ELS.controlPanel.style.display = 'none';
+            ELS.controlPanel.classList.add('is-hidden');
             ELS.panelBtn.classList.remove('active');
+            ELS.panelBtn.setAttribute('aria-expanded', 'false');
         }
     }
     document.addEventListener('click', handlePanelOutsideClick);
@@ -1640,12 +1640,20 @@ function setupKeyboardNavigation() {
 
             // 1. キャプチャオーバーレイを閉じる
             const overlay = document.getElementById('capture-overlay');
-            if (overlay) { overlay.remove(); return; }
+            if (overlay) {
+                const img = overlay.querySelector('img');
+                if (img && img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+                overlay.remove();
+                return;
+            }
 
             // 2. レベルパネルを閉じる
-            if (ELS.controlPanel && ELS.controlPanel.style.display !== 'none') {
-                ELS.controlPanel.style.display = 'none';
-                if (ELS.panelBtn) ELS.panelBtn.classList.remove('active');
+            if (ELS.controlPanel && !ELS.controlPanel.classList.contains('is-hidden')) {
+                ELS.controlPanel.classList.add('is-hidden');
+                if (ELS.panelBtn) {
+                    ELS.panelBtn.classList.remove('active');
+                    ELS.panelBtn.setAttribute('aria-expanded', 'false');
+                }
                 return;
             }
 
