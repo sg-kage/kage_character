@@ -1373,19 +1373,27 @@ function setupCaptureButton() {
         const filename = `kage_${safeName}_${dateStr}.png`;
 
         let clone = null;
+        let wrapper = null;
         try {
             await waitImagesLoaded(ELS.detail);
+
+            // ラッパーで視覚的に隠す（モバイルでの画面暗転・色化け防止）
+            wrapper = document.createElement('div');
+            Object.assign(wrapper.style, {
+                position: 'fixed', top: '0', left: '0',
+                width: '0', height: '0', overflow: 'hidden',
+                zIndex: '-9999', pointerEvents: 'none'
+            });
 
             clone = ELS.detail.cloneNode(true);
             clone.classList.add('capture-target');
             Object.assign(clone.style, {
-                position: 'fixed', top: '0', left: '-9999px',
+                position: 'absolute', top: '0', left: '0',
                 width: '1100px', minWidth: '1100px', maxWidth: 'none',
                 height: 'auto', padding: '20px', margin: '0',
                 background: '#0f0f14', color: '#e8e8f0',
-                zIndex: '-9999', overflow: 'visible',
-                borderRadius: '0', transform: 'none',
-                pointerEvents: 'none'
+                overflow: 'visible',
+                borderRadius: '0', transform: 'none'
             });
             clone.removeAttribute('id');
 
@@ -1412,7 +1420,8 @@ function setupCaptureButton() {
             });
 
             injectCaptureCSS();
-            document.body.appendChild(clone);
+            wrapper.appendChild(clone);
+            document.body.appendChild(wrapper);
 
             const isMobile = window.innerWidth <= 700;
             const captureScale = isMobile ? 1.5 : 2;
@@ -1433,7 +1442,7 @@ function setupCaptureButton() {
             console.error("Capture Failed:", err);
             alert('キャプチャに失敗しました:\n' + (err.message || err));
         } finally {
-            if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
+            if (wrapper && wrapper.parentNode) wrapper.parentNode.removeChild(wrapper);
             ELS.captureBtn.disabled = false;
             ELS.captureBtn.style.opacity = '';
         }
