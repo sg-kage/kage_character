@@ -44,6 +44,7 @@
   <link rel="apple-touch-icon" href="image/kage.webp">
   <link rel="icon" href="image/kage.webp" type="image/webp">
 
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
@@ -103,7 +104,7 @@
       </details>
 
       <div id="hit-row">
-        <span id="hit-count"></span>
+        <span id="hit-count" aria-live="polite"></span>
         <div class="button-group">
           <button id="sort-btn" aria-pressed="false" aria-label="ポジション順ソート切替">ポジ順</button>
           <select id="list-height-select" aria-label="リスト表示件数">
@@ -176,7 +177,7 @@
 
   <div id="modal-container"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
   <script src="js/script.js"></script>
 </body>
 </html>

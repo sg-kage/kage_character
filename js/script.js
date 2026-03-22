@@ -17,10 +17,10 @@
 const CONFIG = {
     // 属性ごとのカラーコード定義
     attributes: {
-        "赤": "#FF6347", // トマト
-        "緑": "#32CD32", // ライムグリーン
-        "黄": "#FFD700", // ゴールド
-        "青": "#1E90FF"  // ドジャーブルー
+        "赤": "#FF6347", // 赤
+        "緑": "#32CD32", // 緑
+        "黄": "#FFD700", // 黄
+        "青": "#1E90FF"  // 青
     },
     // キャラクターの役割定義
     roles: ["アタッカー", "タンク", "サポーター"],
@@ -63,6 +63,9 @@ let showImages = false;       // 画像表示フラグ
 let favorites = new Set();
 let showFavoritesOnly = false;
 
+// データロード排他制御
+let isLoadingCharacters = false;
+
 /**
  * DOM要素のキャッシュ
  * 頻繁にアクセスする要素を事前に取得しておくことで高速化を図る
@@ -96,14 +99,36 @@ const ELS = {
     // フィルターピル
     activeFilters: document.getElementById('active-filters'),
 
-    // 動的取得が必要なNodeList用アクセサ
-    getAffinityBtns: () => document.querySelectorAll('.magic-btn[data-kind="affinity"]'),
-    getMagicBtns: () => document.querySelectorAll('.magic-btn[data-kind="magic"]')
+    // Lvボタンキャッシュ（initLevelUI後に確定）
+    _affinityBtns: null,
+    _magicBtns: null,
+    getAffinityBtns() {
+        if (!this._affinityBtns) this._affinityBtns = document.querySelectorAll('.magic-btn[data-kind="affinity"]');
+        return this._affinityBtns;
+    },
+    getMagicBtns() {
+        if (!this._magicBtns) this._magicBtns = document.querySelectorAll('.magic-btn[data-kind="magic"]');
+        return this._magicBtns;
+    }
 };
 
 // ボタン参照保持用マップ
 const roleBtnMap = {};
 const attrBtnMap = {};
+
+/**
+ * HTMLエスケープ（XSS対策）
+ * JSON由来テキストをinnerHTMLに挿入する際に使用
+ */
+function escapeHtml(str) {
+    if (!str || typeof str !== 'string') return str || '';
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
 
 /* =========================================
@@ -146,15 +171,21 @@ document.addEventListener('DOMContentLoaded', () => {
 /**
  * ローカルストレージからレベル設定を復元
  */
+/**
+ * レベル値を安全にパースする（'inf' / 数値 / 不正値に対応）
+ */
+function parseLevelValue(raw, fallback) {
+    if (raw === 'inf') return 'inf';
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) ? n : fallback;
+}
+
 function loadSavedSettings() {
     const savedAff = localStorage.getItem('kage_affinity');
     const savedMag = localStorage.getItem('kage_magicLv');
 
-    if (savedAff && savedAff !== 'inf') currentAffinity = parseInt(savedAff);
-    else if (savedAff === 'inf') currentAffinity = 'inf';
-
-    if (savedMag && savedMag !== 'inf') currentMagicLv = parseInt(savedMag);
-    else if (savedMag === 'inf') currentMagicLv = 'inf';
+    if (savedAff) currentAffinity = parseLevelValue(savedAff, 3);
+    if (savedMag) currentMagicLv = parseLevelValue(savedMag, 5);
 
     // お気に入り読み込み
     try {
@@ -307,14 +338,13 @@ function setupStaticButtons() {
     CONFIG.roles.forEach(role => {
         const btn = document.createElement('button');
         btn.textContent = role;
-        btn.className = "attr-btn";
-        // スタイル初期値
-        btn.style.background = "#444444";
-        btn.style.color = "#E0E0E0";
+        btn.className = "attr-btn role-btn";
         
+        btn.setAttribute('aria-pressed', 'false');
         btn.onclick = () => {
             if (selectedRoles.has(role)) selectedRoles.delete(role);
             else selectedRoles.add(role);
+            btn.setAttribute('aria-pressed', selectedRoles.has(role) ? 'true' : 'false');
             updateRoleBtnColors();
             updateList(true);
         };
@@ -330,9 +360,11 @@ function setupStaticButtons() {
         btn.textContent = attr;
         btn.className = "attr-btn";
         
+        btn.setAttribute('aria-pressed', 'false');
         btn.onclick = () => {
             if (selectedAttrs.has(attr)) selectedAttrs.delete(attr);
             else selectedAttrs.add(attr);
+            btn.setAttribute('aria-pressed', selectedAttrs.has(attr) ? 'true' : 'false');
             updateAttrBtnColors();
             updateList(true);
         };
@@ -389,7 +421,11 @@ function setupStaticButtons() {
     let searchTimeout;
     ELS.filter.addEventListener('input', () => {
         clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => { updateList(true); }, 300);
+        ELS.list.classList.add('is-searching');
+        searchTimeout = setTimeout(() => {
+            ELS.list.classList.remove('is-searching');
+            updateList(true);
+        }, 300);
     });
 }
 
@@ -400,10 +436,7 @@ function createToggleBtn(id, text, targetId) {
     const btn = document.createElement('button');
     btn.id = id;
     btn.textContent = text;
-    btn.className = "attr-btn";
-    btn.style.background = "#393864";
-    btn.style.color = "#fff";
-    btn.style.border = "1px solid #5d5c8d";
+    btn.className = "attr-btn toggle-btn";
     
     const panel = document.getElementById(targetId);
     btn.onclick = () => {
@@ -413,20 +446,29 @@ function createToggleBtn(id, text, targetId) {
     ELS.toggleRow.appendChild(btn);
 }
 
+/**
+ * ボタン群の選択状態に応じてスタイルを更新する汎用関数
+ */
+function updateBtnColors(btnMap, selectedSet, colorFn) {
+    for (const [key, btn] of Object.entries(btnMap)) {
+        if (!btn) continue;
+        const isSelected = selectedSet.has(key);
+        btn.classList.toggle('is-selected', isSelected);
+        // 属性ボタンは動的な色が必要なためインラインスタイルを維持
+        if (colorFn && isSelected) {
+            btn.style.background = colorFn(key);
+        } else if (colorFn) {
+            btn.style.background = '';
+        }
+    }
+}
+
 function updateRoleBtnColors() {
-    CONFIG.roles.forEach(role => {
-        const btn = roleBtnMap[role];
-        if(!btn) return;
-        btn.style.background = selectedRoles.has(role) ? "#2c5d8a" : "#444444";
-    });
+    updateBtnColors(roleBtnMap, selectedRoles, null);
 }
 
 function updateAttrBtnColors() {
-    for (const attr of ["赤","緑","黄","青"]) {
-        const btn = attrBtnMap[attr];
-        if(!btn) continue;
-        btn.style.background = selectedAttrs.has(attr) ? CONFIG.attributes[attr] : "#666666";
-    }
+    updateBtnColors(attrBtnMap, selectedAttrs, (attr) => CONFIG.attributes[attr]);
 }
 
 
@@ -448,14 +490,6 @@ function getCurrentFilterKeywords() {
 }
 
 /**
- * 文字列中のキーワードハイライト（プレースホルダ）
- * ※実際のDOMハイライトは applyHighlightDOM で行う
- */
-function highlightText(text, keywords) { 
-    return text; 
-}
-
-/**
  * DOMツリー内のテキストノードを走査してキーワードをハイライト（<span>タグ化）する
  */
 function applyHighlightDOM(root, keywords) {
@@ -464,8 +498,9 @@ function applyHighlightDOM(root, keywords) {
     // 安全なキーワードリスト作成（エスケープ処理）
     const safeWords = keywords
         .filter(k => k && k.trim())
+        .slice(0, 10)
         .map(k => k.replace(CONFIG.REGEX.unsafeChars, '\\$&'));
-    
+
     if (!safeWords.length) return;
 
     const splitRegex = new RegExp(`(${safeWords.join('|')})`, 'gi');
@@ -587,6 +622,7 @@ function updateList(resetSelect=false) {
     }).filter(k => k);
 
     // --- DOM生成 ---
+    const scrollTop = ELS.list.scrollTop;
     ELS.list.innerHTML = "";
     const fragment = document.createDocumentFragment();
 
@@ -639,7 +675,7 @@ function updateList(resetSelect=false) {
             img2.src = `image/characters/${char.name}_Ex.webp`;
             img2.className = 'list-img-ex';
             img2.loading = 'lazy';
-            img2.onerror = () => img2.remove();
+            img2.onerror = () => img2.style.visibility = 'hidden';
             li.appendChild(img2);
         }
 
@@ -654,10 +690,15 @@ function updateList(resetSelect=false) {
 
     ELS.list.appendChild(fragment);
 
+    // フィルタ更新時のスクロール位置保持
+    if (!resetSelect) {
+        ELS.list.scrollTop = scrollTop;
+    }
+
     // フィルタ結果の先頭（または選択中）を表示
     if(filtered.length) {
         if(resetSelect) selectedIdx = 0;
-        if (selectedIdx >= filtered.length) selectedIdx = 0;
+        selectedIdx = Math.min(Math.max(selectedIdx, 0), filtered.length - 1);
         showDetail(filtered[selectedIdx], highlightKeywords);
         highlightSelected();
     } else {
@@ -698,18 +739,36 @@ function comboBlock(combo, filter=[]) {
         res = combo
             .map(row => (typeof row === 'object') ? (row.effect ?? '') : row)
             .filter(text => text && text !== "-")
-            .map(text => `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${highlightText(text, filter)}</div></div>`)
+            .map(text => `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${text}</div></div>`)
             .join('<hr class="skill-sep">');
     } 
     else if (typeof combo === 'object' && combo !== null) {
         const effect = combo.effect ?? '';
-        if (effect && effect !== "-") res = `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${highlightText(effect, filter)}</div></div>`;
+        if (effect && effect !== "-") res = `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${effect}</div></div>`;
     } 
     else {
         const text = combo || '';
-        if (text && text !== "-") res = `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${highlightText(text, filter)}</div></div>`;
+        if (text && text !== "-") res = `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${text}</div></div>`;
     }
     return replaceDynamicValues(res, 'affinity');
+}
+
+/**
+ * スキルオブジェクトからテキストデータを抽出するヘルパー
+ */
+function extractSkillText(skill, isMagic, tabType) {
+    if (typeof skill === 'string') return { raw: skill, name: '' };
+    if (typeof skill !== 'object') return { raw: '', name: '' };
+
+    const name = skill.title || skill.name || '';
+    if (isMagic) {
+        return { raw: skill.effect || skill.normal || skill.description || '', name };
+    }
+    if (tabType === undefined) {
+        return { raw: skill.normal || '', awakened: skill.awakened || '', name };
+    }
+    const text = tabType === 1 ? (skill.normal || '') : (skill.awakened || '');
+    return { raw: text, name };
 }
 
 /**
@@ -725,23 +784,23 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
             const skillName = skill.title || skill.name || "";
             if (isMagic) {
                 const text = replaceDynamicValues(skill.effect || skill.normal || skill.description || "", type);
-                return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}${highlightText(text, filter)}</div>`;
+                return `<div>${skillName ? `<b>${skillName}</b><br>` : ""}${text}</div>`;
             }
             const normal = replaceDynamicValues(skill.normal || "", type);
             const awakened = replaceDynamicValues(skill.awakened || "", type);
             
             if (awakened) {
-                return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}
-                  <span class="effect-label normal-label">覚醒前</span>${highlightText(normal, filter)}
+                return `<div>${skillName ? `<b>${skillName}</b><br>` : ""}
+                  <span class="effect-label normal-label">覚醒前</span>${normal}
                   <div style="border-top:1px dashed #3a3a3a; margin:6px 0; opacity:0.7;"></div>
-                  <span class="effect-label awakened-label">覚醒後</span>${highlightText(awakened, filter)}
+                  <span class="effect-label awakened-label">覚醒後</span>${awakened}
                 </div>`;
             } else {
-                return `<div>${skillName ? `<b>${highlightText(skillName, filter)}</b><br>` : ""}${highlightText(normal, filter)}</div>`;
+                return `<div>${skillName ? `<b>${skillName}</b><br>` : ""}${normal}</div>`;
             }
         }
         const text = replaceDynamicValues(skill, type);
-        return (text === "-") ? "" : `<div>${highlightText(text, filter)}</div>`;
+        return (text === "-") ? "" : `<div>${text}</div>`;
     }).filter(html => html !== "").join('<hr class="skill-sep">');
 }
 
@@ -764,7 +823,7 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
             else rawText = tabType===0 ? (skill.normal || "") : (skill.awakened || "");
         }
         if (rawText === "-") return "";
-        return highlightText(replaceDynamicValues(rawText, calcType), filter);
+        return replaceDynamicValues(rawText, calcType);
     }).filter(s => s !== "").join('<hr class="skill-sep">'); 
 }
 
@@ -788,7 +847,7 @@ function showDetail(char, filter = []) {
     }
 
     const attrColor = CONFIG.attributes[char.attribute] || "#E0E0E0";
-    const highlightDetail = (val) => (val && filter.length) ? highlightText(val, filter) : val;
+    const highlightDetail = (val) => escapeHtml(val);
 
     // --- 画像表示セクション (動き停止 & サイズ最適化) ---
     let imageHtml = "";
@@ -843,11 +902,11 @@ function showDetail(char, filter = []) {
             <div class="char-info-row-bottom">
                 <div class="char-info-item char-info-wide">
                     <span class="char-label">グループ</span>
-                    <span class="char-value char-value-plain">${(char.group || []).join(', ')}</span>
+                    <span class="char-value char-value-plain">${(char.group || []).map(escapeHtml).join(', ')}</span>
                 </div>
                 <div class="char-info-item char-info-wide">
                     <span class="char-label">覚醒</span>
-                    <span class="char-value char-value-plain">${char.arousal}</span>
+                    <span class="char-value char-value-plain">${escapeHtml(char.arousal)}</span>
                 </div>
             </div>
         </div>`;
@@ -889,10 +948,10 @@ function showDetail(char, filter = []) {
     // --- タブ生成 ---
     const tabRange = document.createRange().createContextualFragment(`
     <div class="tabs-wrap" id="detail-tabs">
-      <div class="tabs-buttons">
-        <button class="tabs-btn${tabMode===0?' active':''}" id="tab-both">比較</button>
-        <button class="tabs-btn${tabMode===1?' active':''}" id="tab-normal">覚醒前</button>
-        <button class="tabs-btn${tabMode===2?' active':''}" id="tab-awakened">覚醒後</button>
+      <div class="tabs-buttons" role="tablist">
+        <button class="tabs-btn${tabMode===0?' active':''}" id="tab-both" role="tab" aria-selected="${tabMode===0}">比較</button>
+        <button class="tabs-btn${tabMode===1?' active':''}" id="tab-normal" role="tab" aria-selected="${tabMode===1}">覚醒前</button>
+        <button class="tabs-btn${tabMode===2?' active':''}" id="tab-awakened" role="tab" aria-selected="${tabMode===2}">覚醒後</button>
       </div>
     </div>`);
     ELS.detail.prepend(tabRange);
@@ -916,9 +975,12 @@ function showDetail(char, filter = []) {
  * JSONデータの取得とキャッシュ管理
  */
 async function loadCharacters() {
+    if (isLoadingCharacters) return;
+    isLoadingCharacters = true;
+
     const jsonUrl = 'characters/all_characters.json';
-    const cacheKeyData = 'kage_char_data_v3'; 
-    const cacheKeyTime = 'kage_char_time_v3'; 
+    const cacheKeyData = 'kage_char_data_v3';
+    const cacheKeyTime = 'kage_char_time_v3';
 
     try {
         // 更新確認 (HEADリクエスト)
@@ -957,9 +1019,35 @@ async function loadCharacters() {
         }
     } catch (err) {
         console.error("Failed to load characters:", err);
-        if (ELS.list) {
-            ELS.list.innerHTML = '<li style="color:#f88;padding:1em;">データの読み込みに失敗しました。<br>ページを再読み込みしてください。</li>';
+
+        // キャッシュフォールバック: ネットワーク失敗時にlocalStorageのデータを使用
+        const cachedData = localStorage.getItem(cacheKeyData);
+        if (cachedData) {
+            try {
+                characters = JSON.parse(cachedData);
+                prepareSearchData();
+                initButtons();
+                handleUrlParameter();
+                console.log("Using cached data as fallback");
+                return;
+            } catch (parseErr) {
+                console.error("Cache parse failed:", parseErr);
+            }
         }
+
+        if (ELS.list) {
+            ELS.list.innerHTML = `<li class="loading-state" style="flex-direction:column; gap:8px; color:#f88;">
+                <div>データの読み込みに失敗しました。</div>
+                <button id="retry-load-btn" style="padding:8px 20px; background:#2c5d8a; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:0.9em;">再読み込み</button>
+            </li>`;
+            const retryBtn = document.getElementById('retry-load-btn');
+            if (retryBtn) retryBtn.onclick = () => {
+                ELS.list.innerHTML = '<li class="loading-state"><div class="loading-spinner"></div>データを読み込み中...</li>';
+                loadCharacters();
+            };
+        }
+    } finally {
+        isLoadingCharacters = false;
     }
 }
 
@@ -1255,6 +1343,11 @@ function setupCaptureButton() {
             });
             clone.removeAttribute('id');
 
+            // visibility:hidden の画像を除去（レイアウトずれ防止）
+            clone.querySelectorAll('img').forEach(img => {
+                if (img.style.visibility === 'hidden') img.remove();
+            });
+
             // モバイルCSS メディアクエリがクローン子要素に影響するのを防止
             clone.querySelectorAll('.char-image-container').forEach(el => {
                 Object.assign(el.style, { flexDirection: 'row', alignItems: 'flex-start' });
@@ -1358,6 +1451,20 @@ function showCaptureOverlay(blobUrl, filename) {
     overlay.appendChild(img);
     overlay.appendChild(btnArea);
     document.body.appendChild(overlay);
+
+    // フォーカストラップ: Tab操作をオーバーレイ内に閉じ込める
+    const focusableEls = overlay.querySelectorAll('a, button');
+    if (focusableEls.length) focusableEls[0].focus();
+    overlay.addEventListener('keydown', (e) => {
+        if (e.key !== 'Tab') return;
+        const first = focusableEls[0];
+        const last = focusableEls[focusableEls.length - 1];
+        if (e.shiftKey) {
+            if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+        } else {
+            if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+    });
 }
 
 /**
@@ -1420,8 +1527,14 @@ function setupListHeightControl() {
         }
     };
 
+    let heightRafId = 0;
+    const debouncedUpdateHeight = () => {
+        cancelAnimationFrame(heightRafId);
+        heightRafId = requestAnimationFrame(updateHeight);
+    };
+
     ELS.listHeightSelect.addEventListener('change', updateHeight);
-    window.addEventListener('resize', updateHeight);
+    window.addEventListener('resize', debouncedUpdateHeight);
     
     // 他のUI展開時に高さを再計算（transitionendで正確なタイミングを取る）
     ['toggle-panel-btn', 'group-toggle-btn', 'name-toggle-btn', 'effect-toggle-btn'].forEach(id => {
@@ -1565,53 +1678,28 @@ function updateActiveFilterPills() {
     if (!ELS.activeFilters) return;
     const frag = document.createDocumentFragment();
 
-    // 属性
-    selectedAttrs.forEach(attr => {
-        frag.appendChild(createFilterPill(`属性: ${attr}`, () => {
-            selectedAttrs.delete(attr);
-            updateAttrBtnColors();
-            updateList(true);
-        }));
-    });
+    // 配列駆動のピル生成
+    const pillDefs = [
+        { set: selectedAttrs, label: '属性', colorFn: updateAttrBtnColors, container: null },
+        { set: selectedRoles, label: 'ロール', colorFn: updateRoleBtnColors, container: null },
+        { set: selectedGroups, label: 'グループ', colorFn: null, container: ELS.groupBtns },
+        { set: selectedNames, label: 'キャラ', colorFn: null, container: ELS.nameBtns },
+        { set: selectedEffects, label: '効果', colorFn: null, container: ELS.effectBtns },
+    ];
 
-    // ロール
-    selectedRoles.forEach(role => {
-        frag.appendChild(createFilterPill(`ロール: ${role}`, () => {
-            selectedRoles.delete(role);
-            updateRoleBtnColors();
-            updateList(true);
-        }));
-    });
-
-    // グループ
-    selectedGroups.forEach(g => {
-        frag.appendChild(createFilterPill(`グループ: ${g}`, () => {
-            selectedGroups.delete(g);
-            // グループボタンの active クラスも解除
-            const btns = ELS.groupBtns.querySelectorAll('.group-btn');
-            btns.forEach(btn => { if (btn.textContent === g) btn.classList.remove('active'); });
-            updateList(true);
-        }));
-    });
-
-    // キャラ名
-    selectedNames.forEach(n => {
-        frag.appendChild(createFilterPill(`キャラ: ${n}`, () => {
-            selectedNames.delete(n);
-            const btns = ELS.nameBtns.querySelectorAll('.group-btn');
-            btns.forEach(btn => { if (btn.textContent === n) btn.classList.remove('active'); });
-            updateList(true);
-        }));
-    });
-
-    // 効果
-    selectedEffects.forEach(e => {
-        frag.appendChild(createFilterPill(`効果: ${e}`, () => {
-            selectedEffects.delete(e);
-            const btns = ELS.effectBtns.querySelectorAll('.group-btn');
-            btns.forEach(btn => { if (btn.textContent === e) btn.classList.remove('active'); });
-            updateList(true);
-        }));
+    pillDefs.forEach(({ set, label, colorFn, container }) => {
+        set.forEach(value => {
+            frag.appendChild(createFilterPill(`${label}: ${value}`, () => {
+                set.delete(value);
+                if (colorFn) colorFn();
+                if (container) {
+                    container.querySelectorAll('.group-btn').forEach(btn => {
+                        if (btn.textContent === value) btn.classList.remove('active');
+                    });
+                }
+                updateList(true);
+            }));
+        });
     });
 
     // お気に入りフィルタ
