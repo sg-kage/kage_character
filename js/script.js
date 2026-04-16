@@ -1307,6 +1307,10 @@ function setupEffectButtons() {
 function setupCaptureButton() {
     if (!ELS.captureBtn) return;
 
+    // iOS 判定（iPadOS 13+ の Mac偽装も考慮）
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
     // 画像のロード完了を待つヘルパー
     const waitImagesLoaded = (root) => {
         const images = Array.from(root.querySelectorAll('img'));
@@ -1376,14 +1380,20 @@ function setupCaptureButton() {
 
             clone = ELS.detail.cloneNode(true);
             clone.classList.add('capture-target');
+            // iOS Safari では top:-9999px だと描画スキップ → 白っぽくなるため、
+            // iOS のみビューポート内に配置し clip-path で視覚的に隠す
+            // (opacity:0 は html2canvas のキャプチャ結果も透明にしてしまうため不可)
+            const offscreenStyle = isIOS
+                ? { position: 'fixed', top: '0', left: '0', zIndex: '-1', clipPath: 'inset(0 0 100% 0)' }
+                : { position: 'absolute', top: '-9999px', left: '0', zIndex: '-9999' };
             Object.assign(clone.style, {
-                position: 'absolute', top: '-9999px', left: '0',
                 width: '1100px', minWidth: '1100px', maxWidth: 'none',
                 height: 'auto', padding: '20px', margin: '0',
                 background: '#0f0f14', color: '#e8e8f0',
-                zIndex: '-9999', overflow: 'visible',
+                overflow: 'visible',
                 borderRadius: '0', transform: 'none',
-                pointerEvents: 'none'
+                pointerEvents: 'none',
+                ...offscreenStyle
             });
             clone.removeAttribute('id');
 
@@ -1413,14 +1423,17 @@ function setupCaptureButton() {
             document.body.appendChild(clone);
 
             const isMobile = window.innerWidth <= 700;
-            const captureScale = isMobile ? 1.5 : 2;
+            // iOS は canvas サイズ上限による淡色化を避けるため scale=1
+            const captureScale = isIOS ? 1 : (isMobile ? 1.5 : 2);
             const canvas = await html2canvas(clone, {
                 scale: captureScale,
                 useCORS: true,
                 allowTaint: false,
                 logging: false,
                 windowWidth: 1100,
-                backgroundColor: '#0f0f14'
+                backgroundColor: '#0f0f14',
+                foreignObjectRendering: false,
+                imageTimeout: 15000
             });
 
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
