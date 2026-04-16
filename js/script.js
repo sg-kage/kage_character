@@ -1375,25 +1375,20 @@ function setupCaptureButton() {
         const filename = `kage_${safeName}_${dateStr}.png`;
 
         let clone = null;
+        let mountNode = null;
         try {
             await waitImagesLoaded(ELS.detail);
 
             clone = ELS.detail.cloneNode(true);
             clone.classList.add('capture-target');
-            // iOS Safari では top:-9999px だと描画スキップ → 白っぽくなるため、
-            // iOS のみビューポート内に配置し clip-path で視覚的に隠す
-            // (opacity:0 は html2canvas のキャプチャ結果も透明にしてしまうため不可)
-            const offscreenStyle = isIOS
-                ? { position: 'fixed', top: '0', left: '0', zIndex: '-1', clipPath: 'inset(0 0 100% 0)' }
-                : { position: 'absolute', top: '-9999px', left: '0', zIndex: '-9999' };
             Object.assign(clone.style, {
+                position: 'static',
                 width: '1100px', minWidth: '1100px', maxWidth: 'none',
                 height: 'auto', padding: '20px', margin: '0',
                 background: '#0f0f14', color: '#e8e8f0',
                 overflow: 'visible',
                 borderRadius: '0', transform: 'none',
-                pointerEvents: 'none',
-                ...offscreenStyle
+                pointerEvents: 'none'
             });
             clone.removeAttribute('id');
 
@@ -1420,7 +1415,29 @@ function setupCaptureButton() {
             });
 
             injectCaptureCSS();
-            document.body.appendChild(clone);
+
+            // マウント方法を環境で分岐:
+            // - iOS Safari: top:-9999px だと描画スキップ→白っぽくなる。
+            //   ビューポート内に1px wrapper を置き overflow:hidden で視覚的に隠す
+            //   (clip-path は一瞬見えてしまう、opacity:0 は html2canvas 出力も透明化するため不可)
+            // - PC/Android: 従来通り top:-9999px の画面外配置
+            if (isIOS) {
+                mountNode = document.createElement('div');
+                Object.assign(mountNode.style, {
+                    position: 'fixed', top: '0', left: '0',
+                    width: '1px', height: '1px',
+                    overflow: 'hidden',
+                    pointerEvents: 'none',
+                    zIndex: '-1'
+                });
+                mountNode.appendChild(clone);
+            } else {
+                Object.assign(clone.style, {
+                    position: 'absolute', top: '-9999px', left: '0', zIndex: '-9999'
+                });
+                mountNode = clone;
+            }
+            document.body.appendChild(mountNode);
 
             const isMobile = window.innerWidth <= 700;
             // iOS は canvas サイズ上限による淡色化を避けるため scale=1
@@ -1444,7 +1461,7 @@ function setupCaptureButton() {
             console.error("Capture Failed:", err);
             alert('キャプチャに失敗しました:\n' + (err.message || err));
         } finally {
-            if (clone && clone.parentNode) clone.parentNode.removeChild(clone);
+            if (mountNode && mountNode.parentNode) mountNode.parentNode.removeChild(mountNode);
             ELS.captureBtn.disabled = false;
             ELS.captureBtn.style.opacity = '';
         }
