@@ -843,9 +843,9 @@ function showDetail(char, filter = []) {
     }
 
     // URLパラメータ更新（共有用）
-    if (char.CharacterID) {
+    if (char.Position) {
         const url = new URL(window.location);
-        url.searchParams.set('id', char.CharacterID);
+        url.searchParams.set('pos', char.Position);
         window.history.replaceState({}, '', url);
     }
 
@@ -1124,19 +1124,19 @@ function prepareSearchData() {
 }
 
 /**
- * URLパラメータ ?id=XXX を解析して初期表示を行う
+ * URLパラメータ ?pos=XXX を解析して初期表示を行う
  */
 function handleUrlParameter() {
     const params = new URLSearchParams(window.location.search);
-    const targetId = params.get('id');
-    
-    if (targetId) {
-        const targetChar = characters.find(c => String(c.CharacterID) === targetId);
+    const targetPos = params.get('pos');
+
+    if (targetPos) {
+        const targetChar = characters.find(c => String(c.Position) === targetPos);
         if (targetChar) {
             updateList(true); // 一度全リスト生成
-            
+
             // 生成リスト内での位置を特定
-            const idx = lastFiltered.findIndex(c => String(c.CharacterID) === targetId);
+            const idx = lastFiltered.findIndex(c => String(c.Position) === targetPos);
             if (idx !== -1) {
                 selectedIdx = idx;
                 showDetail(targetChar, []);
@@ -1340,23 +1340,23 @@ function setupCaptureButton() {
         style.textContent = `
             .capture-target,
             .capture-target * {
-                --bg-primary: #0f0f14 !important;
-                --bg-secondary: #16161e !important;
-                --bg-card: #1c1c28 !important;
-                --bg-card-hover: #24243a !important;
-                --bg-input: #1a1a26 !important;
-                --bg-elevated: #22223a !important;
-                --border: #2a2a3a !important;
-                --border-light: #3a3a50 !important;
-                --border-accent: #1e4a6a !important;
-                --accent-glow: #0d1a24 !important;
-                --accent-subtle: #0d1218 !important;
-                --gold-dim: #2a2500 !important;
-                --shadow-sm: 0 2px 8px #000 !important;
-                --shadow-md: 0 4px 24px #000 !important;
-                --shadow-lg: 0 8px 40px #000 !important;
-                --shadow-glow: none !important;
-                --shadow-card: 0 2px 12px #000 !important;
+                --bg-primary: #101014 !important;
+                --bg-secondary: #17171e !important;
+                --bg-card: #1c1c24 !important;
+                --bg-card-hover: #232330 !important;
+                --bg-input: #1a1a22 !important;
+                --bg-elevated: #212130 !important;
+                --border: rgba(255, 255, 255, 0.04) !important;
+                --border-light: rgba(255, 255, 255, 0.08) !important;
+                --border-accent: rgba(91, 184, 214, 0.12) !important;
+                --accent-glow: rgba(91, 184, 214, 0.10) !important;
+                --accent-subtle: rgba(91, 184, 214, 0.05) !important;
+                --gold: #c8a44e !important;
+                --gold-dim: rgba(200, 164, 78, 0.10) !important;
+                --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+                --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.28) !important;
+                --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+                --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.22) !important;
             }
         `;
         document.head.appendChild(style);
@@ -1382,11 +1382,11 @@ function setupCaptureButton() {
             clone = ELS.detail.cloneNode(true);
             clone.classList.add('capture-target');
             Object.assign(clone.style, {
-                position: 'static',
+                position: 'absolute', top: '-9999px', left: '0',
                 width: '1100px', minWidth: '1100px', maxWidth: 'none',
                 height: 'auto', padding: '20px', margin: '0',
                 background: '#0f0f14', color: '#e8e8f0',
-                overflow: 'visible',
+                zIndex: '-9999', overflow: 'visible',
                 borderRadius: '0', transform: 'none',
                 pointerEvents: 'none'
             });
@@ -1432,9 +1432,6 @@ function setupCaptureButton() {
                 });
                 mountNode.appendChild(clone);
             } else {
-                Object.assign(clone.style, {
-                    position: 'absolute', top: '-9999px', left: '0', zIndex: '-9999'
-                });
                 mountNode = clone;
             }
             document.body.appendChild(mountNode);
