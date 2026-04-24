@@ -1424,12 +1424,12 @@ function setupCaptureButton() {
 
             clone = ELS.detail.cloneNode(true);
             clone.classList.add('capture-target');
+            // 共通スタイル (配置スタイルは後段でマウント方式に応じて付与)
             Object.assign(clone.style, {
-                position: 'absolute', top: '-9999px', left: '0',
                 width: '1100px', minWidth: '1100px', maxWidth: 'none',
                 height: 'auto', padding: '20px', margin: '0',
                 background: '#0f0f14', color: '#e8e8f0',
-                zIndex: '-9999', overflow: 'visible',
+                overflow: 'visible',
                 borderRadius: '0', transform: 'none',
                 pointerEvents: 'none'
             });
@@ -1445,10 +1445,12 @@ function setupCaptureButton() {
             injectCaptureCSS();
 
             // マウント方法を環境で分岐:
-            // - iOS Safari: top:-9999px だと描画スキップ→白っぽくなる。
-            //   ビューポート内に1px wrapper を置き overflow:hidden で視覚的に隠す
+            // - iOS Safari: top:-9999px だと描画/レイアウトがスキップされ、
+            //   scrollHeight が過小報告されたり出力が白化したりする。
+            //   ビューポート内に 1px wrapper を置き、クローンは通常フロー（static）で
+            //   配置して wrapper 側の overflow:hidden で視覚的に隠す。
             //   (clip-path は一瞬見えてしまう、opacity:0 は html2canvas 出力も透明化するため不可)
-            // - PC/Android: 従来通り top:-9999px の画面外配置
+            // - PC/Android: 従来通り top:-9999px の画面外配置（確実に隠れる）
             if (isIOS) {
                 mountNode = document.createElement('div');
                 Object.assign(mountNode.style, {
@@ -1458,17 +1460,32 @@ function setupCaptureButton() {
                     pointerEvents: 'none',
                     zIndex: '-1'
                 });
+                // 通常フロー配置（オフスクリーン化しない）
+                Object.assign(clone.style, {
+                    position: 'static', top: 'auto', left: 'auto', zIndex: 'auto'
+                });
                 mountNode.appendChild(clone);
             } else {
+                Object.assign(clone.style, {
+                    position: 'absolute', top: '-9999px', left: '0', zIndex: '-9999'
+                });
                 mountNode = clone;
             }
             document.body.appendChild(mountNode);
 
-            // レイアウト確定後にクローンの実高さを測る
-            // (windowHeight を実端末のビューポート高さのままにすると
-            //  コンテンツが縦に切れる＝スマホで「一部しか写らない」原因になる)
+            // レイアウト/フォント/画像が確定してから高さを測る:
+            // - webfont 未反映だと行高が変わり測定値が小さくなる
+            // - クローン直後の img は decode 待ちで 0px 扱いになりうる
+            // - rAF 2 回で layout/paint の 1 サイクルを確実に跨ぐ
+            if (document.fonts && document.fonts.ready) {
+                try { await document.fonts.ready; } catch (_) { /* 無視 */ }
+            }
+            await waitImagesLoaded(clone);
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
             void clone.offsetHeight;
-            const cloneH = Math.max(clone.scrollHeight, clone.offsetHeight, 100);
+            const rectH = clone.getBoundingClientRect().height;
+            const cloneH = Math.ceil(Math.max(clone.scrollHeight, clone.offsetHeight, rectH, 100));
 
             const isMobile = window.innerWidth <= 700;
             // iOS は canvas サイズ上限による淡色化を避けるため scale=1
