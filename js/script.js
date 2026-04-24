@@ -673,7 +673,9 @@ function updateList(resetSelect=false) {
         li.appendChild(nameSpan);
 
         // 4. 文字の右：Ex画像 (name_Ex.webp)
-        if (showImages) {
+        // Ex画像は全キャラ分は存在しない (現状2キャラのみ)。
+        // JSON の has_ex フラグで出し分け、無駄な 404 を防止
+        if (showImages && char.has_ex) {
             const img2 = document.createElement('img');
             img2.src = `image/characters/${char.name}_Ex.webp`;
             img2.className = 'list-img-ex';
@@ -843,9 +845,9 @@ function showDetail(char, filter = []) {
     }
 
     // URLパラメータ更新（共有用）
-    if (char.Position) {
+    if (char.position) {
         const url = new URL(window.location);
-        url.searchParams.set('pos', char.Position);
+        url.searchParams.set('pos', char.position);
         window.history.replaceState({}, '', url);
     }
 
@@ -853,13 +855,14 @@ function showDetail(char, filter = []) {
     const highlightDetail = (val) => escapeHtml(val);
 
     // --- 画像表示セクション (動き停止 & サイズ最適化) ---
+    // Ex画像は has_ex が true のキャラだけ出力して 404 を防ぐ
     let imageHtml = "";
     if (showImages) {
         const base = "image/characters/";
-        const imgData = [
-            { src: `${base}${char.name}.webp`, suffix: "" },
-            { src: `${base}${char.name}_Ex.webp`, suffix: " Ex" }
-        ];
+        const imgData = [{ src: `${base}${char.name}.webp`, suffix: "" }];
+        if (char.has_ex) {
+            imgData.push({ src: `${base}${char.name}_Ex.webp`, suffix: " Ex" });
+        }
 
         imageHtml = `
         <div class="char-image-container">
@@ -1131,12 +1134,12 @@ function handleUrlParameter() {
     const targetPos = params.get('pos');
 
     if (targetPos) {
-        const targetChar = characters.find(c => String(c.Position) === targetPos);
+        const targetChar = characters.find(c => String(c.position) === targetPos);
         if (targetChar) {
             updateList(true); // 一度全リスト生成
 
             // 生成リスト内での位置を特定
-            const idx = lastFiltered.findIndex(c => String(c.Position) === targetPos);
+            const idx = lastFiltered.findIndex(c => String(c.position) === targetPos);
             if (idx !== -1) {
                 selectedIdx = idx;
                 showDetail(targetChar, []);
@@ -1331,7 +1334,10 @@ function setupCaptureButton() {
         }));
     };
 
-    // キャプチャ用CSSを注入（rgba半透明をhtml2canvas向け不透明色に変換）
+    // キャプチャ用CSSを注入
+    // - CSS変数をデスクトップ固定値に強制（html2canvas向けの色崩れ防止）
+    // - モバイルメディアクエリ（max-width:700px/480px）を !important で無効化し
+    //   スマホ実機でも常にデスクトップ相当のレイアウトでキャプチャされるようにする
     const CAPTURE_STYLE_ID = 'capture-override-style';
     const injectCaptureCSS = () => {
         if (document.getElementById(CAPTURE_STYLE_ID)) return;
@@ -1357,6 +1363,43 @@ function setupCaptureButton() {
                 --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.28) !important;
                 --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
                 --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.22) !important;
+            }
+
+            /* モバイル時のメディアクエリを打ち消してデスクトップ見た目に固定 */
+            .capture-target .char-image-container {
+                flex-direction: row !important;
+                align-items: flex-start !important;
+            }
+            .capture-target .char-image {
+                max-width: 35% !important;
+                max-height: 150px !important;
+            }
+            .capture-target .char-title {
+                font-size: 1.5rem !important;
+            }
+            .capture-target .char-section-content {
+                font-size: 0.875rem !important;
+                padding: 12px 16px 16px 16px !important;
+            }
+            .capture-target .char-info-row-top {
+                flex-wrap: nowrap !important;
+                gap: 12px !important;
+            }
+            .capture-target .effect-label {
+                font-size: 0.75rem !important;
+                padding: 2px 8px !important;
+            }
+            .capture-target .filter-pill {
+                font-size: 0.75rem !important;
+                padding: 2px 8px 2px 12px !important;
+            }
+            .capture-target .tabs-btn {
+                padding: 8px 12px !important;
+                font-size: 0.8125rem !important;
+            }
+            .capture-target .fav-star {
+                font-size: 1rem !important;
+                padding: 4px !important;
             }
         `;
         document.head.appendChild(style);
@@ -1397,23 +1440,8 @@ function setupCaptureButton() {
                 if (img.style.visibility === 'hidden') img.remove();
             });
 
-            // モバイルCSS メディアクエリがクローン子要素に影響するのを防止
-            clone.querySelectorAll('.char-image-container').forEach(el => {
-                Object.assign(el.style, { flexDirection: 'row', alignItems: 'flex-start' });
-            });
-            clone.querySelectorAll('.char-image').forEach(el => {
-                Object.assign(el.style, { maxWidth: '35%', maxHeight: '150px' });
-            });
-            clone.querySelectorAll('.char-title').forEach(el => {
-                el.style.fontSize = '1.5rem';
-            });
-            clone.querySelectorAll('.char-section-content').forEach(el => {
-                Object.assign(el.style, { fontSize: '', padding: '' });
-            });
-            clone.querySelectorAll('.char-info-row-top').forEach(el => {
-                Object.assign(el.style, { flexWrap: 'nowrap', gap: '8px' });
-            });
-
+            // モバイルのメディアクエリを打ち消す !important CSS を注入
+            // (個別のインライン上書きではなく .capture-target 配下で一括で効かせる)
             injectCaptureCSS();
 
             // マウント方法を環境で分岐:
@@ -1436,6 +1464,12 @@ function setupCaptureButton() {
             }
             document.body.appendChild(mountNode);
 
+            // レイアウト確定後にクローンの実高さを測る
+            // (windowHeight を実端末のビューポート高さのままにすると
+            //  コンテンツが縦に切れる＝スマホで「一部しか写らない」原因になる)
+            void clone.offsetHeight;
+            const cloneH = Math.max(clone.scrollHeight, clone.offsetHeight, 100);
+
             const isMobile = window.innerWidth <= 700;
             // iOS は canvas サイズ上限による淡色化を避けるため scale=1
             const captureScale = isIOS ? 1 : (isMobile ? 1.5 : 2);
@@ -1444,7 +1478,10 @@ function setupCaptureButton() {
                 useCORS: true,
                 allowTaint: false,
                 logging: false,
+                width: 1100,
+                height: cloneH,
                 windowWidth: 1100,
+                windowHeight: cloneH,
                 backgroundColor: '#0f0f14',
                 foreignObjectRendering: false,
                 imageTimeout: 15000
