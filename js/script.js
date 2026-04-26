@@ -1419,6 +1419,14 @@ function setupCaptureButton() {
 
         let clone = null;
         let mountNode = null;
+        // foreignObjectRendering は documentElement を SVG にシリアライズする実装で、
+        // ページのスクロール位置によってキャプチャ起点が変わる挙動を観測した。
+        // 撮影中は先頭に固定し、終了後に元の位置へ戻す。
+        const prevScrollY = window.scrollY;
+        const prevScrollX = window.scrollX;
+        if (isIOS && (prevScrollX !== 0 || prevScrollY !== 0)) {
+            window.scrollTo(0, 0);
+        }
         try {
             await waitImagesLoaded(ELS.detail);
 
@@ -1502,6 +1510,8 @@ function setupCaptureButton() {
                 height: cloneH,
                 windowWidth: 1100,
                 windowHeight: cloneH,
+                scrollX: 0,
+                scrollY: 0,
                 backgroundColor: '#0f0f14',
                 foreignObjectRendering: isIOS,
                 imageTimeout: 15000
@@ -1516,6 +1526,9 @@ function setupCaptureButton() {
             alert('キャプチャに失敗しました:\n' + (err.message || err));
         } finally {
             if (mountNode && mountNode.parentNode) mountNode.parentNode.removeChild(mountNode);
+            if (isIOS && (prevScrollX !== 0 || prevScrollY !== 0)) {
+                window.scrollTo(prevScrollX, prevScrollY);
+            }
             ELS.captureBtn.disabled = false;
             ELS.captureBtn.style.opacity = '';
         }
