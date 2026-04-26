@@ -1462,6 +1462,9 @@ function setupCaptureButton() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: '#e8e8f0', fontSize: '1rem', letterSpacing: '0.05em'
                 });
+                // html2canvas は iframe に文書ツリーをコピーしてレンダリングするため、
+                // この属性を付けないとオーバーレイがクローンを覆い隠してしまう
+                captureOverlay.setAttribute('data-html2canvas-ignore', 'true');
                 captureOverlay.textContent = '撮影中...';
                 document.body.appendChild(captureOverlay);
 
