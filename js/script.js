@@ -1419,6 +1419,7 @@ function setupCaptureButton() {
 
         let clone = null;
         let mountNode = null;
+        let captureOverlay = null;
         try {
             await waitImagesLoaded(ELS.detail);
 
@@ -1445,26 +1446,29 @@ function setupCaptureButton() {
             injectCaptureCSS();
 
             // マウント方法を環境で分岐:
-            // - iOS Safari: top:-9999px だと描画/レイアウトがスキップされ、
-            //   scrollHeight が過小報告されたり出力が白化したりする。
-            //   ビューポート内に 1px wrapper を置き、クローンは通常フロー（static）で
-            //   配置して wrapper 側の overflow:hidden で視覚的に隠す。
-            //   (clip-path は一瞬見えてしまう、opacity:0 は html2canvas 出力も透明化するため不可)
+            // - iOS Safari: off-screen 配置(top:-9999px) や 1px×1px overflow:hidden ラッパーは
+            //   子要素のレンダリング/レイアウトを最適化スキップさせ、scrollHeight が過小報告される。
+            //   結果としてキャプチャ下部が切れるため、クローンを viewport 内に実寸でマウントし、
+            //   不透明オーバーレイで視覚遮蔽する方式を取る。
             // - PC/Android: 従来通り top:-9999px の画面外配置（確実に隠れる）
             if (isIOS) {
-                mountNode = document.createElement('div');
-                Object.assign(mountNode.style, {
+                captureOverlay = document.createElement('div');
+                Object.assign(captureOverlay.style, {
                     position: 'fixed', top: '0', left: '0',
-                    width: '1px', height: '1px',
-                    overflow: 'hidden',
+                    width: '100vw', height: '100vh',
+                    background: '#0f0f14',
+                    zIndex: '99999',
                     pointerEvents: 'none',
-                    zIndex: '-1'
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#e8e8f0', fontSize: '1rem', letterSpacing: '0.05em'
                 });
-                // 通常フロー配置（オフスクリーン化しない）
+                captureOverlay.textContent = '撮影中...';
+                document.body.appendChild(captureOverlay);
+
                 Object.assign(clone.style, {
-                    position: 'static', top: 'auto', left: 'auto', zIndex: 'auto'
+                    position: 'fixed', top: '0', left: '0', zIndex: '0'
                 });
-                mountNode.appendChild(clone);
+                mountNode = clone;
             } else {
                 Object.assign(clone.style, {
                     position: 'absolute', top: '-9999px', left: '0', zIndex: '-9999'
@@ -1513,6 +1517,7 @@ function setupCaptureButton() {
             alert('キャプチャに失敗しました:\n' + (err.message || err));
         } finally {
             if (mountNode && mountNode.parentNode) mountNode.parentNode.removeChild(mountNode);
+            if (captureOverlay && captureOverlay.parentNode) captureOverlay.parentNode.removeChild(captureOverlay);
             ELS.captureBtn.disabled = false;
             ELS.captureBtn.style.opacity = '';
         }
