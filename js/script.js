@@ -1419,7 +1419,6 @@ function setupCaptureButton() {
 
         let clone = null;
         let mountNode = null;
-        let captureOverlay = null;
         try {
             await waitImagesLoaded(ELS.detail);
 
@@ -1446,32 +1445,25 @@ function setupCaptureButton() {
             injectCaptureCSS();
 
             // マウント方法を環境で分岐:
-            // - iOS Safari: off-screen 配置(top:-9999px) や 1px×1px overflow:hidden ラッパーは
-            //   子要素のレンダリング/レイアウトを最適化スキップさせ、scrollHeight が過小報告される。
-            //   結果としてキャプチャ下部が切れるため、クローンを viewport 内に実寸でマウントし、
-            //   不透明オーバーレイで視覚遮蔽する方式を取る。
+            // - iOS Safari: top:-9999px だと描画/レイアウトがスキップされ、
+            //   scrollHeight が過小報告されたり出力が白化したりする。
+            //   ビューポート内に 1px wrapper を置き、クローンは通常フロー（static）で
+            //   配置して wrapper 側の overflow:hidden で視覚的に隠す。
+            //   (clip-path は一瞬見えてしまう、opacity:0 は html2canvas 出力も透明化するため不可)
             // - PC/Android: 従来通り top:-9999px の画面外配置（確実に隠れる）
             if (isIOS) {
-                captureOverlay = document.createElement('div');
-                Object.assign(captureOverlay.style, {
+                mountNode = document.createElement('div');
+                Object.assign(mountNode.style, {
                     position: 'fixed', top: '0', left: '0',
-                    width: '100vw', height: '100vh',
-                    background: '#0f0f14',
-                    zIndex: '99999',
+                    width: '1px', height: '1px',
+                    overflow: 'hidden',
                     pointerEvents: 'none',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: '#e8e8f0', fontSize: '1rem', letterSpacing: '0.05em'
+                    zIndex: '-1'
                 });
-                // html2canvas は iframe に文書ツリーをコピーしてレンダリングするため、
-                // この属性を付けないとオーバーレイがクローンを覆い隠してしまう
-                captureOverlay.setAttribute('data-html2canvas-ignore', 'true');
-                captureOverlay.textContent = '撮影中...';
-                document.body.appendChild(captureOverlay);
-
                 Object.assign(clone.style, {
-                    position: 'fixed', top: '0', left: '0', zIndex: '0'
+                    position: 'static', top: 'auto', left: 'auto', zIndex: 'auto'
                 });
-                mountNode = clone;
+                mountNode.appendChild(clone);
             } else {
                 Object.assign(clone.style, {
                     position: 'absolute', top: '-9999px', left: '0', zIndex: '-9999'
@@ -1497,6 +1489,10 @@ function setupCaptureButton() {
             const isMobile = window.innerWidth <= 700;
             // iOS は canvas サイズ上限による淡色化を避けるため scale=1
             const captureScale = isIOS ? 1 : (isMobile ? 1.5 : 2);
+            // iOS Safari の iframe レンダリングはビューポート相当の高さで打ち切られ、
+            // 結果としてキャプチャ下部が切れる。SVG foreignObject 経由のレンダリングに
+            // 切り替えることで iframe を介さず全域を描画する。
+            // (同一オリジン画像のみのため CORS 制約は問題なし)
             const canvas = await html2canvas(clone, {
                 scale: captureScale,
                 useCORS: true,
@@ -1507,7 +1503,7 @@ function setupCaptureButton() {
                 windowWidth: 1100,
                 windowHeight: cloneH,
                 backgroundColor: '#0f0f14',
-                foreignObjectRendering: false,
+                foreignObjectRendering: isIOS,
                 imageTimeout: 15000
             });
 
@@ -1520,7 +1516,6 @@ function setupCaptureButton() {
             alert('キャプチャに失敗しました:\n' + (err.message || err));
         } finally {
             if (mountNode && mountNode.parentNode) mountNode.parentNode.removeChild(mountNode);
-            if (captureOverlay && captureOverlay.parentNode) captureOverlay.parentNode.removeChild(captureOverlay);
             ELS.captureBtn.disabled = false;
             ELS.captureBtn.style.opacity = '';
         }
