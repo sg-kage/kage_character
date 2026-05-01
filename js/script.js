@@ -1323,15 +1323,91 @@ function setupCaptureButton() {
             if (img.getAttribute('loading') === 'lazy') {
                 img.removeAttribute('loading');
             }
-            if (img.complete && img.naturalHeight !== 0) return Promise.resolve();
+            img.loading = 'eager';
+            img.decoding = 'sync';
+            if (img.complete && img.naturalHeight !== 0) {
+                if (typeof img.decode === 'function') {
+                    return img.decode().catch(() => {});
+                }
+                return Promise.resolve();
+            }
 
             return new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve;
-                if (!img.src) resolve();
-                setTimeout(resolve, 2500);
+                const done = () => {
+                    img.removeEventListener('load', done);
+                    img.removeEventListener('error', done);
+                    resolve();
+                };
+                img.addEventListener('load', done, { once: true });
+                img.addEventListener('error', done, { once: true });
+                if (!img.src) return done();
+                setTimeout(done, 2500);
             });
         }));
+    };
+
+    const prepareCaptureImages = async (sourceRoot, cloneRoot) => {
+        const sourceImages = Array.from(sourceRoot.querySelectorAll('img'));
+        const cloneImages = Array.from(cloneRoot.querySelectorAll('img'));
+
+        await Promise.all(cloneImages.map(async (img, idx) => {
+            const sourceImg = sourceImages[idx];
+            if (!sourceImg || sourceImg.style.visibility === 'hidden' || sourceImg.style.display === 'none') {
+                img.remove();
+                return;
+            }
+
+            const resolvedSrc = sourceImg.currentSrc || sourceImg.src || img.currentSrc || img.src;
+            if (!resolvedSrc) {
+                img.remove();
+                return;
+            }
+
+            img.removeAttribute('loading');
+            img.loading = 'eager';
+            img.decoding = 'sync';
+            img.crossOrigin = 'anonymous';
+            img.setAttribute('fetchpriority', 'high');
+
+            if (img.src !== resolvedSrc) {
+                img.src = resolvedSrc;
+            }
+
+            if (typeof img.decode === 'function') {
+                try {
+                    await img.decode();
+                    return;
+                } catch (_) {
+                    // Fall back to load/error events below.
+                }
+            }
+
+            if (img.complete && img.naturalHeight !== 0) return;
+
+            await new Promise(resolve => {
+                const done = () => {
+                    img.removeEventListener('load', done);
+                    img.removeEventListener('error', done);
+                    resolve();
+                };
+                img.addEventListener('load', done, { once: true });
+                img.addEventListener('error', done, { once: true });
+                setTimeout(done, 3000);
+            });
+        }));
+    };
+
+    const canvasToPreviewUrl = async (canvas) => {
+        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        if (blob && blob.size > 0) {
+            return URL.createObjectURL(blob);
+        }
+
+        const dataUrl = canvas.toDataURL('image/png');
+        if (!dataUrl || dataUrl === 'data:,') {
+            throw new Error('Failed to create capture preview.');
+        }
+        return dataUrl;
     };
 
     // キャプチャ用CSSを注入
@@ -1497,6 +1573,7 @@ function setupCaptureButton() {
             if (document.fonts && document.fonts.ready) {
                 try { await document.fonts.ready; } catch (_) { /* 無視 */ }
             }
+            await prepareCaptureImages(ELS.detail, clone);
             await waitImagesLoaded(clone);
             await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
@@ -1527,9 +1604,8 @@ function setupCaptureButton() {
                 imageTimeout: 15000
             });
 
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-            const blobUrl = URL.createObjectURL(blob);
-            showCaptureOverlay(blobUrl, filename);
+            const previewUrl = await canvasToPreviewUrl(canvas);
+            showCaptureOverlay(previewUrl, filename);
 
         } catch (err) {
             console.error("Capture Failed:", err);
@@ -1549,7 +1625,8 @@ function setupCaptureButton() {
 /**
  * キャプチャ結果を表示するオーバーレイの生成
  */
-function showCaptureOverlay(blobUrl, filename) {
+function showCaptureOverlay(previewUrl, filename) {
+    const isObjectUrl = typeof previewUrl === 'string' && previewUrl.startsWith('blob:');
     const existing = document.getElementById('capture-overlay');
     if (existing) {
         // 前回の blob URL を解放
@@ -1560,14 +1637,26 @@ function showCaptureOverlay(blobUrl, filename) {
 
     const overlay = document.createElement('div');
     overlay.id = 'capture-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
     Object.assign(overlay.style, {
         position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.85)', zIndex: '10000', display: 'flex',
-        flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+        backgroundColor: 'rgba(0,0,0,0.72)', zIndex: '10000', display: 'flex',
+        flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: '20px', boxSizing: 'border-box'
+    });
+
+    const status = document.createElement('div');
+    status.textContent = '画像を表示しています...';
+    Object.assign(status.style, {
+        color: '#fff',
+        fontSize: '14px',
+        marginBottom: '12px',
+        letterSpacing: '0.02em'
     });
 
     const img = document.createElement('img');
-    img.src = blobUrl;
+    img.alt = filename;
     Object.assign(img.style, {
         maxWidth: '90%', maxHeight: '80%',
         border: '2px solid #fff', marginBottom: '15px',
@@ -1577,8 +1666,19 @@ function showCaptureOverlay(blobUrl, filename) {
     });
 
     // ★ blob URL のクリーンアップ関数
+    img.onload = () => {
+        status.remove();
+    };
+    img.onerror = () => {
+        status.textContent = 'プレビューの表示に失敗しました。保存ボタンから開いてください。';
+        status.style.color = '#ffd6d6';
+        img.remove();
+    };
+    img.src = previewUrl;
+    img.style.display = 'block';
+
     const cleanup = () => {
-        if (blobUrl.startsWith('blob:')) URL.revokeObjectURL(blobUrl);
+        if (isObjectUrl) URL.revokeObjectURL(previewUrl);
         overlay.remove();
     };
 
@@ -1591,7 +1691,7 @@ function showCaptureOverlay(blobUrl, filename) {
             textDecoration: 'none', borderRadius: '5px', fontSize: '16px',
             cursor: 'pointer', margin: '0 10px', border: 'none'
         });
-        if(isLink) { el.href = blobUrl; el.download = filename; }
+        if(isLink) { el.href = previewUrl; el.download = filename; }
         else el.onclick = action;
         return el;
     };
@@ -1599,6 +1699,7 @@ function showCaptureOverlay(blobUrl, filename) {
     btnArea.appendChild(createBtn('画像を保存', '#4CAF50', null, true));
     btnArea.appendChild(createBtn('閉じる', '#f44336', cleanup, false));
 
+    overlay.appendChild(status);
     overlay.appendChild(img);
     overlay.appendChild(btnArea);
     document.body.appendChild(overlay);
