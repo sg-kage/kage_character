@@ -1436,15 +1436,18 @@ function setupCaptureButton() {
         style.textContent = `
             .capture-target,
             .capture-target * {
-                --bg-primary: #101014 !important;
-                --bg-secondary: #17171e !important;
-                --bg-card: #1c1c24 !important;
-                --bg-card-hover: #232330 !important;
-                --bg-input: #1a1a22 !important;
-                --bg-elevated: #212130 !important;
-                --text-primary: #edf2f7 !important;
-                --text-secondary: #a5afbd !important;
-                --text-muted: #6d7786 !important;
+                /* webfont (Noto Sans JP) のロード差で iframe 内行高が縮み、下に余白が出るのを防ぐため
+                   キャプチャ時はシステムフォントスタックに固定する。 */
+                font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif !important;
+                --bg-primary: #1c1c26 !important;
+                --bg-secondary: #25252f !important;
+                --bg-card: #2a2a35 !important;
+                --bg-card-hover: #34343f !important;
+                --bg-input: #28282f !important;
+                --bg-elevated: #32323d !important;
+                --text-primary: #f3f6fb !important;
+                --text-secondary: #b8c0cc !important;
+                --text-muted: #828c9b !important;
                 --accent: #5bb8d6 !important;
                 --accent-glow: rgba(91, 184, 214, 0.10) !important;
                 --accent-dim: #2e7a96 !important;
@@ -1535,7 +1538,7 @@ function setupCaptureButton() {
             Object.assign(clone.style, {
                 width: '1100px', minWidth: '1100px', maxWidth: 'none',
                 height: 'auto', padding: '20px', margin: '0',
-                background: '#0f0f14', color: '#e8e8f0',
+                background: '#1a1a24', color: '#f3f6fb',
                 overflow: 'visible',
                 borderRadius: '0', transform: 'none',
                 pointerEvents: 'none'
@@ -1592,11 +1595,9 @@ function setupCaptureButton() {
 
             void clone.offsetHeight;
             const rectH = clone.getBoundingClientRect().height;
-            const cloneH = Math.ceil(Math.max(clone.scrollHeight, clone.offsetHeight, rectH, 100));
-
-            // 測定後の高さをクローンに焼き込む。html2canvas が内部 iframe を作る際の
-            // ドキュメント高を確定させ、iOS Safari で下が切れる問題を防ぐ。
-            clone.style.height = `${cloneH}px`;
+            // getBoundingClientRect を最優先で採用（scrollHeight は子要素の overflow で
+            // 過大に出ることがあり、その差分が下端の空白として焼き込まれる）。
+            const cloneH = Math.ceil(Math.max(rectH, 100));
 
             const isMobile = window.innerWidth <= 700;
             // iOS Safari の canvas 上限は概ね 4096×4096。1100 * scale および cloneH * scale が
@@ -1620,7 +1621,7 @@ function setupCaptureButton() {
                 windowHeight: cloneH,
                 scrollX: 0,
                 scrollY: 0,
-                backgroundColor: '#0f0f14',
+                backgroundColor: '#1a1a24',
                 foreignObjectRendering: false,
                 imageTimeout: 15000
             });
