@@ -1439,15 +1439,15 @@ function setupCaptureButton() {
                 /* webfont (Noto Sans JP) のロード差で iframe 内行高が縮み、下に余白が出るのを防ぐため
                    キャプチャ時はシステムフォントスタックに固定する。 */
                 font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif !important;
-                --bg-primary: #1c1c26 !important;
-                --bg-secondary: #25252f !important;
-                --bg-card: #2a2a35 !important;
-                --bg-card-hover: #34343f !important;
-                --bg-input: #28282f !important;
-                --bg-elevated: #32323d !important;
-                --text-primary: #f3f6fb !important;
-                --text-secondary: #b8c0cc !important;
-                --text-muted: #828c9b !important;
+                --bg-primary: #16161e !important;
+                --bg-secondary: #1e1e26 !important;
+                --bg-card: #232330 !important;
+                --bg-card-hover: #2c2c38 !important;
+                --bg-input: #1f1f28 !important;
+                --bg-elevated: #2a2a36 !important;
+                --text-primary: #eef2f9 !important;
+                --text-secondary: #aeb6c4 !important;
+                --text-muted: #788294 !important;
                 --accent: #5bb8d6 !important;
                 --accent-glow: rgba(91, 184, 214, 0.10) !important;
                 --accent-dim: #2e7a96 !important;
@@ -1531,7 +1531,7 @@ function setupCaptureButton() {
             Object.assign(clone.style, {
                 width: '1100px', minWidth: '1100px', maxWidth: 'none',
                 height: 'auto', padding: '20px', margin: '0',
-                background: '#1a1a24', color: '#f3f6fb',
+                background: '#14141c', color: '#eef2f9',
                 overflow: 'visible',
                 borderRadius: '0', transform: 'none',
                 pointerEvents: 'none'
@@ -1617,7 +1617,7 @@ function setupCaptureButton() {
                 windowHeight: cloneH,
                 scrollX: 0,
                 scrollY: 0,
-                backgroundColor: '#1a1a24',
+                backgroundColor: '#14141c',
                 foreignObjectRendering: false,
                 imageTimeout: 15000
             });
