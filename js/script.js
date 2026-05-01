@@ -1554,6 +1554,26 @@ function setupCaptureButton() {
             // (個別のインライン上書きではなく .capture-target 配下で一括で効かせる)
             injectCaptureCSS();
 
+            // マウント前に画像を data URL 化して decode 完了まで待つ。
+            // マウント→src差し替えの順だとレイアウトが途中で揺れて測定値がブレるため、
+            // 画像準備を完了させてからマウントしてレイアウトを一発で確定させる。
+            await inlineCloneImages(ELS.detail, clone);
+            // decode 後に naturalWidth/Height をもとに明示サイズを焼き込み、
+            // CSS の max-width:35% / max-height:150px と矛盾しない確定値で固定する。
+            // これで画像 ON/OFF どちらでも同じ流れで測定できる。
+            clone.querySelectorAll('img').forEach(img => {
+                const nw = img.naturalWidth, nh = img.naturalHeight;
+                if (!nw || !nh) return;
+                const ratio = nw / nh;
+                // 1100px幅クローンに対して max-width:35% = 385px、max-height:150px
+                const maxW = 385, maxH = 150;
+                let w = nw, h = nh;
+                if (w > maxW) { w = maxW; h = w / ratio; }
+                if (h > maxH) { h = maxH; w = h * ratio; }
+                img.style.width = `${Math.round(w)}px`;
+                img.style.height = `${Math.round(h)}px`;
+            });
+
             // マウント方法を環境で分岐:
             // - iOS Safari: top:-9999px だと描画/レイアウトがスキップされ、
             //   scrollHeight が過小報告されたり出力が白化したりする。
@@ -1582,15 +1602,11 @@ function setupCaptureButton() {
             }
             document.body.appendChild(mountNode);
 
-            // レイアウト/フォント/画像が確定してから高さを測る:
-            // - webfont 未反映だと行高が変わり測定値が小さくなる
-            // - クローン直後の img は decode 待ちで 0px 扱いになりうる
-            // - rAF 2 回で layout/paint の 1 サイクルを確実に跨ぐ
+            // フォント反映 + レイアウト/ペイントを 1 サイクル跨いでから測定する。
+            // (画像はマウント前に data URL 化＋明示サイズ付与済みなので追加待機は不要)
             if (document.fonts && document.fonts.ready) {
                 try { await document.fonts.ready; } catch (_) { /* 無視 */ }
             }
-            await inlineCloneImages(ELS.detail, clone);
-            await waitImagesLoaded(clone);
             await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
             void clone.offsetHeight;
