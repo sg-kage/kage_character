@@ -1346,7 +1346,25 @@ function setupCaptureButton() {
         }));
     };
 
-    const prepareCaptureImages = async (sourceRoot, cloneRoot) => {
+    // 画像を fetch して data URL に変換（iOS Safari の遅延 decode / CORS / canvas tainting を根絶）
+    const imageToDataURL = async (src) => {
+        try {
+            const res = await fetch(src, { cache: 'force-cache' });
+            if (!res.ok) return null;
+            const blob = await res.blob();
+            return await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (_) {
+            return null;
+        }
+    };
+
+    // クローン側の <img> をすべて data URL に差し替えてから decode 完了まで待つ
+    const inlineCloneImages = async (sourceRoot, cloneRoot) => {
         const sourceImages = Array.from(sourceRoot.querySelectorAll('img'));
         const cloneImages = Array.from(cloneRoot.querySelectorAll('img'));
 
@@ -1364,26 +1382,22 @@ function setupCaptureButton() {
             }
 
             img.removeAttribute('loading');
+            img.removeAttribute('crossorigin');
             img.loading = 'eager';
             img.decoding = 'sync';
-            img.crossOrigin = 'anonymous';
             img.setAttribute('fetchpriority', 'high');
 
-            if (img.src !== resolvedSrc) {
-                img.src = resolvedSrc;
+            const dataUrl = await imageToDataURL(resolvedSrc);
+            if (!dataUrl) {
+                img.remove();
+                return;
             }
+            img.src = dataUrl;
 
             if (typeof img.decode === 'function') {
-                try {
-                    await img.decode();
-                    return;
-                } catch (_) {
-                    // Fall back to load/error events below.
-                }
+                try { await img.decode(); return; } catch (_) { /* fall through */ }
             }
-
             if (img.complete && img.naturalHeight !== 0) return;
-
             await new Promise(resolve => {
                 const done = () => {
                     img.removeEventListener('load', done);
@@ -1505,8 +1519,7 @@ function setupCaptureButton() {
 
         let clone = null;
         let mountNode = null;
-        // foreignObjectRendering は documentElement を SVG にシリアライズする実装で、
-        // ページのスクロール位置によってキャプチャ起点が変わる挙動を観測した。
+        // iOS Safari は撮影中のスクロール位置で getBoundingClientRect() の挙動がぶれるため、
         // 撮影中は先頭に固定し、終了後に元の位置へ戻す。
         const prevScrollY = window.scrollY;
         const prevScrollX = window.scrollX;
@@ -1573,7 +1586,7 @@ function setupCaptureButton() {
             if (document.fonts && document.fonts.ready) {
                 try { await document.fonts.ready; } catch (_) { /* 無視 */ }
             }
-            await prepareCaptureImages(ELS.detail, clone);
+            await inlineCloneImages(ELS.detail, clone);
             await waitImagesLoaded(clone);
             await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
@@ -1581,13 +1594,21 @@ function setupCaptureButton() {
             const rectH = clone.getBoundingClientRect().height;
             const cloneH = Math.ceil(Math.max(clone.scrollHeight, clone.offsetHeight, rectH, 100));
 
+            // 測定後の高さをクローンに焼き込む。html2canvas が内部 iframe を作る際の
+            // ドキュメント高を確定させ、iOS Safari で下が切れる問題を防ぐ。
+            clone.style.height = `${cloneH}px`;
+
             const isMobile = window.innerWidth <= 700;
-            // iOS は canvas サイズ上限による淡色化を避けるため scale=1
-            const captureScale = isIOS ? 1 : (isMobile ? 1.5 : 2);
-            // iOS Safari の iframe レンダリングはビューポート相当の高さで打ち切られ、
-            // 結果としてキャプチャ下部が切れる。SVG foreignObject 経由のレンダリングに
-            // 切り替えることで iframe を介さず全域を描画する。
-            // (同一オリジン画像のみのため CORS 制約は問題なし)
+            // iOS Safari の canvas 上限は概ね 4096×4096。1100 * scale および cloneH * scale が
+            // それを超えないよう、動的に scale を絞る（基本は 2 倍を狙う）。
+            const MAX_DIM = 4000;
+            const dynamicScaleCap = Math.min(MAX_DIM / 1100, MAX_DIM / Math.max(cloneH, 1));
+            const captureScale = isIOS
+                ? Math.max(1, Math.min(2, dynamicScaleCap))
+                : (isMobile ? 1.5 : 2);
+            // foreignObjectRendering は iOS Safari で深刻なフォント／色／画像崩壊を起こすため
+            // 全環境で iframe 方式 (false) に統一する。
+            // 高さ切れは clone.style.height + windowHeight: cloneH の組み合わせで対処。
             const canvas = await html2canvas(clone, {
                 scale: captureScale,
                 useCORS: true,
@@ -1600,7 +1621,7 @@ function setupCaptureButton() {
                 scrollX: 0,
                 scrollY: 0,
                 backgroundColor: '#0f0f14',
-                foreignObjectRendering: isIOS,
+                foreignObjectRendering: false,
                 imageTimeout: 15000
             });
 
