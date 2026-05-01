@@ -1522,13 +1522,6 @@ function setupCaptureButton() {
 
         let clone = null;
         let mountNode = null;
-        // iOS Safari は撮影中のスクロール位置で getBoundingClientRect() の挙動がぶれるため、
-        // 撮影中は先頭に固定し、終了後に元の位置へ戻す。
-        const prevScrollY = window.scrollY;
-        const prevScrollX = window.scrollX;
-        if (isIOS && (prevScrollX !== 0 || prevScrollY !== 0)) {
-            window.scrollTo(0, 0);
-        }
         try {
             await waitImagesLoaded(ELS.detail);
 
@@ -1574,32 +1567,19 @@ function setupCaptureButton() {
                 img.style.height = `${Math.round(h)}px`;
             });
 
-            // マウント方法を環境で分岐:
-            // - iOS Safari: top:-9999px だと描画/レイアウトがスキップされ、
-            //   scrollHeight が過小報告されたり出力が白化したりする。
-            //   ビューポート内に 1px wrapper を置き、クローンは通常フロー（static）で
-            //   配置して wrapper 側の overflow:hidden で視覚的に隠す。
-            //   (clip-path は一瞬見えてしまう、opacity:0 は html2canvas 出力も透明化するため不可)
-            // - PC/Android: 従来通り top:-9999px の画面外配置（確実に隠れる）
-            if (isIOS) {
-                mountNode = document.createElement('div');
-                Object.assign(mountNode.style, {
-                    position: 'fixed', top: '0', left: '0',
-                    width: '1px', height: '1px',
-                    overflow: 'hidden',
-                    pointerEvents: 'none',
-                    zIndex: '-1'
-                });
-                Object.assign(clone.style, {
-                    position: 'static', top: 'auto', left: 'auto', zIndex: 'auto'
-                });
-                mountNode.appendChild(clone);
-            } else {
-                Object.assign(clone.style, {
-                    position: 'absolute', top: '-9999px', left: '0', zIndex: '-9999'
-                });
-                mountNode = clone;
-            }
+            // マウント方式（PC/iOS共通）:
+            // 画面外に "横方向" でずらして配置する。
+            // - top:-9999px や 1px wrapper(overflow:hidden) は iOS Safari がレイアウト計算を
+            //   間引き、scrollHeight が過小報告されてキャプチャ下部が途切れる。
+            // - 垂直方向はビューポート内 (top:0) に置き、水平方向 left:-20000px で画面外へ。
+            //   絶対配置の負方向はスクロール領域を拡張しないため副作用も無し。
+            Object.assign(clone.style, {
+                position: 'absolute',
+                top: '0',
+                left: '-20000px',
+                zIndex: '-9999'
+            });
+            mountNode = clone;
             document.body.appendChild(mountNode);
 
             // フォント反映 + レイアウト/ペイントを 1 サイクル跨いでから測定する。
@@ -1611,9 +1591,9 @@ function setupCaptureButton() {
 
             void clone.offsetHeight;
             const rectH = clone.getBoundingClientRect().height;
-            // getBoundingClientRect を最優先で採用（scrollHeight は子要素の overflow で
-            // 過大に出ることがあり、その差分が下端の空白として焼き込まれる）。
-            const cloneH = Math.ceil(Math.max(rectH, 100));
+            // 画面外配置に変更したため scrollHeight / offsetHeight / rectH のいずれも
+            // 同じ値に揃うはず。安全のため最大値を採用して下端の途切れを防ぐ。
+            const cloneH = Math.ceil(Math.max(clone.scrollHeight, clone.offsetHeight, rectH, 100));
 
             const isMobile = window.innerWidth <= 700;
             // iOS Safari の canvas 上限は概ね 4096×4096。1100 * scale および cloneH * scale が
@@ -1650,9 +1630,6 @@ function setupCaptureButton() {
             alert('キャプチャに失敗しました:\n' + (err.message || err));
         } finally {
             if (mountNode && mountNode.parentNode) mountNode.parentNode.removeChild(mountNode);
-            if (isIOS && (prevScrollX !== 0 || prevScrollY !== 0)) {
-                window.scrollTo(prevScrollX, prevScrollY);
-            }
             ELS.captureBtn.disabled = false;
             ELS.captureBtn.style.opacity = '';
         }
