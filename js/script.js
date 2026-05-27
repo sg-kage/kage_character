@@ -1504,6 +1504,13 @@ function setupCaptureButton() {
                 font-size: 1rem !important;
                 padding: 4px !important;
             }
+
+            /* html2canvas は rgba 背景を濃く描画する傾向があり、左右 padding と合わさって
+               周囲の文字まで巻き込んで見えるため、キャプチャ時は背景を消して文字色のみ残す。 */
+            .capture-target .lv-highlight {
+                background: transparent !important;
+                padding: 0 !important;
+            }
         `;
         document.head.appendChild(style);
     };
