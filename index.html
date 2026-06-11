@@ -39,7 +39,7 @@
   }
   </script>
 
-  <meta name="theme-color" content="#0d0d18">
+  <meta name="theme-color" content="#0a0a0f">
 
   <link rel="apple-touch-icon" href="image/kage.webp">
   <link rel="icon" href="image/kage.webp" type="image/webp">
@@ -61,8 +61,11 @@
 <body>
 
   <header>
-    <h1>カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン</h1>
-    <p class="sub-desc">キャラクターの属性、スキル、魔道具性能を詳細に絞り込み検索できます。</p>
+    <h1>
+      <span class="brand-main">カゲマスキャラ検索</span>
+      <span class="brand-sub">陰の実力者になりたくて！マスターオブガーデン</span>
+    </h1>
+    <p class="sub-desc">属性・ロール・スキル・魔道具で全キャラを絞り込み検索</p>
   </header>
 
   <div id="container">
@@ -86,6 +89,7 @@
 
       <div class="search-wrapper">
         <input id="filter" type="text" placeholder="キャラ名 スキル等 特殊:シールド 魔道具:パリィ など" aria-label="キャラクター検索フィルター">
+        <button id="search-clear-btn" class="is-hidden" type="button" aria-label="検索をクリア">×</button>
       </div>
 
       <div id="active-filters"></div>
@@ -103,6 +107,7 @@
             <li><code>通常:</code></li>
           </ul>
           <p class="help-example">例：「特殊:シールド 魔道具:パリィ」</p>
+          <p class="help-example">ひらがな・カタカナ、全角・半角は区別せずに検索できます。</p>
         </div>
       </details>
 
@@ -177,8 +182,6 @@
       掲載されているすべての画像の著作権は、それぞれの権利者に帰属します。
     </small>
   </footer>
-
-  <div id="modal-container"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
   <script src="js/script.js"></script>

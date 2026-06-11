@@ -15,12 +15,12 @@
  * アプリケーション全体の設定定数
  */
 const CONFIG = {
-    // 属性ごとのカラーコード定義
+    // 属性ごとのカラーコード定義 (style.css の --attr-* と同期)
     attributes: {
-        "赤": "#d4605a",
-        "緑": "#4aad72",
-        "黄": "#c9a84a",
-        "青": "#3d7cba"
+        "赤": "#e06158",
+        "緑": "#46b878",
+        "黄": "#d6af4a",
+        "青": "#4a8ad4"
     },
     // キャラクターの役割定義
     roles: ["アタッカー", "タンク", "サポーター"],
@@ -135,26 +135,42 @@ function escapeHtml(str) {
 }
 
 
+/**
+ * かな正規化ヘルパー
+ * 検索時にひらがな・カタカナを同一視するための変換
+ */
+function hiraToKata(str) {
+    return str.replace(/[ぁ-ゖ]/g, ch => String.fromCharCode(ch.charCodeAt(0) + 0x60));
+}
+function kataToHira(str) {
+    return str.replace(/[ァ-ヶ]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+}
+
+/**
+ * 検索用テキスト正規化（NFKC + 小文字化 + ひらがな→カタカナ）
+ * インデックス側・クエリ側の両方に適用して表記ゆれを吸収する
+ */
+function normalizeSearchText(str) {
+    if (!str) return '';
+    return hiraToKata(String(str).normalize('NFKC').toLowerCase());
+}
+
+
 /* =========================================
    2. 初期化処理 (Entry Point)
    ========================================= */
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. 動的スタイルの注入（区切り線用）
-    const style = document.createElement('style');
-    style.textContent = `.skill-sep { border: 0; border-bottom: 1px dashed #666; margin: 8px 0; opacity: 0.5; }`;
-    document.head.appendChild(style);
-
-    // 2. ローディング表示
+    // 1. ローディング表示
     ELS.list.innerHTML = '<li class="loading-state"><div class="loading-spinner"></div>データを読み込み中...</li>';
     ELS.detail.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128270;</div>キャラクターを選択してください</div>';
 
-    // 3. ローカルストレージからの設定読み込み
+    // 2. ローカルストレージからの設定読み込み
     loadSavedSettings();
 
-    // 4. Wi-Fi判定と画像表示設定
+    // 3. Wi-Fi判定と画像表示設定
     checkConnectionSettings();
 
-    // 5. UIコンポーネントの初期化
+    // 4. UIコンポーネントの初期化
     initLevelUI();
     setupStaticButtons();
     setupOptionPanel();
@@ -162,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupListHeightControl();
     setupKeyboardNavigation();
 
-    // 6. データロード開始
+    // 5. データロード開始
     loadCharacters();
 });
 
@@ -357,7 +373,8 @@ function setupStaticButtons() {
         const btn = document.createElement('button');
         btn.textContent = attr;
         btn.className = "attr-btn";
-        
+        btn.dataset.attr = attr;
+
         btn.setAttribute('aria-pressed', 'false');
         btn.onclick = () => {
             if (selectedAttrs.has(attr)) selectedAttrs.delete(attr);
@@ -420,6 +437,7 @@ function setupStaticButtons() {
     // --- 検索ボックス (Debounce処理付き) ---
     let searchTimeout;
     ELS.filter.addEventListener('input', () => {
+        updateSearchClearVisibility();
         clearTimeout(searchTimeout);
         ELS.list.classList.add('is-searching');
         searchTimeout = setTimeout(() => {
@@ -427,6 +445,52 @@ function setupStaticButtons() {
             updateList(true);
         }, 300);
     });
+
+    // --- 検索クリア (×) ボタン ---
+    const searchClearBtn = document.getElementById('search-clear-btn');
+    if (searchClearBtn) {
+        searchClearBtn.onclick = () => {
+            ELS.filter.value = '';
+            updateSearchClearVisibility();
+            ELS.filter.focus();
+            updateList(true);
+        };
+    }
+}
+
+/**
+ * 検索クリアボタンの表示/非表示を入力内容に応じて切り替え
+ */
+function updateSearchClearVisibility() {
+    const btn = document.getElementById('search-clear-btn');
+    if (btn) btn.classList.toggle('is-hidden', !ELS.filter.value);
+}
+
+/**
+ * すべてのフィルタ条件・検索キーワードを一括解除
+ */
+function clearAllFilters() {
+    [selectedAttrs, selectedRoles, selectedGachas, selectedRarities,
+     selectedGroups, selectedNames, selectedEffects].forEach(s => s.clear());
+
+    showFavoritesOnly = false;
+    const favBtn = document.getElementById('fav-filter-btn');
+    if (favBtn) favBtn.classList.remove('active');
+
+    ELS.filter.value = '';
+    updateSearchClearVisibility();
+
+    // ボタンの見た目をリセット
+    updateAttrBtnColors();
+    updateRoleBtnColors();
+    Object.values(attrBtnMap).concat(Object.values(roleBtnMap))
+        .forEach(btn => btn.setAttribute('aria-pressed', 'false'));
+    document.querySelectorAll(
+        '#gacha-btns .group-btn.active, #rarity-btns .group-btn.active, ' +
+        '#group-btns .group-btn.active, #name-btns .group-btn.active, #effect-btns .group-btn.active'
+    ).forEach(btn => btn.classList.remove('active'));
+
+    updateList(true);
 }
 
 /**
@@ -481,12 +545,9 @@ function updateAttrBtnColors() {
  * 検索窓の入力を正規化して配列で返す
  */
 function getCurrentFilterKeywords() {
-    return ELS.filter.value
-        .normalize('NFKC')
-        .toLowerCase()
-        .replace(/　/g, ' ')
+    return normalizeSearchText(ELS.filter.value)
         .trim()
-        .split(/[ ]+/)
+        .split(CONFIG.REGEX.splitSpace)
         .filter(k => k);
 }
 
@@ -496,10 +557,18 @@ function getCurrentFilterKeywords() {
 function applyHighlightDOM(root, keywords) {
     if (!root || !keywords || !keywords.length) return;
     
-    // 安全なキーワードリスト作成（エスケープ処理）
-    const safeWords = keywords
+    // 安全なキーワードリスト作成（かな表記ゆれ展開 + エスケープ処理）
+    // 検索はカタカナ正規化済みのため、DOM上のひらがな表記にもマッチするよう両変種を生成
+    const variantSet = new Set();
+    keywords
         .filter(k => k && k.trim())
         .slice(0, 10)
+        .forEach(k => {
+            variantSet.add(k);
+            variantSet.add(hiraToKata(k));
+            variantSet.add(kataToHira(k));
+        });
+    const safeWords = Array.from(variantSet)
         .map(k => k.replace(CONFIG.REGEX.unsafeChars, '\\$&'));
 
     if (!safeWords.length) return;
@@ -570,10 +639,7 @@ function updateList(resetSelect=false) {
                 let [key, val] = token.split(CONFIG.REGEX.splitColon);
                 const targetProps = fieldMap[key];
                 if (targetProps && val) {
-                    return targetProps.some(prop => {
-                        const data = char[prop];
-                        return data && JSON.stringify(data).toLowerCase().includes(val);
-                    });
+                    return targetProps.some(prop => (char._fieldSearch?.[prop] || '').includes(val));
                 }
             }
             // 通常検索：事前生成した _search 文字列に対して検索
@@ -797,7 +863,7 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
             if (awakened) {
                 return `<div>${skillName ? `<b>${skillName}</b><br>` : ""}
                   <span class="effect-label normal-label">覚醒前</span>${normal}
-                  <div style="border-top:1px dashed #3a3a3a; margin:6px 0; opacity:0.7;"></div>
+                  <div style="border-top:1px dashed rgba(255,255,255,0.12); margin:8px 0;"></div>
                   <span class="effect-label awakened-label">覚醒後</span>${awakened}
                 </div>`;
             } else {
@@ -825,7 +891,7 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
         } else {
             if (typeof skill === "string") rawText = skill;
             else if ("title" in skill) rawText = `<b>${skill.title}</b><br>${tabType===1 ? skill.normal : skill.awakened}`;
-            else rawText = tabType===0 ? (skill.normal || "") : (skill.awakened || "");
+            else rawText = tabType===1 ? (skill.normal || "") : (skill.awakened || "");
         }
         if (rawText === "-") return "";
         return replaceDynamicValues(rawText, calcType);
@@ -942,16 +1008,20 @@ function showDetail(char, filter = []) {
     };
 
     // --- 各スキルの結合 ---
+    const comboContent = comboBlock(char.combo, filter);
+    const comboSection = comboContent ? `
+        <div class="char-section" style="border-left:3px solid ${attrColor};">
+            <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">コンボ</div>
+            <div class="char-section-content">${comboContent}</div>
+        </div>` : "";
+
     mainContent += `
         ${sect("究極奥義", char.ex_ultimate)}
         ${sect("奥義", char.ultimate)}
         ${sect("特技1", char.skill1)}
         ${sect("特技2", char.skill2)}
         ${sect("特殊", char.traits)}
-        <div class="char-section" style="border-left:3px solid ${attrColor};">
-            <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">コンボ</div>
-            <div class="char-section-content">${comboBlock(char.combo, filter)}</div>
-        </div>
+        ${comboSection}
         ${sect("通常攻撃", char.normal_attack)}
         ${sect("魔道具1", char.magic_item1, true)}
         ${sect("魔道具2", char.magic_item2, true)}
@@ -1098,9 +1168,18 @@ function prepareSearchData() {
         return '';
     };
 
+    // 項目指定検索 (特技: 等) の対象フィールド
+    const FIELD_KEYS = ['traits', 'skill1', 'skill2', 'ultimate', 'ex_ultimate', 'magic_item1', 'magic_item2', 'combo', 'normal_attack'];
+
     characters.forEach(c => {
+        // 項目指定検索用：フィールド別の正規化済みテキスト（JSONキー名を含まない）
+        c._fieldSearch = {};
+        FIELD_KEYS.forEach(f => {
+            c._fieldSearch[f] = normalizeSearchText(extractText(c[f]));
+        });
+
         // 全文検索用文字列の生成（必要なフィールドのみ結合し、誤検索・肥大化を防ぐ）
-        c._search = [
+        c._search = normalizeSearchText([
             c.name,
             c.attribute,
             c.role,
@@ -1108,17 +1187,9 @@ function prepareSearchData() {
             c.arousal || '',
             (c.group || []).join(' '),
             c.aliases ? (Array.isArray(c.aliases) ? c.aliases.join(' ') : c.aliases) : '',
-            extractText(c.ultimate),
-            extractText(c.ex_ultimate),
-            extractText(c.skill1),
-            extractText(c.skill2),
-            extractText(c.traits),
-            extractText(c.combo),
-            extractText(c.magic_item1),
-            extractText(c.magic_item2),
-            extractText(c.normal_attack)
-        ].join(' ').toLowerCase();
-        
+            FIELD_KEYS.map(f => c._fieldSearch[f]).join(' ')
+        ].join(' '));
+
         // 効果（『』で囲まれた文字）の抽出
         const effectSet = new Set();
         [c.ultimate, c.ex_ultimate, c.skill1, c.skill2, c.traits, c.combo, c.magic_item1, c.magic_item2].forEach(t => processSkillData(t, effectSet));
@@ -1274,9 +1345,6 @@ function setupEffectButtons() {
     modeBtn.id = "effect-mode-btn";
     modeBtn.textContent = effectMode === 'and' ? "効果検索: AND" : "効果検索: OR";
     modeBtn.className = "group-btn";
-    modeBtn.style.background = "#2d6b2d";
-    modeBtn.style.border = "1px solid #4b8f4b";
-    modeBtn.style.color = "#fff";
     modeBtn.onclick = () => {
         effectMode = (effectMode === 'and') ? 'or' : 'and';
         modeBtn.textContent = effectMode === 'and' ? "効果検索: AND" : "効果検索: OR";
@@ -1439,26 +1507,26 @@ function setupCaptureButton() {
                 /* webfont (Noto Sans JP) のロード差で iframe 内行高が縮み、下に余白が出るのを防ぐため
                    キャプチャ時はシステムフォントスタックに固定する。 */
                 font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif !important;
-                --bg-primary: #16161e !important;
-                --bg-secondary: #1e1e26 !important;
-                --bg-card: #232330 !important;
-                --bg-card-hover: #2c2c38 !important;
-                --bg-input: #1f1f28 !important;
-                --bg-elevated: #2a2a36 !important;
-                --text-primary: #eef2f9 !important;
-                --text-secondary: #aeb6c4 !important;
-                --text-muted: #788294 !important;
-                --accent: #5bb8d6 !important;
-                --accent-glow: rgba(91, 184, 214, 0.10) !important;
-                --accent-dim: #2e7a96 !important;
-                --accent-subtle: rgba(91, 184, 214, 0.05) !important;
-                --gold: #c8a44e !important;
-                --gold-dim: rgba(200, 164, 78, 0.10) !important;
-                --orange: #d48a4a !important;
-                --attr-red: #d4605a !important;
-                --attr-green: #4aad72 !important;
-                --attr-yellow: #c9a84a !important;
-                --attr-blue: #3d7cba !important;
+                --bg-primary: #101016 !important;
+                --bg-secondary: #16161f !important;
+                --bg-card: #1a1a25 !important;
+                --bg-card-hover: #222230 !important;
+                --bg-input: #15151f !important;
+                --bg-elevated: #242433 !important;
+                --text-primary: #f0f2f8 !important;
+                --text-secondary: #a4adc0 !important;
+                --text-muted: #6b7590 !important;
+                --accent: #8e7bff !important;
+                --accent-glow: rgba(142, 123, 255, 0.12) !important;
+                --accent-dim: #5d4fc0 !important;
+                --accent-subtle: rgba(142, 123, 255, 0.06) !important;
+                --gold: #d4af5e !important;
+                --gold-dim: rgba(212, 175, 94, 0.10) !important;
+                --orange: #e09558 !important;
+                --attr-red: #e06158 !important;
+                --attr-green: #46b878 !important;
+                --attr-yellow: #d6af4a !important;
+                --attr-blue: #4a8ad4 !important;
                 --border: rgba(255, 255, 255, 0.04) !important;
                 --border-light: rgba(255, 255, 255, 0.08) !important;
                 --border-accent: rgba(91, 184, 214, 0.12) !important;
@@ -1538,7 +1606,7 @@ function setupCaptureButton() {
             Object.assign(clone.style, {
                 width: '1100px', minWidth: '1100px', maxWidth: 'none',
                 height: 'auto', padding: '20px', margin: '0',
-                background: '#14141c', color: '#eef2f9',
+                background: '#101016', color: '#f0f2f8',
                 overflow: 'visible',
                 borderRadius: '0', transform: 'none',
                 pointerEvents: 'none'
@@ -1624,7 +1692,7 @@ function setupCaptureButton() {
                 windowHeight: cloneH,
                 scrollX: 0,
                 scrollY: 0,
-                backgroundColor: '#14141c',
+                backgroundColor: '#101016',
                 foreignObjectRendering: false,
                 imageTimeout: 15000
             });
@@ -1901,6 +1969,7 @@ function setupKeyboardNavigation() {
             }
             if (ELS.filter.value) {
                 ELS.filter.value = '';
+                updateSearchClearVisibility();
                 updateList(true);
                 return;
             }
@@ -1996,6 +2065,16 @@ function updateActiveFilterPills() {
             if (favBtn) favBtn.classList.remove('active');
             updateList(true);
         }));
+    }
+
+    // ピルが2件以上あれば一括解除ボタンを表示
+    if (frag.childNodes.length >= 2) {
+        const clearAll = document.createElement('button');
+        clearAll.type = 'button';
+        clearAll.className = 'filter-pill filter-pill-clear';
+        clearAll.textContent = 'すべて解除 ×';
+        clearAll.onclick = clearAllFilters;
+        frag.appendChild(clearAll);
     }
 
     ELS.activeFilters.innerHTML = '';
