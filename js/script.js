@@ -1504,6 +1504,11 @@ function setupCaptureButton() {
         style.textContent = `
             .capture-target,
             .capture-target * {
+                /* .char-detail-wrap の detailFadeIn (from{opacity:0}) が html2canvas の
+                   内部 iframe 複製で最初から再生し直され、opacity<1 の瞬間を描画して
+                   全体が暗い画像になる (特に iOS Safari)。キャプチャ時は全アニメを止める。 */
+                animation: none !important;
+                transition: none !important;
                 /* webfont (Noto Sans JP) のロード差で iframe 内行高が縮み、下に余白が出るのを防ぐため
                    キャプチャ時はシステムフォントスタックに固定する。 */
                 font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif !important;
