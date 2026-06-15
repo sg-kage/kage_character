@@ -1584,6 +1584,17 @@ function setupCaptureButton() {
                 background: transparent !important;
                 padding: 0 !important;
             }
+
+            /* 検索ワードのヒット色付け (.hit) はスクショには不要なため、
+               通常テキストと同じ見た目に戻して色・背景・強調を解除する。
+               (画面表示には影響せず、capture-target 配下のクローンのみ) */
+            .capture-target .hit {
+                color: inherit !important;
+                font-weight: inherit !important;
+                background: transparent !important;
+                padding: 0 !important;
+                border-radius: 0 !important;
+            }
         `;
         document.head.appendChild(style);
     };
