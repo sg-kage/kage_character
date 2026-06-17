@@ -364,13 +364,14 @@ h1 {
 
 #filter {
     width: 100%;
-    background: var(--bg-input);
+    background: var(--bg-elevated);
     color: var(--text-primary);
-    border: 1px solid var(--border);
+    border: 1.5px solid rgba(142, 123, 255, 0.4);
     border-radius: var(--radius-sm);
     padding: var(--sp-3) var(--sp-8) var(--sp-3) var(--sp-8);
     font-size: var(--text-base);
     font-family: var(--font-sans);
+    box-shadow: var(--shadow-sm);
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
     outline: none;
 }
@@ -406,7 +407,7 @@ h1 {
 }
 
 #filter::placeholder {
-    color: var(--text-muted);
+    color: #7c87a0;
 }
 
 /* =========================================
