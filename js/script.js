@@ -180,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 5. データロード開始
     loadCharacters();
+    loadUpdateDate();
 });
 
 /**
@@ -1133,6 +1134,19 @@ async function loadCharacters() {
     } finally {
         isLoadingCharacters = false;
     }
+}
+
+/**
+ * データ更新日を取得してヘッダーに表示する（取得失敗時は何もしない付加情報）
+ */
+async function loadUpdateDate() {
+    try {
+        const r = await fetch('characters/update_date.json', { cache: 'no-cache' });
+        if (!r.ok) return;
+        const { updated } = await r.json();
+        const el = document.getElementById('data-update');
+        if (el && updated) el.textContent = `データ更新日: ${updated} (JST)`;
+    } catch (_) { /* 表示は任意。失敗してもアプリ動作には影響しない */ }
 }
 
 /**
