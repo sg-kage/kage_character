@@ -159,10 +159,13 @@ function normalizeSearchText(str) {
 /* =========================================
    2. 初期化処理 (Entry Point)
    ========================================= */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // 0. i18n 辞書の読み込み完了を待つ（t() を安全に使えるようにする）
+    await I18N.ready;
+
     // 1. ローディング表示
-    ELS.list.innerHTML = '<li class="loading-state"><div class="loading-spinner"></div>データを読み込み中...</li>';
-    ELS.detail.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128270;</div>キャラクターを選択してください</div>';
+    ELS.list.innerHTML = `<li class="loading-state"><div class="loading-spinner"></div>${I18N.t('msg.loading')}</li>`;
+    ELS.detail.innerHTML = `<div class="empty-state"><div class="empty-state-icon">&#128270;</div>${I18N.t('msg.selectChar')}</div>`;
 
     // 2. ローカルストレージからの設定読み込み
     loadSavedSettings();
@@ -224,7 +227,7 @@ function checkConnectionSettings() {
     }
 
     if (ELS.imgBtn) {
-        ELS.imgBtn.textContent = showImages ? "画像: ON" : "画像: OFF";
+        ELS.imgBtn.textContent = showImages ? I18N.t('btn.imgOn') : I18N.t('btn.imgOff');
         ELS.imgBtn.classList.toggle("active", showImages);
     }
 }
@@ -391,17 +394,17 @@ function setupStaticButtons() {
     updateAttrBtnColors();
 
     // --- 各種トグル開閉ボタン ---
-    createToggleBtn("name-toggle-btn", "キャラ名▼", "name-btns");
-    createToggleBtn("group-toggle-btn", "グループ▼", "group-btns");
-    createToggleBtn("effect-toggle-btn", "効果▼", "effect-btns");
-    createToggleBtn("gacha-toggle-btn", "ガチャ▼", "gacha-btns");
-    createToggleBtn("rarity-toggle-btn", "レア度▼", "rarity-btns");
+    createToggleBtn("name-toggle-btn", I18N.t('toggle.name') + "▼", "name-btns");
+    createToggleBtn("group-toggle-btn", I18N.t('toggle.group') + "▼", "group-btns");
+    createToggleBtn("effect-toggle-btn", I18N.t('toggle.effect') + "▼", "effect-btns");
+    createToggleBtn("gacha-toggle-btn", I18N.t('toggle.gacha') + "▼", "gacha-btns");
+    createToggleBtn("rarity-toggle-btn", I18N.t('toggle.rarity') + "▼", "rarity-btns");
 
     // --- 画像ON/OFFボタン ---
     if (ELS.imgBtn) {
         ELS.imgBtn.onclick = () => {
             showImages = !showImages;
-            ELS.imgBtn.textContent = showImages ? "画像: ON" : "画像: OFF";
+            ELS.imgBtn.textContent = showImages ? I18N.t('btn.imgOn') : I18N.t('btn.imgOff');
             ELS.imgBtn.classList.toggle("active", showImages);
             
             // Wi-Fiでない場合のみ設定を保存（意図しないギガ消費を防ぐ配慮）
@@ -419,7 +422,7 @@ function setupStaticButtons() {
     const favBtn = document.createElement('button');
     favBtn.id = 'fav-filter-btn';
     favBtn.textContent = '★';
-    favBtn.title = 'お気に入りのみ表示';
+    favBtn.title = I18N.t('btn.favTitle');
     favBtn.onclick = () => {
         showFavoritesOnly = !showFavoritesOnly;
         favBtn.classList.toggle('active', showFavoritesOnly);
@@ -683,7 +686,7 @@ function updateList(resetSelect=false) {
 
     // --- 結果反映 ---
     lastFiltered = filtered;
-    ELS.hitCount.textContent = `ヒット件数: ${filtered.length}件`;
+    ELS.hitCount.textContent = I18N.t('msg.hitCount', { count: filtered.length });
 
     // 詳細画面でハイライトするためのキーワード抽出（コロン除去）
     const highlightKeywords = filterKeywords.map(k => {
@@ -776,8 +779,8 @@ function updateList(resetSelect=false) {
     } else {
         // 空状態メッセージ
         if (characters.length > 0) {
-            ELS.list.innerHTML = '<li class="loading-state" style="flex-direction:column; gap:4px;">該当するキャラクターが見つかりません<span style="font-size:0.8em; opacity:0.6;">フィルタ条件を変えてみてください</span></li>';
-            ELS.detail.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128270;</div>該当するキャラクターが見つかりません</div>';
+            ELS.list.innerHTML = `<li class="loading-state" style="flex-direction:column; gap:4px;">${I18N.t('msg.noResults')}<span style="font-size:0.8em; opacity:0.6;">${I18N.t('msg.noResultsSub')}</span></li>`;
+            ELS.detail.innerHTML = `<div class="empty-state"><div class="empty-state-icon">&#128270;</div>${I18N.t('msg.noResults')}</div>`;
         }
         if (ELS.captureBtn) ELS.captureBtn.classList.add('is-hidden');
     }
@@ -863,9 +866,9 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
             
             if (awakened) {
                 return `<div>${skillName ? `<b>${skillName}</b><br>` : ""}
-                  <span class="effect-label normal-label">覚醒前</span>${normal}
+                  <span class="effect-label normal-label">${I18N.t('label.normal')}</span>${normal}
                   <div style="border-top:1px dashed rgba(255,255,255,0.12); margin:8px 0;"></div>
-                  <span class="effect-label awakened-label">覚醒後</span>${awakened}
+                  <span class="effect-label awakened-label">${I18N.t('label.awakened')}</span>${awakened}
                 </div>`;
             } else {
                 return `<div>${skillName ? `<b>${skillName}</b><br>` : ""}${normal}</div>`;
@@ -906,7 +909,7 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
  */
 function showDetail(char, filter = []) {
     if (!char) {
-        ELS.detail.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128270;</div>キャラクターを選択してください</div>';
+        ELS.detail.innerHTML = `<div class="empty-state"><div class="empty-state-icon">&#128270;</div>${I18N.t('msg.selectChar')}</div>`;
         if (ELS.captureBtn) ELS.captureBtn.classList.add('is-hidden');
         return;
     }
@@ -960,33 +963,33 @@ function showDetail(char, filter = []) {
         <div class="char-info-grid">
             <div class="char-info-row-top">
                 <div class="char-info-item">
-                    <span class="char-label">属性</span>
+                    <span class="char-label">${I18N.t('label.attribute')}</span>
                     <span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span>
                 </div>
                 <div class="char-info-item">
-                    <span class="char-label">ロール</span>
+                    <span class="char-label">${I18N.t('label.role')}</span>
                     <span class="char-value">${highlightDetail(char.role)}</span>
                 </div>
                 <div class="char-info-item">
-                    <span class="char-label">ポジション</span>
+                    <span class="char-label">${I18N.t('label.position')}</span>
                     <span class="char-value">${highlightDetail(char.position)}</span>
                 </div>
                 <div class="char-info-item">
-                    <span class="char-label">レア度</span>
+                    <span class="char-label">${I18N.t('label.rarity')}</span>
                     <span class="char-value">${highlightDetail(char.rarity)}</span>
                 </div>
                 <div class="char-info-item">
-                    <span class="char-label">ガチャ</span>
+                    <span class="char-label">${I18N.t('label.gacha')}</span>
                     <span class="char-value">${highlightDetail(char.gacha)}</span>
                 </div>
             </div>
             <div class="char-info-row-bottom">
                 <div class="char-info-item char-info-wide">
-                    <span class="char-label">グループ</span>
+                    <span class="char-label">${I18N.t('label.group')}</span>
                     <span class="char-value char-value-plain">${(char.group || []).map(escapeHtml).join(', ')}</span>
                 </div>
                 <div class="char-info-item char-info-wide">
-                    <span class="char-label">覚醒</span>
+                    <span class="char-label">${I18N.t('label.arousal')}</span>
                     <span class="char-value char-value-plain">${escapeHtml(char.arousal)}</span>
                 </div>
             </div>
@@ -1012,20 +1015,20 @@ function showDetail(char, filter = []) {
     const comboContent = comboBlock(char.combo, filter);
     const comboSection = comboContent ? `
         <div class="char-section" style="border-left:3px solid ${attrColor};">
-            <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">コンボ</div>
+            <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">${I18N.t('section.combo')}</div>
             <div class="char-section-content">${comboContent}</div>
         </div>` : "";
 
     mainContent += `
-        ${sect("究極奥義", char.ex_ultimate)}
-        ${sect("奥義", char.ultimate)}
-        ${sect("特技1", char.skill1)}
-        ${sect("特技2", char.skill2)}
-        ${sect("特殊", char.traits)}
+        ${sect(I18N.t('section.exUltimate'), char.ex_ultimate)}
+        ${sect(I18N.t('section.ultimate'), char.ultimate)}
+        ${sect(I18N.t('section.skill1'), char.skill1)}
+        ${sect(I18N.t('section.skill2'), char.skill2)}
+        ${sect(I18N.t('section.traits'), char.traits)}
         ${comboSection}
-        ${sect("通常攻撃", char.normal_attack)}
-        ${sect("魔道具1", char.magic_item1, true)}
-        ${sect("魔道具2", char.magic_item2, true)}
+        ${sect(I18N.t('section.normalAttack'), char.normal_attack)}
+        ${sect(I18N.t('section.magicItem1'), char.magic_item1, true)}
+        ${sect(I18N.t('section.magicItem2'), char.magic_item2, true)}
     </div>`;
 
     ELS.detail.innerHTML = mainContent;
@@ -1034,9 +1037,9 @@ function showDetail(char, filter = []) {
     const tabRange = document.createRange().createContextualFragment(`
     <div class="tabs-wrap" id="detail-tabs">
       <div class="tabs-buttons" role="tablist">
-        <button class="tabs-btn${tabMode===0?' active':''}" id="tab-both" role="tab" aria-selected="${tabMode===0}">比較</button>
-        <button class="tabs-btn${tabMode===1?' active':''}" id="tab-normal" role="tab" aria-selected="${tabMode===1}">覚醒前</button>
-        <button class="tabs-btn${tabMode===2?' active':''}" id="tab-awakened" role="tab" aria-selected="${tabMode===2}">覚醒後</button>
+        <button class="tabs-btn${tabMode===0?' active':''}" id="tab-both" role="tab" aria-selected="${tabMode===0}">${I18N.t('tab.compare')}</button>
+        <button class="tabs-btn${tabMode===1?' active':''}" id="tab-normal" role="tab" aria-selected="${tabMode===1}">${I18N.t('tab.normal')}</button>
+        <button class="tabs-btn${tabMode===2?' active':''}" id="tab-awakened" role="tab" aria-selected="${tabMode===2}">${I18N.t('tab.awakened')}</button>
       </div>
     </div>`);
     ELS.detail.prepend(tabRange);
@@ -1057,19 +1060,33 @@ function showDetail(char, filter = []) {
    ========================================= */
 
 /**
+ * ロケール別データファイルのパスを返す
+ * 例: localeDataUrl('all_characters') -> 'characters/all_characters_ja.json'
+ */
+function localeDataUrl(base, loc) {
+    return `characters/${base}_${loc || I18N.dataLocale}.json`;
+}
+
+/**
  * JSONデータの取得とキャッシュ管理
  */
 async function loadCharacters() {
     if (isLoadingCharacters) return;
     isLoadingCharacters = true;
 
-    const jsonUrl = 'characters/all_characters.json';
-    const cacheKeyData = 'kage_char_data_v3';
-    const cacheKeyTime = 'kage_char_time_v3';
+    // ロケール別データを優先。キャッシュキーもロケール別に分ける
+    let jsonUrl = localeDataUrl('all_characters');
+    const cacheKeyData = `kage_char_data_v3_${I18N.dataLocale}`;
+    const cacheKeyTime = `kage_char_time_v3_${I18N.dataLocale}`;
 
     try {
         // 更新確認 (HEADリクエスト)
-        const headResp = await fetch(jsonUrl, { method: 'HEAD' });
+        let headResp = await fetch(jsonUrl, { method: 'HEAD' });
+        // ロケール別ファイルが無ければ ja データにフォールバック
+        if (!headResp.ok && I18N.dataLocale !== I18N.DEFAULT_LOCALE) {
+            jsonUrl = localeDataUrl('all_characters', I18N.DEFAULT_LOCALE);
+            headResp = await fetch(jsonUrl, { method: 'HEAD' });
+        }
         if (!headResp.ok) throw new Error("Network response was not ok");
         
         const serverLastModified = headResp.headers.get('Last-Modified');
@@ -1122,12 +1139,12 @@ async function loadCharacters() {
 
         if (ELS.list) {
             ELS.list.innerHTML = `<li class="loading-state" style="flex-direction:column; gap:8px; color:#f88;">
-                <div>データの読み込みに失敗しました。</div>
-                <button id="retry-load-btn" style="padding:8px 20px; background:#2c5d8a; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:0.9em;">再読み込み</button>
+                <div>${I18N.t('msg.loadFail')}</div>
+                <button id="retry-load-btn" style="padding:8px 20px; background:#2c5d8a; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:0.9em;">${I18N.t('msg.retry')}</button>
             </li>`;
             const retryBtn = document.getElementById('retry-load-btn');
             if (retryBtn) retryBtn.onclick = () => {
-                ELS.list.innerHTML = '<li class="loading-state"><div class="loading-spinner"></div>データを読み込み中...</li>';
+                ELS.list.innerHTML = `<li class="loading-state"><div class="loading-spinner"></div>${I18N.t('msg.loading')}</li>`;
                 loadCharacters();
             };
         }
@@ -1141,11 +1158,15 @@ async function loadCharacters() {
  */
 async function loadUpdateDate() {
     try {
-        const r = await fetch('characters/update_date.json', { cache: 'no-cache' });
+        let r = await fetch(localeDataUrl('update_date'), { cache: 'no-cache' });
+        // ロケール別ファイルが無ければ ja にフォールバック
+        if (!r.ok && I18N.dataLocale !== I18N.DEFAULT_LOCALE) {
+            r = await fetch(`characters/update_date_${I18N.DEFAULT_LOCALE}.json`, { cache: 'no-cache' });
+        }
         if (!r.ok) return;
         const { updated } = await r.json();
         const el = document.getElementById('data-update');
-        if (el && updated) el.textContent = `データ更新日: ${updated} (JST)`;
+        if (el && updated) el.textContent = I18N.t('msg.dataUpdate', { date: updated });
     } catch (_) { /* 表示は任意。失敗してもアプリ動作には影響しない */ }
 }
 
@@ -1357,11 +1378,11 @@ function setupEffectButtons() {
     // AND/OR 切り替えボタン
     const modeBtn = document.createElement('button');
     modeBtn.id = "effect-mode-btn";
-    modeBtn.textContent = effectMode === 'and' ? "効果検索: AND" : "効果検索: OR";
+    modeBtn.textContent = effectMode === 'and' ? I18N.t('effect.modeAnd') : I18N.t('effect.modeOr');
     modeBtn.className = "group-btn";
     modeBtn.onclick = () => {
         effectMode = (effectMode === 'and') ? 'or' : 'and';
-        modeBtn.textContent = effectMode === 'and' ? "効果検索: AND" : "効果検索: OR";
+        modeBtn.textContent = effectMode === 'and' ? I18N.t('effect.modeAnd') : I18N.t('effect.modeOr');
         updateList(true);
     };
     container.appendChild(modeBtn);
@@ -1732,7 +1753,7 @@ function setupCaptureButton() {
 
         } catch (err) {
             console.error("Capture Failed:", err);
-            alert('キャプチャに失敗しました:\n' + (err.message || err));
+            alert(I18N.t('msg.captureFail') + '\n' + (err.message || err));
         } finally {
             if (mountNode && mountNode.parentNode) mountNode.parentNode.removeChild(mountNode);
             ELS.captureBtn.disabled = false;
@@ -1767,7 +1788,7 @@ function showCaptureOverlay(previewUrl, filename) {
     });
 
     const status = document.createElement('div');
-    status.textContent = '画像を表示しています...';
+    status.textContent = I18N.t('msg.previewShow');
     Object.assign(status.style, {
         color: '#fff',
         fontSize: '14px',
@@ -1790,7 +1811,7 @@ function showCaptureOverlay(previewUrl, filename) {
         status.remove();
     };
     img.onerror = () => {
-        status.textContent = 'プレビューの表示に失敗しました。保存ボタンから開いてください。';
+        status.textContent = I18N.t('msg.previewFail');
         status.style.color = '#ffd6d6';
         img.remove();
     };
@@ -1816,8 +1837,8 @@ function showCaptureOverlay(previewUrl, filename) {
         return el;
     };
 
-    btnArea.appendChild(createBtn('画像を保存', '#4CAF50', null, true));
-    btnArea.appendChild(createBtn('閉じる', '#f44336', cleanup, false));
+    btnArea.appendChild(createBtn(I18N.t('msg.saveImage'), '#4CAF50', null, true));
+    btnArea.appendChild(createBtn(I18N.t('msg.close'), '#f44336', cleanup, false));
 
     overlay.appendChild(status);
     overlay.appendChild(img);
@@ -2063,13 +2084,13 @@ function updateActiveFilterPills() {
 
     // 配列駆動のピル生成
     const pillDefs = [
-        { set: selectedAttrs, label: '属性', colorFn: updateAttrBtnColors, container: null },
-        { set: selectedRoles, label: 'ロール', colorFn: updateRoleBtnColors, container: null },
-        { set: selectedGachas, label: 'ガチャ', colorFn: null, container: ELS.gachaBtns },
-        { set: selectedRarities, label: 'レア度', colorFn: null, container: ELS.rarityBtns },
-        { set: selectedGroups, label: 'グループ', colorFn: null, container: ELS.groupBtns },
-        { set: selectedNames, label: 'キャラ', colorFn: null, container: ELS.nameBtns },
-        { set: selectedEffects, label: '効果', colorFn: null, container: ELS.effectBtns },
+        { set: selectedAttrs, label: I18N.t('label.attribute'), colorFn: updateAttrBtnColors, container: null },
+        { set: selectedRoles, label: I18N.t('label.role'), colorFn: updateRoleBtnColors, container: null },
+        { set: selectedGachas, label: I18N.t('label.gacha'), colorFn: null, container: ELS.gachaBtns },
+        { set: selectedRarities, label: I18N.t('label.rarity'), colorFn: null, container: ELS.rarityBtns },
+        { set: selectedGroups, label: I18N.t('label.group'), colorFn: null, container: ELS.groupBtns },
+        { set: selectedNames, label: I18N.t('label.character'), colorFn: null, container: ELS.nameBtns },
+        { set: selectedEffects, label: I18N.t('toggle.effect'), colorFn: null, container: ELS.effectBtns },
     ];
 
     pillDefs.forEach(({ set, label, colorFn, container }) => {
@@ -2089,7 +2110,7 @@ function updateActiveFilterPills() {
 
     // お気に入りフィルタ
     if (showFavoritesOnly) {
-        frag.appendChild(createFilterPill('★ お気に入り', () => {
+        frag.appendChild(createFilterPill(I18N.t('btn.favPill'), () => {
             showFavoritesOnly = false;
             const favBtn = document.getElementById('fav-filter-btn');
             if (favBtn) favBtn.classList.remove('active');
@@ -2102,7 +2123,7 @@ function updateActiveFilterPills() {
         const clearAll = document.createElement('button');
         clearAll.type = 'button';
         clearAll.className = 'filter-pill filter-pill-clear';
-        clearAll.textContent = 'すべて解除 ×';
+        clearAll.textContent = I18N.t('btn.clearAll');
         clearAll.onclick = clearAllFilters;
         frag.appendChild(clearAll);
     }
@@ -2139,37 +2160,37 @@ function updateToggleBtnCounts() {
         const isOpen = ELS.nameBtns.classList.contains('is-open');
         const arrow = isOpen ? '▲' : '▼';
         nameBtn.textContent = selectedNames.size > 0
-            ? `キャラ名${arrow} (${selectedNames.size})`
-            : `キャラ名${arrow}`;
+            ? `${I18N.t('toggle.name')}${arrow} (${selectedNames.size})`
+            : `${I18N.t('toggle.name')}${arrow}`;
     }
     if (groupBtn) {
         const isOpen = ELS.groupBtns.classList.contains('is-open');
         const arrow = isOpen ? '▲' : '▼';
         groupBtn.textContent = selectedGroups.size > 0
-            ? `グループ${arrow} (${selectedGroups.size})`
-            : `グループ${arrow}`;
+            ? `${I18N.t('toggle.group')}${arrow} (${selectedGroups.size})`
+            : `${I18N.t('toggle.group')}${arrow}`;
     }
     if (effectBtn) {
         const isOpen = ELS.effectBtns.classList.contains('is-open');
         const arrow = isOpen ? '▲' : '▼';
         effectBtn.textContent = selectedEffects.size > 0
-            ? `効果${arrow} (${selectedEffects.size})`
-            : `効果${arrow}`;
+            ? `${I18N.t('toggle.effect')}${arrow} (${selectedEffects.size})`
+            : `${I18N.t('toggle.effect')}${arrow}`;
     }
     const gachaBtn = document.getElementById('gacha-toggle-btn');
     if (gachaBtn) {
         const isOpen = ELS.gachaBtns.classList.contains('is-open');
         const arrow = isOpen ? '▲' : '▼';
         gachaBtn.textContent = selectedGachas.size > 0
-            ? `ガチャ${arrow} (${selectedGachas.size})`
-            : `ガチャ${arrow}`;
+            ? `${I18N.t('toggle.gacha')}${arrow} (${selectedGachas.size})`
+            : `${I18N.t('toggle.gacha')}${arrow}`;
     }
     const rarityBtn = document.getElementById('rarity-toggle-btn');
     if (rarityBtn) {
         const isOpen = ELS.rarityBtns.classList.contains('is-open');
         const arrow = isOpen ? '▲' : '▼';
         rarityBtn.textContent = selectedRarities.size > 0
-            ? `レア度${arrow} (${selectedRarities.size})`
-            : `レア度${arrow}`;
+            ? `${I18N.t('toggle.rarity')}${arrow} (${selectedRarities.size})`
+            : `${I18N.t('toggle.rarity')}${arrow}`;
     }
 }

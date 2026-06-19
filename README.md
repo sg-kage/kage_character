@@ -31,19 +31,42 @@
 ```
 kage_character/
 ├── index.html                    # メインページ
+├── i18n/
+│   ├── ja.json                   # 日本語UI文言（既定・原本）
+│   └── en.json                   # 英語UI文言（空＝ja へフォールバックする雛形）
 ├── characters/
-│   └── all_characters.json       # キャラクターデータベース
+│   ├── all_characters_ja.json    # キャラクターデータベース（日本語）
+│   └── update_date_ja.json       # データ更新日（日本語）
 ├── image/
 │   └── characters/               # キャラクター画像 (.webp)
 ├── js/
+│   ├── i18n.js                   # i18n ローダー（ロケール解決・t()）
 │   └── script.js                 # メインロジック
 └── style/
     └── style.css                 # スタイルシート
 ```
 
+## 多言語対応（i18n）
+
+UI文言とキャラデータを**ロケール別ファイル**に分離した構成です。切り替えUIはまだ無く、既定は日本語（`ja`）です。`?lang=en` で動作確認のみ可能（未訳キーは自動的に日本語へフォールバック）。
+
+### 言語を1つ追加する手順
+
+`<locale>` を ISO コード（例: `en`）として:
+
+1. **UI文言**: `i18n/<locale>.json` を作成（`i18n/ja.json` と同じキー構造）。空文字のキーは `ja` にフォールバックするため、訳せたものから埋めればよい。`js/i18n.js` の `SUPPORTED` 配列に `<locale>` を追加する。
+2. **キャラデータ**: `characters/all_characters_<locale>.json` と `characters/update_date_<locale>.json` を配置（生成スクリプト側で `_<locale>` 名で出力する）。無い場合は `_ja` に自動フォールバックする。
+3. （任意）言語切り替えUIを付ける場合は `I18N.setLocale('<locale>')` を呼ぶ。
+
+### 翻訳しない文言について
+
+属性（赤/緑/黄/青）・ロール・ガチャ・レア度などの**データ値**は、UIリソースではなく**キャラデータファイル側**で翻訳する想定。これらはフィルタ判定のキーにも使われるため、ボタン表示とデータ値が一致している必要があるため。
+
+> 注: 固定enum値（属性/ロール/ガチャ/レア度）のボタン表示の言語化は未対応。導入する場合は「正規ID（日本語）を保持したまま表示だけを変換マップで解決する」方式を推奨。
+
 ## キャラクターデータの更新
 
-`characters/all_characters.json` を編集します。
+`characters/all_characters_ja.json` を編集します（日本語データ）。他言語は `characters/all_characters_<locale>.json`。
 
 ### データ構造
 

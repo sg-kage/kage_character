@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン</title>
-  <meta name="description" content="『陰の実力者になりたくて！マスターオブガーデン（カゲマス）』の全キャラクターデータベースです。スキル効果、コンボ倍率、属性、ロール、専用魔道具の性能を検索できます。パーティ編成や攻略の参考に。">
+  <title data-i18n="meta.title">【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン</title>
+  <meta name="description" data-i18n-attr="content:meta.description" content="『陰の実力者になりたくて！マスターオブガーデン（カゲマス）』の全キャラクターデータベースです。スキル効果、コンボ倍率、属性、ロール、専用魔道具の性能を検索できます。パーティ編成や攻略の参考に。">
   <link rel="canonical" href="https://sg-kage.github.io/kage_character/">
   <meta name="robots" content="index, follow">
 
   <meta property="og:type" content="website">
-  <meta property="og:title" content="【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン">
-  <meta property="og:description" content="カゲマスの全キャラ性能を検索できるデータベースサイト。スキル詳細、魔道具、覚醒前後の切り替え確認が可能です。">
+  <meta property="og:title" data-i18n-attr="content:meta.ogTitle" content="【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン">
+  <meta property="og:description" data-i18n-attr="content:meta.ogDescription" content="カゲマスの全キャラ性能を検索できるデータベースサイト。スキル詳細、魔道具、覚醒前後の切り替え確認が可能です。">
   <meta property="og:url" content="https://sg-kage.github.io/kage_character/">
   <meta property="og:site_name" content="カゲマスキャラ検索DB">
   <meta property="og:locale" content="ja_JP">
@@ -18,8 +18,8 @@
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@kagenotify">
-  <meta name="twitter:title" content="【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン">
-  <meta name="twitter:description" content="カゲマスの全キャラ性能を検索できるデータベースサイト。スキル詳細、魔道具、覚醒前後の切り替え確認が可能です。">
+  <meta name="twitter:title" data-i18n-attr="content:meta.twitterTitle" content="【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン">
+  <meta name="twitter:description" data-i18n-attr="content:meta.twitterDescription" content="カゲマスの全キャラ性能を検索できるデータベースサイト。スキル詳細、魔道具、覚醒前後の切り替え確認が可能です。">
   <meta name="twitter:image" content="https://sg-kage.github.io/kage_character/image/thumbnail.webp">
 
   <script type="application/ld+json">
@@ -62,10 +62,10 @@
 
   <header>
     <h1>
-      <span class="brand-main">カゲマスキャラ検索</span>
-      <span class="brand-sub">陰の実力者になりたくて！マスターオブガーデン</span>
+      <span class="brand-main" data-i18n="header.brandMain">カゲマスキャラ検索</span>
+      <span class="brand-sub" data-i18n="header.brandSub">陰の実力者になりたくて！マスターオブガーデン</span>
     </h1>
-    <p class="sub-desc">属性・ロール・スキル・魔道具で全キャラを絞り込み検索</p>
+    <p class="sub-desc" data-i18n="header.subDesc">属性・ロール・スキル・魔道具で全キャラを絞り込み検索</p>
     <p class="data-update" id="data-update"></p>
   </header>
 
@@ -89,35 +89,35 @@
       <div id="rarity-btns"></div>
 
       <div class="search-wrapper">
-        <input id="filter" type="text" placeholder="キャラ名 スキル等 特殊:シールド 魔道具:パリィ など" aria-label="キャラクター検索フィルター">
-        <button id="search-clear-btn" class="is-hidden" type="button" aria-label="検索をクリア">×</button>
+        <input id="filter" type="text" data-i18n-attr="placeholder:search.placeholder;aria-label:search.ariaFilter" placeholder="キャラ名 スキル等 特殊:シールド 魔道具:パリィ など" aria-label="キャラクター検索フィルター">
+        <button id="search-clear-btn" class="is-hidden" type="button" data-i18n-attr="aria-label:search.ariaClear" aria-label="検索をクリア">×</button>
       </div>
 
       <div id="active-filters"></div>
 
       <details class="search-help">
-        <summary>検索コマンドの使い方</summary>
+        <summary data-i18n="search.helpSummary">検索コマンドの使い方</summary>
         <div class="help-content">
-          <p>キーワードの前に<b>項目名:</b>をつけると、その場所だけを検索できます。</p>
+          <p data-i18n-html="search.helpIntro">キーワードの前に<b>項目名:</b>をつけると、その場所だけを検索できます。</p>
           <ul class="help-list">
-            <li><code>特殊:</code></li>
-            <li><code>魔道具:</code></li>
-            <li><code>奥義:</code></li>
-            <li><code>特技:</code></li>
-            <li><code>コンボ:</code></li>
-            <li><code>通常:</code></li>
+            <li><code data-i18n="search.cmdTraits">特殊:</code></li>
+            <li><code data-i18n="search.cmdMagic">魔道具:</code></li>
+            <li><code data-i18n="search.cmdUltimate">奥義:</code></li>
+            <li><code data-i18n="search.cmdSkill">特技:</code></li>
+            <li><code data-i18n="search.cmdCombo">コンボ:</code></li>
+            <li><code data-i18n="search.cmdNormal">通常:</code></li>
           </ul>
-          <p class="help-example">例：「特殊:シールド 魔道具:パリィ」</p>
-          <p class="help-example">ひらがな・カタカナ、全角・半角は区別せずに検索できます。</p>
+          <p class="help-example" data-i18n="search.helpExample1">例：「特殊:シールド 魔道具:パリィ」</p>
+          <p class="help-example" data-i18n="search.helpExample2">ひらがな・カタカナ、全角・半角は区別せずに検索できます。</p>
         </div>
       </details>
 
       <div id="hit-row">
         <span id="hit-count" aria-live="polite"></span>
         <div class="button-group">
-          <button id="sort-btn" aria-pressed="false" aria-label="ポジション順ソート切替">ポジ順</button>
-          <select id="list-height-select" aria-label="リスト表示件数">
-            <option value="auto">自動</option>
+          <button id="sort-btn" aria-pressed="false" data-i18n="btn.sort" data-i18n-attr="aria-label:btn.ariaSort" aria-label="ポジション順ソート切替">ポジ順</button>
+          <select id="list-height-select" data-i18n-attr="aria-label:level.listHeight" aria-label="リスト表示件数">
+            <option value="auto" data-i18n="level.heightAuto">自動</option>
             <option value="10">10件</option>
             <option value="15">15件</option>
             <option value="20">20件</option>
@@ -130,14 +130,14 @@
 
     <main id="main">
       <div id="detail-header">
-        <button id="toggle-img-btn" class="header-btn" aria-label="キャラクター画像の表示切替">画像: OFF</button>
+        <button id="toggle-img-btn" class="header-btn" data-i18n="btn.imgOff" data-i18n-attr="aria-label:btn.ariaImg" aria-label="キャラクター画像の表示切替">画像: OFF</button>
 
         <div class="level-panel-wrap">
-          <button id="toggle-panel-btn" class="header-btn" aria-expanded="false" aria-label="スキル・魔道具レベル設定パネル">Lv設定</button>
+          <button id="toggle-panel-btn" class="header-btn" aria-expanded="false" data-i18n="btn.lvSetting" data-i18n-attr="aria-label:btn.ariaLvSetting" aria-label="スキル・魔道具レベル設定パネル">Lv設定</button>
 
           <div id="level-control-panel" class="is-hidden">
             <div class="control-row">
-              <div class="control-label">スキルLv: <span id="affinity-val">3</span></div>
+              <div class="control-label"><span data-i18n="level.skillLv">スキルLv:</span> <span id="affinity-val">3</span></div>
               <div class="skill-btn-group">
                 <button class="magic-btn active" data-kind="affinity" data-lv="1">1</button>
                 <button class="magic-btn" data-kind="affinity" data-lv="2">2</button>
@@ -154,7 +154,7 @@
             </div>
 
             <div class="control-row">
-              <div class="control-label">魔道具Lv: <span id="magic-val">5</span></div>
+              <div class="control-label"><span data-i18n="level.magicLv">魔道具Lv:</span> <span id="magic-val">5</span></div>
               <div class="magic-btn-group">
                 <button class="magic-btn active" data-kind="magic" data-lv="1">1</button>
                 <button class="magic-btn" data-kind="magic" data-lv="2">2</button>
@@ -167,7 +167,7 @@
           </div>
         </div>
 
-        <button id="capture-btn" class="header-btn is-hidden" aria-label="キャラクター詳細のスクリーンショット保存">スクショ</button>
+        <button id="capture-btn" class="header-btn is-hidden" data-i18n="btn.capture" data-i18n-attr="aria-label:btn.ariaCapture" aria-label="キャラクター詳細のスクリーンショット保存">スクショ</button>
       </div>
 
       <div id="detail"></div>
@@ -175,9 +175,9 @@
   </div>
 
   <footer class="creator-link">
-    作成者: <a href="https://x.com/kagenotify" target="_blank" rel="noopener">kagenotify（X／旧Twitter）</a><br>
-    Discord鯖: <a href="http://discord.gg/SfMWv5UPad" target="_blank" rel="noopener">陰マス通知</a><br>
-    <small>
+    <span data-i18n="footer.creator">作成者:</span> <a href="https://x.com/kagenotify" target="_blank" rel="noopener" data-i18n="footer.creatorLink">kagenotify（X／旧Twitter）</a><br>
+    <span data-i18n="footer.discord">Discord鯖:</span> <a href="http://discord.gg/SfMWv5UPad" target="_blank" rel="noopener" data-i18n="footer.discordLink">陰マス通知</a><br>
+    <small data-i18n-html="footer.disclaimer">
       このウェブサイト <a href="https://sg-kage.github.io/kage_character" target="_blank" rel="noopener">kage_character</a> は、Team CARAVANおよびAiming Inc.とは一切関係がなく、
       また、これらの企業から公式な承認を受けたものではありません。<br>
       掲載されているすべての画像の著作権は、それぞれの権利者に帰属します。
@@ -185,6 +185,7 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/script.js"></script>
 </body>
 </html>

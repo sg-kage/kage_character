@@ -1,0 +1,132 @@
+{
+  "_note": "English template. Empty values fall back to ja automatically. Fill in incrementally. Keys must mirror ja.json.",
+  "meta": {
+    "title": "",
+    "description": "",
+    "ogTitle": "",
+    "ogDescription": "",
+    "twitterTitle": "",
+    "twitterDescription": ""
+  },
+  "header": {
+    "brandMain": "",
+    "brandSub": "",
+    "subDesc": ""
+  },
+  "search": {
+    "placeholder": "",
+    "ariaFilter": "",
+    "ariaClear": "",
+    "helpSummary": "",
+    "helpIntro": "",
+    "helpExample1": "",
+    "helpExample2": "",
+    "cmdTraits": "",
+    "cmdMagic": "",
+    "cmdUltimate": "",
+    "cmdSkill": "",
+    "cmdCombo": "",
+    "cmdNormal": ""
+  },
+  "toggle": {
+    "name": "",
+    "group": "",
+    "effect": "",
+    "gacha": "",
+    "rarity": ""
+  },
+  "btn": {
+    "sort": "",
+    "ariaSort": "",
+    "imgOn": "",
+    "imgOff": "",
+    "ariaImg": "",
+    "lvSetting": "",
+    "ariaLvSetting": "",
+    "capture": "",
+    "ariaCapture": "",
+    "favTitle": "",
+    "favPill": "",
+    "clearAll": ""
+  },
+  "level": {
+    "skillLv": "",
+    "magicLv": "",
+    "listHeight": "",
+    "heightAuto": "",
+    "heightUnit": ""
+  },
+  "effect": {
+    "modeAnd": "",
+    "modeOr": ""
+  },
+  "tab": {
+    "compare": "",
+    "normal": "",
+    "awakened": ""
+  },
+  "label": {
+    "normal": "",
+    "awakened": "",
+    "attribute": "",
+    "role": "",
+    "position": "",
+    "rarity": "",
+    "gacha": "",
+    "group": "",
+    "arousal": "",
+    "character": ""
+  },
+  "section": {
+    "exUltimate": "",
+    "ultimate": "",
+    "skill1": "",
+    "skill2": "",
+    "traits": "",
+    "combo": "",
+    "normalAttack": "",
+    "magicItem1": "",
+    "magicItem2": ""
+  },
+  "msg": {
+    "loading": "",
+    "selectChar": "",
+    "noResults": "",
+    "noResultsSub": "",
+    "loadFail": "",
+    "retry": "",
+    "hitCount": "",
+    "dataUpdate": "",
+    "captureFail": "",
+    "previewShow": "",
+    "previewFail": "",
+    "saveImage": "",
+    "close": ""
+  },
+  "modal": {
+    "intro": "",
+    "tosNote": "",
+    "condIntro": "",
+    "itemCheat": "",
+    "itemGlitch": "",
+    "itemSubAccount": "",
+    "itemMoney": "",
+    "itemScraping": "",
+    "showOriginal": "",
+    "confirm": "",
+    "agree": "",
+    "deny": "",
+    "denyAlert": "",
+    "originalTitle": "",
+    "originalItem1": "",
+    "originalItem2": "",
+    "originalClose": ""
+  },
+  "footer": {
+    "creator": "",
+    "creatorLink": "",
+    "discord": "",
+    "discordLink": "",
+    "disclaimer": ""
+  }
+}

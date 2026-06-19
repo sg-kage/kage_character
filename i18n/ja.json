@@ -1,0 +1,131 @@
+{
+  "meta": {
+    "title": "【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン",
+    "description": "『陰の実力者になりたくて！マスターオブガーデン（カゲマス）』の全キャラクターデータベースです。スキル効果、コンボ倍率、属性、ロール、専用魔道具の性能を検索できます。パーティ編成や攻略の参考に。",
+    "ogTitle": "【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン",
+    "ogDescription": "カゲマスの全キャラ性能を検索できるデータベースサイト。スキル詳細、魔道具、覚醒前後の切り替え確認が可能です。",
+    "twitterTitle": "【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン",
+    "twitterDescription": "カゲマスの全キャラ性能を検索できるデータベースサイト。スキル詳細、魔道具、覚醒前後の切り替え確認が可能です。"
+  },
+  "header": {
+    "brandMain": "カゲマスキャラ検索",
+    "brandSub": "陰の実力者になりたくて！マスターオブガーデン",
+    "subDesc": "属性・ロール・スキル・魔道具で全キャラを絞り込み検索"
+  },
+  "search": {
+    "placeholder": "キャラ名 スキル等 特殊:シールド 魔道具:パリィ など",
+    "ariaFilter": "キャラクター検索フィルター",
+    "ariaClear": "検索をクリア",
+    "helpSummary": "検索コマンドの使い方",
+    "helpIntro": "キーワードの前に<b>項目名:</b>をつけると、その場所だけを検索できます。",
+    "helpExample1": "例：「特殊:シールド 魔道具:パリィ」",
+    "helpExample2": "ひらがな・カタカナ、全角・半角は区別せずに検索できます。",
+    "cmdTraits": "特殊:",
+    "cmdMagic": "魔道具:",
+    "cmdUltimate": "奥義:",
+    "cmdSkill": "特技:",
+    "cmdCombo": "コンボ:",
+    "cmdNormal": "通常:"
+  },
+  "toggle": {
+    "name": "キャラ名",
+    "group": "グループ",
+    "effect": "効果",
+    "gacha": "ガチャ",
+    "rarity": "レア度"
+  },
+  "btn": {
+    "sort": "ポジ順",
+    "ariaSort": "ポジション順ソート切替",
+    "imgOn": "画像: ON",
+    "imgOff": "画像: OFF",
+    "ariaImg": "キャラクター画像の表示切替",
+    "lvSetting": "Lv設定",
+    "ariaLvSetting": "スキル・魔道具レベル設定パネル",
+    "capture": "スクショ",
+    "ariaCapture": "キャラクター詳細のスクリーンショット保存",
+    "favTitle": "お気に入りのみ表示",
+    "favPill": "★ お気に入り",
+    "clearAll": "すべて解除 ×"
+  },
+  "level": {
+    "skillLv": "スキルLv:",
+    "magicLv": "魔道具Lv:",
+    "listHeight": "リスト表示件数",
+    "heightAuto": "自動",
+    "heightUnit": "{n}件"
+  },
+  "effect": {
+    "modeAnd": "効果検索: AND",
+    "modeOr": "効果検索: OR"
+  },
+  "tab": {
+    "compare": "比較",
+    "normal": "覚醒前",
+    "awakened": "覚醒後"
+  },
+  "label": {
+    "normal": "覚醒前",
+    "awakened": "覚醒後",
+    "attribute": "属性",
+    "role": "ロール",
+    "position": "ポジション",
+    "rarity": "レア度",
+    "gacha": "ガチャ",
+    "group": "グループ",
+    "arousal": "覚醒",
+    "character": "キャラ"
+  },
+  "section": {
+    "exUltimate": "究極奥義",
+    "ultimate": "奥義",
+    "skill1": "特技1",
+    "skill2": "特技2",
+    "traits": "特殊",
+    "combo": "コンボ",
+    "normalAttack": "通常攻撃",
+    "magicItem1": "魔道具1",
+    "magicItem2": "魔道具2"
+  },
+  "msg": {
+    "loading": "データを読み込み中...",
+    "selectChar": "キャラクターを選択してください",
+    "noResults": "該当するキャラクターが見つかりません",
+    "noResultsSub": "フィルタ条件を変えてみてください",
+    "loadFail": "データの読み込みに失敗しました。",
+    "retry": "再読み込み",
+    "hitCount": "ヒット件数: {count}件",
+    "dataUpdate": "データ更新日: {date} (JST)",
+    "captureFail": "キャプチャに失敗しました:",
+    "previewShow": "画像を表示しています...",
+    "previewFail": "プレビューの表示に失敗しました。保存ボタンから開いてください。",
+    "saveImage": "画像を保存",
+    "close": "閉じる"
+  },
+  "modal": {
+    "intro": "健全なプレイヤーのみ使用可能です。",
+    "tosNote": "（<a href=\"https://aiming-inc.com/ja/tos/\" target=\"_blank\" rel=\"noopener\">Aiming</a>の利用規約を遵守してください）",
+    "condIntro": "最低限以下に該当する行為をしていない、<br>または過去にしていないことが条件です",
+    "itemCheat": "・チート行為",
+    "itemGlitch": "・グリッチ行為<br>　（例：意図的なギルメンの入れ替えによる加算）",
+    "itemSubAccount": "・サブアカウントの使用",
+    "itemMoney": "・金銭のやり取り",
+    "itemScraping": "・外部ツールを使ったデータ取得",
+    "showOriginal": "オリジナル利用規約抜粋を見る",
+    "confirm": "これらに該当しませんか？",
+    "agree": "はい",
+    "deny": "いいえ",
+    "denyAlert": "ご利用いただけません。",
+    "originalTitle": "【オリジナル利用規約抜粋】",
+    "originalItem1": "・利用者は本サイトの内容を無断転載・再配布してはなりません。",
+    "originalItem2": "・自動取得スクリプトなどの使用は禁止されています。",
+    "originalClose": "閉じる"
+  },
+  "footer": {
+    "creator": "作成者:",
+    "creatorLink": "kagenotify（X／旧Twitter）",
+    "discord": "Discord鯖:",
+    "discordLink": "陰マス通知",
+    "disclaimer": "このウェブサイト <a href=\"https://sg-kage.github.io/kage_character\" target=\"_blank\" rel=\"noopener\">kage_character</a> は、Team CARAVANおよびAiming Inc.とは一切関係がなく、また、これらの企業から公式な承認を受けたものではありません。<br>掲載されているすべての画像の著作権は、それぞれの権利者に帰属します。"
+  }
+}
