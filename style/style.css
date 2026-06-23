@@ -114,6 +114,24 @@ header {
     padding: var(--sp-5) var(--sp-6) var(--sp-4);
     position: relative;
     animation: fadeSlideUp 0.4s ease-out;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--sp-3);
+}
+
+.header-titles {
+    min-width: 0;
+}
+
+/* 全体表示設定（文字サイズ・画像表示）をヘッダー右上に集約 */
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    flex-shrink: 0;
+    margin-left: auto;
 }
 
 header::before {
@@ -629,6 +647,12 @@ li.selected {
     margin-left: 2px;
 }
 
+/* 画像読み込み失敗時のシルエット・プレースホルダ（JSで src を差し替え） */
+.img-placeholder {
+    object-fit: contain;
+    visibility: visible;
+}
+
 .list-name {
     white-space: nowrap;
     overflow: hidden;
@@ -678,6 +702,29 @@ li.selected {
 .header-btn.active {
     background: var(--accent-dim);
     color: #fff;
+}
+
+/* 文字サイズセレクト（ヘッダーのボタン群と見た目を揃える） */
+#font-size-select {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: var(--sp-2) var(--sp-4);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    font-family: var(--font-sans);
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+#font-size-select:hover {
+    background: var(--bg-card-hover);
+}
+
+#font-size-select:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 /* =========================================

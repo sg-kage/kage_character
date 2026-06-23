@@ -1,77 +1,73 @@
-# TODO: 多言語対応の土台づくり（切り替えUIは未実装）
+# TODO: 文字サイズ切替機能（UI全体を比例拡縮）
 
 対象リポジトリ: `C:\Github\sg-kage\kage_character`
-方針: **後から言語を足せる構成にする**。今回は土台＋既存日本語の ja リソース化まで。en は空の雛形のみ（中身は作らない）。表示・挙動は現状と一切変えない（既定ロケール = ja）。
-
-## 設計の要点
-
-日本語文字列は3種類あり、扱いを分ける:
-1. **純粋UIラベル**（「ポジ順」「画像: OFF」「データ更新日」等）→ 翻訳リソース `i18n/<locale>.json` に外出し
-2. **データ結合ラベル**（属性 赤/緑/黄/青、ロール、セクション名 特殊/奥義 等。データのキー兼表示兼CSSクラス兼検索コマンド）
-   → **内部キーは日本語のまま正規IDとして温存**（データスキーマ・CSSクラス・検索は無変更）。表示名だけ翻訳レイヤー `tLabel(category, id)` で解決
-3. **コメント**（約192行）→ 翻訳不要、そのまま
+方針: フォントサイズが全て `rem` トークン基準（style.css:62-66）なので、**ルート `html` の font-size を1点変更**してUI全体を比例拡縮する。設定は `localStorage('kage_font_scale')` に永続化。UIは既存 `list-height-select` と同じ `<select>` を `#hit-row` に並べる（小=90% / 中=100%（既定）/ 大=112%）。
 
 ## 作業計画
-
-### 1. i18n ローダー（新規 `js/i18n.js`）
-- [ ] ロケール解決: `?lang=` → `localStorage('kage_lang')` → 既定 `ja`（**可視の切替UIは作らない**が、プラグインは用意）
-- [ ] `window.I18N` を公開: `locale` / `dataLocale` / `t(key, vars)` / `tLabel(category, id)` / `applyStaticDom()`
-- [ ] `i18n/<locale>.json` を fetch。欠落キーは **ja へフォールバック**
-- [ ] `<html lang>` を解決ロケールで設定（既定 ja）
-
-### 2. UIリソースファイル（新規 `i18n/`）
-- [ ] `i18n/ja.json`: 現行の日本語UI文字列を全集約（chrome / messages / labels{attribute,role,section,gacha,rarity} / meta）
-- [ ] `i18n/en.json`: 同一キー構造の **空（または null）雛形のみ**。中身は ja フォールバックで動く
-
-### 3. index.html
-- [ ] 可視静的文字列に `data-i18n="key"` を付与（現行JPはインラインfallbackとして残す → JS前/非JSでもJP表示）
-- [ ] `<script src="js/i18n.js">` を `script.js` の前に読み込み
-
-### 4. js/script.js
-- [ ] 動的UI文字列（ボタン名・メッセージ・ヒット件数・セクション見出し・char-label）を `I18N.t()` / `I18N.tLabel()` に置換
-- [ ] **データキー（赤/アタッカー/特殊…）・CSSクラス対応・検索コマンド接頭辞は無変更**（正規IDとして維持）
-- [ ] fetch パスを `characters/${I18N.dataLocale}/all_characters.json` 等に変更（既定 ja）
-
-### 5. js/modal.js
-- [ ] 利用規約モーダルの文言を `I18N.t()` 化
-
-### 6. キャラデータのロケール別命名（フォルダは変えない）
-- [ ] `characters/all_characters.json` → `characters/all_characters_ja.json`（git mv）
-- [ ] `characters/update_date.json` → `characters/update_date_ja.json`（git mv）
-- [ ] fetch パスを `characters/all_characters_${I18N.dataLocale}.json` 形式に
-- [ ] 生成スクリプト（別リポジトリ: カゲマス側）が `_ja.json` 名で出力するよう **READMEに追記して明示**（このリポジトリ外なので本対応では変更しない）
-
-### 7. ドキュメント
-- [ ] README に「言語の追加手順」（`i18n/<locale>.json` と `characters/<locale>/` を足すだけ）を追記
-- [ ] 完了後、本ファイルにレビューセクション追加
+- [ ] index.html: `#hit-row` の button-group に `<select id="font-size-select">`（小/中/大）を追加。`data-i18n` 付与
+- [ ] i18n/ja.json: `level.fontSize`（aria）/ `fontSmall` / `fontMedium` / `fontLarge` を追加
+- [ ] i18n/en.json: 同キーを空で追加（ja フォールバック）
+- [ ] js/script.js: `ELS.fontSizeSelect` 追加 / `setupFontSizeControl()` 実装（保存値復元→`documentElement.style.fontSize` 適用、change で保存＋`resize` 発火してリスト高さ再計算）/ DOMContentLoaded で `setupListHeightControl()` の前に呼ぶ
+- [ ] capture（スクショ）CSS は px 固定のため拡縮の影響を受けない＝スクショは一定サイズ維持（仕様として許容）
 
 ## 検証
-- [ ] ローカルサーバで配信し、**既定(ja)表示が現状と同一**・コンソールエラーなし・データが新パスからロードされることを確認
-- [ ] `?lang=en` で「キー未訳は ja にフォールバックして全文JP表示」を確認（崩れない＝構成が機能）
+- [ ] ローカル配信で 小/中/大 を切替→UI全体が拡縮、リスト高さ(固定件数)も追従、コンソールエラー0
+- [ ] リロード後も選択が保持される
+- [ ] `node --check js/script.js` 構文OK / ja・en JSON の構造一致
 
 ## レビュー
 
-### 実装サマリ（2026-06-19 完了）
-多言語対応の土台を構築。切り替えUIは未実装、既定 ja で表示・挙動は現状と同一。
-
-**追加ファイル**
-- `js/i18n.js` … ロケール解決(?lang→localStorage→ja) / `I18N.t()` / `applyStaticDom()` / 未訳(空/欠落)は ja フォールバック / `setLocale()` 入口
-- `i18n/ja.json` … 既存日本語UI文言を全集約（meta/header/search/toggle/btn/level/effect/tab/label/section/msg/modal/footer）
-- `i18n/en.json` … 同一キー構造の空雛形（空値→ja フォールバック）。`_note` 以外のキーは ja と完全一致を確認
+### 実装サマリ（2026-06-24 完了）
+文字サイズ切替（小90% / 中100%（既定）/ 大112%）を追加。ルート `html` の font-size を変更し、rem ベースのUI全体を比例拡縮。
 
 **変更ファイル**
-- `index.html` … 可視文字列に `data-i18n` / `data-i18n-html` / `data-i18n-attr` 付与（JPはインラインfallbackとして温存）。`js/i18n.js` を `script.js` 前に読み込み
-- `js/script.js` … 動的UI文字列を `I18N.t()` 化。`DOMContentLoaded` 冒頭で `await I18N.ready`。データ取得を `characters/all_characters_${dataLocale}.json` に変更＋ja フォールバック＋キャッシュキーをロケール別に
-- `characters/all_characters.json` → `_ja.json`、`update_date.json` → `_ja.json`（git mv）
-- `README.md` … i18n 構成・言語追加手順を追記
+- `index.html` … `#hit-row` の button-group に `<select id="font-size-select">`（小/中/大）を追加
+- `i18n/ja.json` / `i18n/en.json` … `level.fontSize`/`fontSmall`/`fontMedium`/`fontLarge` を追加（en は空＝ja フォールバック）
+- `js/script.js` … `ELS.fontSizeSelect` 追加。`FONT_SCALE_MAP` と `setupFontSizeControl()` を実装（保存値復元→`documentElement.style.fontSize`、change で `safeSetItem('kage_font_scale')`＋`resize` 発火でリスト高さ再計算）。DOMContentLoaded で `setupListHeightControl()` の前に呼ぶ
+- `.claude/launch.json` … 検証用の静的サーバ設定（プロジェクト固有）
 
-**検証結果（localhost:8765）**
-- ja: 192件ロード、全UI日本語、`ヒット件数:192件`/`データ更新日`(補間OK)、詳細のセクション/ラベル/タブ/覚醒前後すべて i18n 経由で正常。コンソールエラー0
-- ?lang=en: locale=en/dataLocale=en、UIは ja フォールバック、データは `_en.json` 不在のため `_ja.json` に自動フォールバックして192件ロード。コンソールエラー0
-- ja/en の JSON キー構造一致を自動チェックで確認、`node --check` で両JS構文OK
+**検証結果（localhost:8765 / preview）**
+- 小/中/大 切替で `html` の font-size = 90%/100%/112%、rem 要素が比例拡縮（brand-sub 12px↔19.2px 等で確認）。スクショで一覧の情報量変化も確認
+- リロード後も選択保持（select=large / inline=112% / saved=large）
+- コンソールエラー 0、`node --check` OK、ja/en の `level` キー構造一致
+- リスト高さ(固定件数)は change 時の `resize` 発火で追従
 
-### スコープ外（今回は未対応・READMEに明記）
-- 固定enum値（属性 赤/緑、ロール、ガチャ、レア度）の**ボタン表示**の言語化 … データ値でありフィルタ判定キーも兼ねるため、キャラデータファイル側翻訳と同時に対応すべき。正規ID保持＋表示マップ方式を推奨
-- `js/modal.js` … 現状 index.html から未読込（dead code）のため変更せず。`i18n/ja.json` に modal.* キーのみ用意済
-- 生成スクリプト（別リポジトリ）の出力名 `_ja.json` 化 … リポジトリ外のため未変更、README に明記
-- `<head>` 構造化データ(ld+json) … 既定 ja のまま
+### スコープ外（仕様として許容）
+- スクショ（capture）CSS は px 固定のため文字サイズ拡縮の影響を受けず、出力は常に一定サイズ
+
+### 追加対応（2026-06-24）: 配置見直し
+- 当初 `#hit-row`（リスト操作列）に置いたが、文字サイズは全体設定で文脈が合わないとの指摘。**`#detail-header` 右上**（画像:OFF / Lv設定 / スクショ の並び）へ移動し「表示設定」を集約
+- `style.css` に `#font-size-select` のスタイルを追加し `.header-btn` と見た目を統一（bg=--bg-elevated / padding=sp-2 sp-4 / hover / focus outline）
+- 検証: ヘッダー先頭に配置・動作維持(112%/90%/100%)・背景rgb(31,31,44)で header-btn と一致。コンソールエラー0
+- 注: 検証中、プレビューのブラウザキャッシュで旧 style.css が配信され「背景だけ白＝未適用」に見える事象。`?bust=` で新CSSを読ませて解消（コード側は終始正常）
+
+### 再々対応（2026-06-24）: モバイルでの配置不備を修正
+- 指摘: `#detail-header` は PC では右上ヘッダーだが、**`≤700px` では `#container` が縦積みになり `#main` が下段**＝スマホではフィルタ＋リストを全部スクロールした中段に埋もれる（[style.css:1349](style/style.css:1349)）。全体設定の置き場として不適切
+- 対応: 全体表示設定（**文字サイズ＋画像表示ON/OFF**）を**サイト `<header>` 右上**へ移動。`<header>` を `display:flex; justify-content:space-between; flex-wrap:wrap` 化し、`.header-titles`（タイトル群）と `.header-controls`（操作群, `margin-left:auto`）に分割。`<header>` は両レイアウトで常にページ最上部
+- `Lv設定` / `スクショ` は詳細依存（スクショは未選択時 is-hidden）のため `#detail-header` に残置
+- 検証（preview / CSSは ?bust= で最新化）:
+  - PC(1280px): 操作群 top=20 / 右端1241 でヘッダー右上に固定
+  - スマホ(375px): 操作群 right=351（375内に収まる）でタイトル下に右寄せ、リストより上部で即アクセス可
+  - 動作: 文字サイズ=112%/画像 OFF↔ON 切替OK、id 不変で JS 影響なし、コンソールエラー0
+
+---
+
+# TODO: 追加改善（a11y / 画像プレースホルダ）2026-06-24
+
+ユーザー選択: ②アイコンボタンのa11y ＋ ④画像404プレースホルダ（①タップ→スクロール・③modal.js削除は今回見送り）
+
+## ② アイコンのみボタンの a11y
+- `fav-filter-btn`（★ お気に入りフィルタ, script.js）に `aria-label`(=btn.favTitle) と `aria-pressed` を付与。onclick と clearAllFilters で `aria-pressed` を同期
+- 各行のお気に入りスター（☆/★, span）に `role="button"` / `aria-label`(=btn.ariaFavStar) / `aria-pressed` を付与。toggleFavorite→updateList 再描画で状態が正しく再生成
+- i18n: `btn.ariaFavStar`="お気に入り登録切替" を ja に追加、en は空（フォールバック）。btn キー構造一致を確認
+- 補足: 行スターは tabindex を付けず（192個のタブストップ増を避ける）、ラベル/状態のみ改善。属性/ロール/ソートは既に aria-pressed 対応済み
+
+## ④ 画像読み込み失敗時のプレースホルダ
+- 個別の inline `onerror`（list-img の visibility:hidden、char-image の display:none）を撤去し、**document の capture フェーズ error リスナー1か所に集約**（error はバブルしないため capture=true）。対象 class（list-img/list-img-ex/char-image）の IMG のみ、`data-ph` で二重差し替え防止
+- 失敗時はシルエットの SVG データURI（`IMG_PLACEHOLDER`）へ差し替え＋`.img-placeholder`（object-fit:contain）付与。一覧の空白・詳細の消失（旧 display:none）を解消
+- DOMContentLoaded で `setupImageFallback()` を登録
+
+## 検証（preview）
+- a11y: favBtn aria-pressed false→true、行スター role=button/label/pressed を確認
+- 画像: 一覧4枚＋詳細画像をわざと404→全て data:image/svg+xml に差し替え・`.img-placeholder` 付与・壊れアイコンや空白なし（PC/スマホ幅で目視）
+- `node --check` OK、ja/en btn キー一致、コンソールエラー0

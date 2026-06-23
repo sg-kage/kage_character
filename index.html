@@ -61,12 +61,22 @@
 <body>
 
   <header>
-    <h1>
-      <span class="brand-main" data-i18n="header.brandMain">カゲマスキャラ検索</span>
-      <span class="brand-sub" data-i18n="header.brandSub">陰の実力者になりたくて！マスターオブガーデン</span>
-    </h1>
-    <p class="sub-desc" data-i18n="header.subDesc">属性・ロール・スキル・魔道具で全キャラを絞り込み検索</p>
-    <p class="data-update" id="data-update"></p>
+    <div class="header-titles">
+      <h1>
+        <span class="brand-main" data-i18n="header.brandMain">カゲマスキャラ検索</span>
+        <span class="brand-sub" data-i18n="header.brandSub">陰の実力者になりたくて！マスターオブガーデン</span>
+      </h1>
+      <p class="sub-desc" data-i18n="header.subDesc">属性・ロール・スキル・魔道具で全キャラを絞り込み検索</p>
+      <p class="data-update" id="data-update"></p>
+    </div>
+    <div class="header-controls">
+      <select id="font-size-select" data-i18n-attr="aria-label:level.fontSize" aria-label="文字サイズ">
+        <option value="small" data-i18n="level.fontSmall">文字小</option>
+        <option value="medium" data-i18n="level.fontMedium">文字中</option>
+        <option value="large" data-i18n="level.fontLarge">文字大</option>
+      </select>
+      <button id="toggle-img-btn" class="header-btn" data-i18n="btn.imgOff" data-i18n-attr="aria-label:btn.ariaImg" aria-label="キャラクター画像の表示切替">画像: OFF</button>
+    </div>
   </header>
 
   <div id="container">
@@ -130,8 +140,6 @@
 
     <main id="main">
       <div id="detail-header">
-        <button id="toggle-img-btn" class="header-btn" data-i18n="btn.imgOff" data-i18n-attr="aria-label:btn.ariaImg" aria-label="キャラクター画像の表示切替">画像: OFF</button>
-
         <div class="level-panel-wrap">
           <button id="toggle-panel-btn" class="header-btn" aria-expanded="false" data-i18n="btn.lvSetting" data-i18n-attr="aria-label:btn.ariaLvSetting" aria-label="スキル・魔道具レベル設定パネル">Lv設定</button>
 

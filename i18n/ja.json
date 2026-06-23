@@ -46,6 +46,7 @@
     "ariaCapture": "キャラクター詳細のスクリーンショット保存",
     "favTitle": "お気に入りのみ表示",
     "favPill": "★ お気に入り",
+    "ariaFavStar": "お気に入り登録切替",
     "clearAll": "すべて解除 ×"
   },
   "level": {
@@ -53,7 +54,11 @@
     "magicLv": "魔道具Lv:",
     "listHeight": "リスト表示件数",
     "heightAuto": "自動",
-    "heightUnit": "{n}件"
+    "heightUnit": "{n}件",
+    "fontSize": "文字サイズ",
+    "fontSmall": "文字小",
+    "fontMedium": "文字中",
+    "fontLarge": "文字大"
   },
   "effect": {
     "modeAnd": "効果検索: AND",

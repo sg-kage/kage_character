@@ -97,6 +97,7 @@ const ELS = {
     affinityVal: document.getElementById('affinity-val'),
     magicVal: document.getElementById('magic-val'),
     listHeightSelect: document.getElementById('list-height-select'),
+    fontSizeSelect: document.getElementById('font-size-select'),
     panelBtn: document.getElementById('toggle-panel-btn'),
     controlPanel: document.getElementById('level-control-panel'),
     
@@ -172,12 +173,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 3. Wi-Fi判定と画像表示設定
     checkConnectionSettings();
+    setupImageFallback();
 
     // 4. UIコンポーネントの初期化
     initLevelUI();
     setupStaticButtons();
     setupOptionPanel();
     setupCaptureButton();
+    setupFontSizeControl();
     setupListHeightControl();
     setupKeyboardNavigation();
 
@@ -230,6 +233,32 @@ function checkConnectionSettings() {
         ELS.imgBtn.textContent = showImages ? I18N.t('btn.imgOn') : I18N.t('btn.imgOff');
         ELS.imgBtn.classList.toggle("active", showImages);
     }
+}
+
+/**
+ * キャラ画像の読み込み失敗時に、シルエットのプレースホルダへ差し替える。
+ * 一覧(list-img / list-img-ex)・詳細(char-image)を1か所のキャプチャ
+ * リスナーで一元処理する（error はバブルしないため capture=true で捕捉）。
+ */
+const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96">' +
+    '<rect width="96" height="96" rx="8" fill="#15151e"/>' +
+    '<circle cx="48" cy="38" r="16" fill="#4a5268"/>' +
+    '<path d="M20 84c0-15 12-24 28-24s28 9 28 24z" fill="#4a5268"/></svg>'
+);
+
+function setupImageFallback() {
+    document.addEventListener('error', (e) => {
+        const t = e.target;
+        if (!t || t.tagName !== 'IMG') return;
+        if (!t.classList.contains('list-img') &&
+            !t.classList.contains('list-img-ex') &&
+            !t.classList.contains('char-image')) return;
+        if (t.dataset.ph) return; // 二重差し替え防止（プレースホルダ自体の失敗を含む）
+        t.dataset.ph = '1';
+        t.classList.add('img-placeholder');
+        t.src = IMG_PLACEHOLDER;
+    }, true);
 }
 
 
@@ -423,9 +452,12 @@ function setupStaticButtons() {
     favBtn.id = 'fav-filter-btn';
     favBtn.textContent = '★';
     favBtn.title = I18N.t('btn.favTitle');
+    favBtn.setAttribute('aria-label', I18N.t('btn.favTitle'));
+    favBtn.setAttribute('aria-pressed', 'false');
     favBtn.onclick = () => {
         showFavoritesOnly = !showFavoritesOnly;
         favBtn.classList.toggle('active', showFavoritesOnly);
+        favBtn.setAttribute('aria-pressed', showFavoritesOnly ? 'true' : 'false');
         updateList(true);
     };
     const buttonGroup = document.querySelector('.button-group');
@@ -479,7 +511,10 @@ function clearAllFilters() {
 
     showFavoritesOnly = false;
     const favBtn = document.getElementById('fav-filter-btn');
-    if (favBtn) favBtn.classList.remove('active');
+    if (favBtn) {
+        favBtn.classList.remove('active');
+        favBtn.setAttribute('aria-pressed', 'false');
+    }
 
     ELS.filter.value = '';
     updateSearchClearVisibility();
@@ -712,9 +747,13 @@ function updateList(resetSelect=false) {
 
         // 1. お気に入りスター
         const charId = String(char.CharacterID);
+        const isFav = favorites.has(charId);
         const favStar = document.createElement('span');
-        favStar.className = 'fav-star' + (favorites.has(charId) ? ' is-fav' : '');
-        favStar.textContent = favorites.has(charId) ? '★' : '☆';
+        favStar.className = 'fav-star' + (isFav ? ' is-fav' : '');
+        favStar.textContent = isFav ? '★' : '☆';
+        favStar.setAttribute('role', 'button');
+        favStar.setAttribute('aria-label', I18N.t('btn.ariaFavStar'));
+        favStar.setAttribute('aria-pressed', isFav ? 'true' : 'false');
         favStar.onclick = (e) => {
             e.stopPropagation();
             toggleFavorite(charId);
@@ -730,7 +769,6 @@ function updateList(resetSelect=false) {
             img1.src = `image/characters/${char.name}.webp`;
             img1.className = 'list-img';
             img1.loading = 'lazy';
-            img1.onerror = () => img1.style.visibility = 'hidden';
             imgArea1.appendChild(img1);
             li.appendChild(imgArea1);
         }
@@ -750,7 +788,6 @@ function updateList(resetSelect=false) {
             img2.src = `image/characters/${char.name}_Ex.webp`;
             img2.className = 'list-img-ex';
             img2.loading = 'lazy';
-            img2.onerror = () => img2.style.visibility = 'hidden';
             li.appendChild(img2);
         }
 
@@ -944,7 +981,6 @@ function showDetail(char, filter = []) {
                     crossorigin="anonymous"
                     loading="lazy"
                     decoding="async"
-                    onerror="this.style.display='none';"
                 >`).join("")}
         </div>`;
     }
@@ -1883,6 +1919,35 @@ function setupOptionPanel() {
         }
     }
     document.addEventListener('click', handlePanelOutsideClick);
+}
+
+/**
+ * 文字サイズ切替制御（小/中/大）
+ * 全フォントが rem トークン基準なので、ルート html の font-size を変えて
+ * UI全体を比例拡縮する。設定は localStorage に永続化。
+ */
+const FONT_SCALE_MAP = { small: '90%', medium: '100%', large: '112%' };
+
+function setupFontSizeControl() {
+    if (!ELS.fontSizeSelect) return;
+
+    const applyScale = (key) => {
+        const scale = FONT_SCALE_MAP[key] || FONT_SCALE_MAP.medium;
+        document.documentElement.style.fontSize = scale;
+    };
+
+    const saved = localStorage.getItem('kage_font_scale');
+    const initial = FONT_SCALE_MAP[saved] ? saved : 'medium';
+    ELS.fontSizeSelect.value = initial;
+    applyScale(initial);
+
+    ELS.fontSizeSelect.addEventListener('change', () => {
+        const key = ELS.fontSizeSelect.value;
+        safeSetItem('kage_font_scale', key);
+        applyScale(key);
+        // フォント変更で行高が変わるため、リスト高さ(固定件数)を再計算させる
+        window.dispatchEvent(new Event('resize'));
+    });
 }
 
 /**

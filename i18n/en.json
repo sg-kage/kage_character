@@ -47,6 +47,7 @@
     "ariaCapture": "",
     "favTitle": "",
     "favPill": "",
+    "ariaFavStar": "",
     "clearAll": ""
   },
   "level": {
@@ -54,7 +55,11 @@
     "magicLv": "",
     "listHeight": "",
     "heightAuto": "",
-    "heightUnit": ""
+    "heightUnit": "",
+    "fontSize": "",
+    "fontSmall": "",
+    "fontMedium": "",
+    "fontLarge": ""
   },
   "effect": {
     "modeAnd": "",
