@@ -1,3 +1,18 @@
+# TODO: デザインポリッシュ「今の路線を上品に磨く」（2026-07-03 完了）
+
+- [x] body背景: 漆黒に紫が滲む2層ラジアルグラデーション（fixed）
+- [x] #detail / #list: 1px薄枠＋上端インセットハイライトで面の立体感
+- [x] リスト: hoverで2px右スライド、選択行は左→右へ溶けるアクセントグラデ、スクロールバーhoverを紫に
+- [x] キャラ名: 属性色のtext-shadowグロー＋下にcurrentColorのヘアライン(::after)
+- [x] タブactive: アクセントグロー / .char-section: 左上からの微光沢グラデ
+- [x] ボタン群(header-btn/attr-btn/group-btn/sort/fav): hoverで1px浮遊＋影、activeで戻る
+- [x] ★スター: hoverでゴールド＋scale(1.2)
+- [x] キャプチャ安全策: injectCaptureCSS に .char-title text-shadow無効化・.char-section背景単色化を追加
+- 検証: preview で描画確認（グロー/ヘアライン/枠すべて適用）、スクショ生成2200x3130成功、node --check OK
+- 注: 検証中に characters/*.json が作業ツリーから消失していることを発見（コミット b9c75df には存在）。復元はユーザー判断待ち
+
+---
+
 # TODO: バグ修正＋機能追加 6件（2026-07-02）
 
 対象リポジトリ: `C:\Github\sg-kage\kage_character`

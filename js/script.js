@@ -1801,6 +1801,15 @@ function setupCaptureButton() {
                 padding: 0 !important;
             }
 
+            /* デザイン装飾（text-shadow / セクションの光沢グラデ）は html2canvas で
+               にじみ・色ずれの原因になり得るため、キャプチャ時は無効化する。 */
+            .capture-target .char-title {
+                text-shadow: none !important;
+            }
+            .capture-target .char-section {
+                background: var(--bg-secondary) !important;
+            }
+
             /* 検索ワードのヒット色付け (.hit) はスクショには不要なため、
                通常テキストと同じ見た目に戻して色・背景・強調を解除する。
                (画面表示には影響せず、capture-target 配下のクローンのみ) */

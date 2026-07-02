@@ -84,7 +84,12 @@
 }
 
 body {
-    background: var(--bg-primary);
+    /* 漆黒ベースに紫がほんのり滲む奥行き（上端と右下にごく薄いグロー） */
+    background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(142, 123, 255, 0.055), transparent 60%),
+        radial-gradient(ellipse 60% 45% at 92% 108%, rgba(93, 79, 192, 0.045), transparent 60%),
+        var(--bg-primary);
+    background-attachment: fixed;
     color: var(--text-primary);
     font-family: var(--font-sans);
     font-size: var(--text-base);
@@ -574,7 +579,8 @@ h1 {
     font-size: var(--text-base);
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
-    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 #list::-webkit-scrollbar {
@@ -591,7 +597,7 @@ h1 {
 }
 
 #list::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.14);
+    background: rgba(142, 123, 255, 0.35);
 }
 
 #list.is-searching {
@@ -608,16 +614,18 @@ h1 {
     cursor: pointer;
     border-radius: var(--radius-sm);
     font-size: var(--text-base);
-    transition: background var(--transition-fast);
+    transition: background var(--transition-fast), transform var(--transition-fast);
     position: relative;
 }
 
 #list li:hover {
     background: var(--bg-card-hover);
+    transform: translateX(2px);
 }
 
 li.selected {
-    background: var(--accent-glow);
+    /* 左から右へ溶けるアクセントグラデーションで選択を上品に示す */
+    background: linear-gradient(90deg, var(--accent-glow), rgba(142, 123, 255, 0.03));
     border-left: 3px solid var(--accent);
     padding-left: calc(var(--sp-3) - 3px);
 }
@@ -822,7 +830,9 @@ li.selected {
     border-radius: var(--radius-lg);
     padding: var(--sp-6) var(--sp-4);
     min-height: 200px;
-    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+    /* 上端にrazor-thinなハイライトを乗せて面の立体感を出す */
+    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.03);
     font-size: var(--text-base);
     width: 100%;
 }
@@ -863,6 +873,20 @@ li.selected {
     text-align: center;
     letter-spacing: 0.04em;
     line-height: 1.35;
+    /* 属性色(インラインcolor)がにじむ控えめなグロー */
+    text-shadow: 0 0 26px;
+}
+
+/* キャラ名の下に属性色で溶けるヘアライン */
+.char-title::after {
+    content: '';
+    display: block;
+    width: 120px;
+    height: 2px;
+    margin: var(--sp-2) auto 0;
+    background: linear-gradient(90deg, transparent, currentColor, transparent);
+    opacity: 0.45;
+    border-radius: 2px;
 }
 
 .char-image-container {
@@ -1002,13 +1026,17 @@ li.selected {
     background: var(--accent);
     color: #0c0c12;
     font-weight: 700;
+    box-shadow: 0 2px 12px var(--accent-glow);
 }
 
 /* =========================================
    Skill Sections
    ========================================= */
 .char-section {
-    background: var(--bg-secondary);
+    /* 左上からごく薄い光を落としてカードに質感を出す */
+    background:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.018), transparent 45%),
+        var(--bg-secondary);
     border-radius: var(--radius-md);
     margin-bottom: var(--sp-3);
     padding: 2px 2px 2px var(--sp-1);
@@ -1203,6 +1231,37 @@ li.selected {
     margin-top: var(--sp-3);
     color: var(--text-muted);
     line-height: 1.6;
+}
+
+/* =========================================
+   Interaction Polish（ホバー時の浮遊感）
+   ========================================= */
+.header-btn,
+.attr-btn,
+.group-btn,
+#sort-btn,
+#fav-filter-btn {
+    transition: background var(--transition-fast), color var(--transition-fast),
+                transform var(--transition-fast), box-shadow var(--transition-fast),
+                filter var(--transition-fast);
+}
+
+.header-btn:hover,
+.attr-btn:hover,
+.group-btn:hover,
+#sort-btn:hover,
+#fav-filter-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.header-btn:active,
+.attr-btn:active,
+.group-btn:active,
+#sort-btn:active,
+#fav-filter-btn:active {
+    transform: translateY(0);
+    box-shadow: none;
 }
 
 /* =========================================
@@ -1684,8 +1743,14 @@ li.selected {
     padding: 2px;
 }
 
+.fav-star {
+    transition: opacity var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
 .fav-star:hover {
-    opacity: 0.7;
+    opacity: 1;
+    color: var(--gold);
+    transform: scale(1.2);
 }
 
 .fav-star.is-fav {
