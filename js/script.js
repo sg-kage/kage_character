@@ -1809,6 +1809,10 @@ function setupCaptureButton() {
             .capture-target .char-section {
                 background: var(--bg-secondary) !important;
             }
+            /* 見出し帯の半透明白は html2canvas で濃く描画されるため実色に置換する */
+            .capture-target .char-section-title {
+                background: #1d1d27 !important;
+            }
 
             /* 検索ワードのヒット色付け (.hit) はスクショには不要なため、
                通常テキストと同じ見た目に戻して色・背景・強調を解除する。

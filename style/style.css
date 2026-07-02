@@ -1037,9 +1037,10 @@ li.selected {
     background:
         linear-gradient(160deg, rgba(255, 255, 255, 0.018), transparent 45%),
         var(--bg-secondary);
+    /* 全周の枠線でブロックを明確に区切る（左辺はJSが属性色3pxを上書き） */
+    border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: var(--radius-md);
     margin-bottom: var(--sp-3);
-    padding: 2px 2px 2px var(--sp-1);
     overflow: hidden;
 }
 
@@ -1047,17 +1048,22 @@ li.selected {
     font-weight: 700;
     color: var(--accent);
     font-size: var(--text-md);
-    border-left: 3px solid var(--accent);
-    padding-left: var(--sp-3);
-    margin: var(--sp-3) 0 var(--sp-1) 0;
+    /* 属性色の左ラインは .char-section 側(インラインstyle)が持つため
+       ここには付けない（二重ラインによる左端の段差防止） */
+    /* 見出し帯: うっすら明るい背景＋下線でセクションの頭をはっきりさせる */
+    background: rgba(255, 255, 255, 0.035);
+    border-bottom: 1px solid var(--border);
+    padding: var(--sp-1) var(--sp-3);
+    margin: 0;
     letter-spacing: 0.04em;
+    line-height: 1.4;
 }
 
 .char-section-content {
     color: var(--text-primary);
     line-height: 1.75;
     font-size: var(--text-base);
-    padding: var(--sp-1) var(--sp-4) var(--sp-4) var(--sp-4);
+    padding: var(--sp-3) var(--sp-4) var(--sp-4) var(--sp-4);
 }
 
 .lv-highlight {
@@ -1786,9 +1792,9 @@ li.selected {
     display: none;
 }
 
-.level-panel-wrap {
-    position: relative;
-}
+/* .level-panel-wrap には position を与えない。
+   #level-control-panel の absolute 配置は #detail-header (relative) 基準となり、
+   ボタン列の右端に揃う。ボタンが増えても左へはみ出さない */
 
 /* =========================================
    Selection & Focus styles
