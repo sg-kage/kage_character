@@ -47,7 +47,21 @@
     "favTitle": "お気に入りのみ表示",
     "favPill": "★ お気に入り",
     "ariaFavStar": "お気に入り登録切替",
-    "clearAll": "すべて解除 ×"
+    "clearAll": "すべて解除 ×",
+    "compare": "2体比較",
+    "compareStop": "比較解除",
+    "ariaCompare": "キャラクター2体比較の切替",
+    "compareHint": "現在のキャラを固定し、次に選んだキャラと並べて表示"
+  },
+  "fav": {
+    "label": "お気に入りデータ:",
+    "export": "エクスポート",
+    "import": "インポート",
+    "exportDone": "お気に入り{count}件をクリップボードにコピーしました。\n機種変更先の「インポート」に貼り付けてください。",
+    "exportManual": "以下のデータをコピーして保存してください:",
+    "importPrompt": "エクスポートしたお気に入りデータを貼り付けてください:",
+    "importDone": "お気に入り{count}件を取り込みました。",
+    "importFail": "データを読み取れませんでした。エクスポートしたデータをそのまま貼り付けてください。"
   },
   "level": {
     "skillLv": "スキルLv:",

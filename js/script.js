@@ -65,6 +65,9 @@ let showImages = false;       // 画像表示フラグ
 let favorites = new Set();
 let showFavoritesOnly = false;
 
+// 2体比較用にピン留めしたキャラ（null = 比較モードOFF）
+let compareChar = null;
+
 // データロード排他制御
 let isLoadingCharacters = false;
 
@@ -89,6 +92,7 @@ const ELS = {
     
     // コントロール
     captureBtn: document.getElementById('capture-btn'),
+    compareBtn: document.getElementById('compare-btn'),
     sortBtn: document.getElementById('sort-btn'),
     imgBtn: document.getElementById("toggle-img-btn"),
     toggleRow: document.getElementById('filter-toggle-row'),
@@ -180,6 +184,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupStaticButtons();
     setupOptionPanel();
     setupCaptureButton();
+    setupCompareButton();
+    setupFavoriteTransfer();
     setupFontSizeControl();
     setupListHeightControl();
     setupKeyboardNavigation();
@@ -544,7 +550,8 @@ function createToggleBtn(id, text, targetId) {
     const panel = document.getElementById(targetId);
     btn.onclick = () => {
         panel.classList.toggle('is-open');
-        btn.textContent = panel.classList.contains('is-open') ? text.replace('▼', '▲') : text;
+        // 矢印(▼/▲)と選択件数の表示を一元管理している関数に任せる
+        updateToggleBtnCounts();
     };
     ELS.toggleRow.appendChild(btn);
 }
@@ -588,6 +595,16 @@ function getCurrentFilterKeywords() {
         .trim()
         .split(CONFIG.REGEX.splitSpace)
         .filter(k => k);
+}
+
+/**
+ * 詳細画面のハイライトに使うキーワード配列を返す（項目指定のコロン部分を除去）
+ */
+function getCurrentHighlightKeywords() {
+    return getCurrentFilterKeywords().map(k => {
+        if (k.includes(':') || k.includes('：')) return k.split(CONFIG.REGEX.splitColon)[1];
+        return k;
+    }).filter(k => k);
 }
 
 /**
@@ -724,10 +741,7 @@ function updateList(resetSelect=false) {
     ELS.hitCount.textContent = I18N.t('msg.hitCount', { count: filtered.length });
 
     // 詳細画面でハイライトするためのキーワード抽出（コロン除去）
-    const highlightKeywords = filterKeywords.map(k => {
-        if (k.includes(':') || k.includes('：')) return k.split(CONFIG.REGEX.splitColon)[1];
-        return k;
-    }).filter(k => k);
+    const highlightKeywords = getCurrentHighlightKeywords();
 
     // --- DOM生成 ---
     const scrollTop = ELS.list.scrollTop;
@@ -820,10 +834,38 @@ function updateList(resetSelect=false) {
             ELS.detail.innerHTML = `<div class="empty-state"><div class="empty-state-icon">&#128270;</div>${I18N.t('msg.noResults')}</div>`;
         }
         if (ELS.captureBtn) ELS.captureBtn.classList.add('is-hidden');
+        if (ELS.compareBtn) ELS.compareBtn.classList.add('is-hidden');
     }
 
     // フィルタピル更新
     updateActiveFilterPills();
+
+    // 現在のフィルタ状態をURLに反映（共有用）
+    syncUrlWithFilters();
+}
+
+/**
+ * フィルタ・検索条件をURLパラメータへ反映する（replaceState なので履歴は汚さない）
+ * 生成されたURLをそのまま共有すると、同じ絞り込み結果を再現できる
+ */
+function syncUrlWithFilters() {
+    const url = new URL(window.location);
+    const sp = url.searchParams;
+    const setOrDel = (key, val) => { if (val) sp.set(key, val); else sp.delete(key); };
+
+    setOrDel('q', ELS.filter.value.trim());
+    setOrDel('attr', [...selectedAttrs].join(','));
+    setOrDel('role', [...selectedRoles].join(','));
+    setOrDel('gacha', [...selectedGachas].join(','));
+    setOrDel('rarity', [...selectedRarities].join(','));
+    setOrDel('group', [...selectedGroups].join(','));
+    setOrDel('name', [...selectedNames].join(','));
+    setOrDel('effect', [...selectedEffects].join(','));
+    setOrDel('em', effectMode === 'or' ? 'or' : '');
+    setOrDel('fav', showFavoritesOnly ? '1' : '');
+    setOrDel('sort', positionSorted ? 'pos' : '');
+
+    window.history.replaceState({}, '', url);
 }
 
 /**
@@ -851,16 +893,16 @@ function comboBlock(combo, filter=[]) {
         res = combo
             .map(row => (typeof row === 'object') ? (row.effect ?? '') : row)
             .filter(text => text && text !== "-")
-            .map(text => `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${text}</div></div>`)
+            .map(text => `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${escapeHtml(text)}</div></div>`)
             .join('<hr class="skill-sep">');
-    } 
+    }
     else if (typeof combo === 'object' && combo !== null) {
         const effect = combo.effect ?? '';
-        if (effect && effect !== "-") res = `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${effect}</div></div>`;
-    } 
+        if (effect && effect !== "-") res = `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${escapeHtml(effect)}</div></div>`;
+    }
     else {
         const text = combo || '';
-        if (text && text !== "-") res = `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${text}</div></div>`;
+        if (text && text !== "-") res = `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${escapeHtml(text)}</div></div>`;
     }
     return replaceDynamicValues(res, 'affinity');
 }
@@ -893,13 +935,13 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
     
     return arr.map(skill => {
         if (typeof skill === "object") {
-            const skillName = skill.title || skill.name || "";
+            const skillName = escapeHtml(skill.title || skill.name || "");
             if (isMagic) {
-                const text = replaceDynamicValues(skill.effect || skill.normal || skill.description || "", type);
+                const text = replaceDynamicValues(escapeHtml(skill.effect || skill.normal || skill.description || ""), type);
                 return `<div>${skillName ? `<b>${skillName}</b><br>` : ""}${text}</div>`;
             }
-            const normal = replaceDynamicValues(skill.normal || "", type);
-            const awakened = replaceDynamicValues(skill.awakened || "", type);
+            const normal = replaceDynamicValues(escapeHtml(skill.normal || ""), type);
+            const awakened = replaceDynamicValues(escapeHtml(skill.awakened || ""), type);
             
             if (awakened) {
                 return `<div>${skillName ? `<b>${skillName}</b><br>` : ""}
@@ -911,7 +953,7 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
                 return `<div>${skillName ? `<b>${skillName}</b><br>` : ""}${normal}</div>`;
             }
         }
-        const text = replaceDynamicValues(skill, type);
+        const text = replaceDynamicValues(escapeHtml(skill), type);
         return (text === "-") ? "" : `<div>${text}</div>`;
     }).filter(html => html !== "").join('<hr class="skill-sep">');
 }
@@ -927,12 +969,12 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
     return arr.map(skill => {
         let rawText = "";
         if (isMagic) {
-            if (typeof skill === "string") rawText = skill;
-            else if (typeof skill === "object") rawText = skill.title ? `<b>${skill.title}</b><br>${skill.effect||skill.normal||""}` : (skill.effect||skill.normal||"");
+            if (typeof skill === "string") rawText = escapeHtml(skill);
+            else if (typeof skill === "object") rawText = skill.title ? `<b>${escapeHtml(skill.title)}</b><br>${escapeHtml(skill.effect||skill.normal||"")}` : escapeHtml(skill.effect||skill.normal||"");
         } else {
-            if (typeof skill === "string") rawText = skill;
-            else if ("title" in skill) rawText = `<b>${skill.title}</b><br>${tabType===1 ? skill.normal : skill.awakened}`;
-            else rawText = tabType===1 ? (skill.normal || "") : (skill.awakened || "");
+            if (typeof skill === "string") rawText = escapeHtml(skill);
+            else if ("title" in skill) rawText = `<b>${escapeHtml(skill.title)}</b><br>${escapeHtml(tabType===1 ? skill.normal : skill.awakened)}`;
+            else rawText = escapeHtml(tabType===1 ? (skill.normal || "") : (skill.awakened || ""));
         }
         if (rawText === "-") return "";
         return replaceDynamicValues(rawText, calcType);
@@ -940,24 +982,13 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
 }
 
 /**
- * キャラクターの詳細を表示するメイン関数
- * @param {Object} char - 表示するキャラクターオブジェクト
+ * キャラクター1体分の詳細HTML（.char-detail-wrap）を生成する
+ * showDetail の単体表示と2体比較表示の両方から利用する
+ * @param {Object} char - 対象キャラクターオブジェクト
  * @param {Array} filter - ハイライト用キーワード配列
+ * @returns {string} 詳細HTML文字列
  */
-function showDetail(char, filter = []) {
-    if (!char) {
-        ELS.detail.innerHTML = `<div class="empty-state"><div class="empty-state-icon">&#128270;</div>${I18N.t('msg.selectChar')}</div>`;
-        if (ELS.captureBtn) ELS.captureBtn.classList.add('is-hidden');
-        return;
-    }
-
-    // URLパラメータ更新（共有用）
-    if (char.position) {
-        const url = new URL(window.location);
-        url.searchParams.set('pos', char.position);
-        window.history.replaceState({}, '', url);
-    }
-
+function buildCharDetailHtml(char, filter = []) {
     const attrColor = CONFIG.attributes[char.attribute] || "#E0E0E0";
     const highlightDetail = (val) => escapeHtml(val);
 
@@ -1067,8 +1098,36 @@ function showDetail(char, filter = []) {
         ${sect(I18N.t('section.magicItem2'), char.magic_item2, true)}
     </div>`;
 
-    ELS.detail.innerHTML = mainContent;
-    
+    return mainContent;
+}
+
+/**
+ * キャラクターの詳細を表示するメイン関数
+ * @param {Object} char - 表示するキャラクターオブジェクト
+ * @param {Array} filter - ハイライト用キーワード配列
+ */
+function showDetail(char, filter = []) {
+    if (!char) {
+        ELS.detail.innerHTML = `<div class="empty-state"><div class="empty-state-icon">&#128270;</div>${I18N.t('msg.selectChar')}</div>`;
+        if (ELS.captureBtn) ELS.captureBtn.classList.add('is-hidden');
+        if (ELS.compareBtn) ELS.compareBtn.classList.add('is-hidden');
+        return;
+    }
+
+    // URLパラメータ更新（共有用）
+    if (char.position) {
+        const url = new URL(window.location);
+        url.searchParams.set('pos', char.position);
+        window.history.replaceState({}, '', url);
+    }
+
+    // 2体比較: ピン留めキャラがあれば 左=ピン留め / 右=現在選択 の並列表示
+    if (compareChar && compareChar !== char) {
+        ELS.detail.innerHTML = `<div class="compare-wrap">${buildCharDetailHtml(compareChar, filter)}${buildCharDetailHtml(char, filter)}</div>`;
+    } else {
+        ELS.detail.innerHTML = buildCharDetailHtml(char, filter);
+    }
+
     // --- タブ生成 ---
     const tabRange = document.createRange().createContextualFragment(`
     <div class="tabs-wrap" id="detail-tabs">
@@ -1086,8 +1145,35 @@ function showDetail(char, filter = []) {
 
     // 生成後のDOMに対してハイライト適用
     applyHighlightDOM(ELS.detail, filter);
-    
+
     if (ELS.captureBtn) ELS.captureBtn.classList.remove('is-hidden');
+    updateCompareBtn();
+}
+
+/**
+ * 2体比較ボタンの表示状態（表示/ラベル/active）を現在のピン留め状態に同期する
+ */
+function updateCompareBtn() {
+    if (!ELS.compareBtn) return;
+    ELS.compareBtn.classList.remove('is-hidden');
+    const pinned = !!compareChar;
+    ELS.compareBtn.classList.toggle('active', pinned);
+    ELS.compareBtn.textContent = pinned ? I18N.t('btn.compareStop') : I18N.t('btn.compare');
+    ELS.compareBtn.title = pinned ? compareChar.name : I18N.t('btn.compareHint');
+}
+
+/**
+ * 2体比較ボタンのセットアップ
+ * 押すと現在表示中のキャラをピン留めし、以降に選択したキャラと並べて表示する。
+ * もう一度押すとピン留めを解除して単体表示に戻る。
+ */
+function setupCompareButton() {
+    if (!ELS.compareBtn) return;
+    ELS.compareBtn.onclick = () => {
+        const current = lastFiltered[selectedIdx];
+        compareChar = compareChar ? null : (current || null);
+        if (current) showDetail(current, getCurrentHighlightKeywords());
+    };
 }
 
 
@@ -1269,10 +1355,34 @@ function prepareSearchData() {
 }
 
 /**
- * URLパラメータ ?pos=XXX を解析して初期表示を行う
+ * URLパラメータを解析して初期表示を行う
+ * ?pos=XXX でキャラ単体指定、?q= / ?attr= などでフィルタ状態を復元する
  */
 function handleUrlParameter() {
     const params = new URLSearchParams(window.location.search);
+
+    // --- フィルタ状態の復元 (syncUrlWithFilters と対) ---
+    const readSet = (key, set) => {
+        const v = params.get(key);
+        if (v) v.split(',').filter(Boolean).forEach(x => set.add(x));
+    };
+    readSet('attr', selectedAttrs);
+    readSet('role', selectedRoles);
+    readSet('gacha', selectedGachas);
+    readSet('rarity', selectedRarities);
+    readSet('group', selectedGroups);
+    readSet('name', selectedNames);
+    readSet('effect', selectedEffects);
+    if (params.get('em') === 'or') effectMode = 'or';
+    if (params.get('fav') === '1') showFavoritesOnly = true;
+    if (params.get('sort') === 'pos') positionSorted = true;
+    const q = params.get('q');
+    if (q) {
+        ELS.filter.value = q;
+        updateSearchClearVisibility();
+    }
+    applyFilterStateToButtons();
+
     const targetPos = params.get('pos');
 
     if (targetPos) {
@@ -1298,6 +1408,41 @@ function handleUrlParameter() {
     }
     // パラメータなし or 該当なしの場合は通常表示
     updateList(true);
+}
+
+/**
+ * URLから復元したフィルタ状態を各ボタンの見た目（active / aria-pressed）へ反映する
+ * initButtons でボタン生成が終わった後に呼ぶこと
+ */
+function applyFilterStateToButtons() {
+    updateAttrBtnColors();
+    updateRoleBtnColors();
+    Object.entries(attrBtnMap).forEach(([k, btn]) => btn.setAttribute('aria-pressed', String(selectedAttrs.has(k))));
+    Object.entries(roleBtnMap).forEach(([k, btn]) => btn.setAttribute('aria-pressed', String(selectedRoles.has(k))));
+
+    const setActive = (container, set) => {
+        if (!container) return;
+        container.querySelectorAll('.group-btn').forEach(btn => {
+            if (btn.id) return; // effect-mode-btn などの特殊ボタンを除外
+            btn.classList.toggle('active', set.has(btn.textContent));
+        });
+    };
+    setActive(ELS.gachaBtns, selectedGachas);
+    setActive(ELS.rarityBtns, selectedRarities);
+    setActive(ELS.groupBtns, selectedGroups);
+    setActive(ELS.nameBtns, selectedNames);
+    setActive(ELS.effectBtns, selectedEffects);
+
+    const modeBtn = document.getElementById('effect-mode-btn');
+    if (modeBtn) modeBtn.textContent = effectMode === 'and' ? I18N.t('effect.modeAnd') : I18N.t('effect.modeOr');
+
+    const favBtn = document.getElementById('fav-filter-btn');
+    if (favBtn) {
+        favBtn.classList.toggle('active', showFavoritesOnly);
+        favBtn.setAttribute('aria-pressed', String(showFavoritesOnly));
+    }
+
+    if (ELS.sortBtn) ELS.sortBtn.setAttribute('aria-pressed', String(positionSorted));
 }
 
 function initButtons() {
@@ -2038,6 +2183,52 @@ function saveFavorites() {
     } catch (e) { /* ignore */ }
 }
 
+/**
+ * お気に入りのエクスポート/インポート（機種変更・ブラウザ移行用）
+ * エクスポート: ID配列のJSONをクリップボードへコピー（不可の場合は prompt で手動コピー）
+ * インポート: 貼り付けたデータを既存のお気に入りへマージ（上書きはしない）
+ */
+function setupFavoriteTransfer() {
+    const exportBtn = document.getElementById('fav-export-btn');
+    const importBtn = document.getElementById('fav-import-btn');
+    if (!exportBtn || !importBtn) return;
+
+    exportBtn.onclick = async () => {
+        const data = JSON.stringify([...favorites]);
+        try {
+            await navigator.clipboard.writeText(data);
+            alert(I18N.t('fav.exportDone', { count: favorites.size }));
+        } catch (_) {
+            // クリップボードAPI不可（非HTTPS等）の場合は手動コピー用に表示
+            window.prompt(I18N.t('fav.exportManual'), data);
+        }
+    };
+
+    importBtn.onclick = () => {
+        const input = window.prompt(I18N.t('fav.importPrompt'), '');
+        if (!input) return;
+
+        // JSON配列・カンマ/空白区切りのどちらでも受け付ける
+        let ids = null;
+        try {
+            const parsed = JSON.parse(input);
+            if (Array.isArray(parsed)) ids = parsed;
+        } catch (_) { /* JSONでなければ区切り文字で分割 */ }
+        if (!ids) ids = input.split(/[,\s、]+/);
+
+        ids = ids.map(v => String(v).trim()).filter(v => /^\d+$/.test(v));
+        if (!ids.length) {
+            alert(I18N.t('fav.importFail'));
+            return;
+        }
+
+        ids.forEach(id => favorites.add(id));
+        saveFavorites();
+        updateList(false);
+        alert(I18N.t('fav.importDone', { count: ids.length }));
+    };
+}
+
 
 /* =========================================
    10. キーボードナビゲーション
@@ -2096,10 +2287,7 @@ function setupKeyboardNavigation() {
         if (isInputFocused) return;
         if (!lastFiltered.length) return;
 
-        const highlightKeywords = getCurrentFilterKeywords().map(k => {
-            if (k.includes(':') || k.includes('：')) return k.split(CONFIG.REGEX.splitColon)[1];
-            return k;
-        }).filter(k => k);
+        const highlightKeywords = getCurrentHighlightKeywords();
 
         if (e.key === 'ArrowDown') {
             e.preventDefault();

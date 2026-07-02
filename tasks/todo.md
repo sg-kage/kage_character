@@ -1,3 +1,37 @@
+# TODO: バグ修正＋機能追加 6件（2026-07-02）
+
+対象リポジトリ: `C:\Github\sg-kage\kage_character`
+
+## 作業計画
+- [x] ①バグ: トグル開閉時に選択カウント消失 — `createToggleBtn` の onclick を `updateToggleBtnCounts()` に一本化
+- [x] ②ドキュメント: README の共有URL説明 `?id=` → `?pos=` に修正
+- [x] ③堅牢化: スキル文のHTMLエスケープ — `comboBlock` / `skillBlockBothInline` / `skillBlockCompare` で `escapeHtml` を通す(データに `<` 無しを確認済み)
+- [x] ④機能: フィルタ・検索状態のURL共有 — `updateList` 末尾で `?q=/attr=/role=/gacha=/rarity=/group=/name=/effect=/em=/fav=/sort=` を replaceState 同期、`handleUrlParameter` で復元＋`applyFilterStateToButtons()` でボタン見た目反映
+- [x] ⑤機能: お気に入りエクスポート/インポート — Lv設定パネルに行追加、クリップボード経由(失敗時 prompt フォールバック)、インポートはマージ方式
+- [x] ⑥機能: キャラ2体比較 — `#detail-header` に「2体比較」ボタン、現在キャラをピン→別キャラ選択で左右並列表示(700px以下は縦積み)。`showDetail` の本文生成を `buildCharDetailHtml()` に切り出して再利用
+- [x] i18n: ja.json に新キー追加(btn.compare系 / fav.*)、en.json に同キーを空で追加(構造一致を検証済み)
+- [x] 検証: `node --check` OK / preview で全機能動作確認・コンソールエラー0
+
+## レビュー
+
+### 実装サマリ（2026-07-02 完了）
+**変更ファイル**: js/script.js / index.html / style/style.css / i18n/ja.json / i18n/en.json / README.md
+
+**検証結果（preview / localhost:8765）**
+- ①: ガチャ選択→「ガチャ▲ (1)」→開閉後も「ガチャ▼ (1)」でカウント保持
+- ③: エスケープ後も変動値ハイライト(lv-highlight 20個)・スキル名太字・本文とも表示劣化なし
+- ④: 属性/ガチャ選択でURLに `?attr=赤&gacha=フェス` 反映。`?attr=赤,青&role=タンク&q=シールド&sort=pos&em=or` 直開きで全状態復元（ボタンactive/ピル/検索欄/ソート/ORモード）
+- ⑤: ★2件→エクスポートでJSONがクリップボードへ、インポートは `["9990001","9990002","abc"]` から有効2件のみマージ、alert文言も正常
+- ⑥: ピン→「比較解除」表示、別キャラ選択で左右2カラム表示、解除で単体復帰。モバイル(375px)は縦積み。比較中のスクショ撮影も成功(2200x3600)
+- 追加調整: 比較の半分幅で基本情報行が重なったため `.compare-wrap .char-info-row-top { flex-wrap: wrap }` を追加
+- `node --check` OK / ja・en キー構造一致 / コンソールエラー・警告0
+
+### 補足
+- お気に入り移行UIは「Lv設定」パネル内に配置（全体設定の集約先として）。別の場所が良ければ移動可
+- 比較のピン留めはセッション内のみ（リロードで解除）。URLには含めていない
+
+---
+
 # TODO: 文字サイズ切替機能（UI全体を比例拡縮）
 
 対象リポジトリ: `C:\Github\sg-kage\kage_character`

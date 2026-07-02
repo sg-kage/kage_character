@@ -48,7 +48,21 @@
     "favTitle": "",
     "favPill": "",
     "ariaFavStar": "",
-    "clearAll": ""
+    "clearAll": "",
+    "compare": "",
+    "compareStop": "",
+    "ariaCompare": "",
+    "compareHint": ""
+  },
+  "fav": {
+    "label": "",
+    "export": "",
+    "import": "",
+    "exportDone": "",
+    "exportManual": "",
+    "importPrompt": "",
+    "importDone": "",
+    "importFail": ""
   },
   "level": {
     "skillLv": "",

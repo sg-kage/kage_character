@@ -827,6 +827,34 @@ li.selected {
     width: 100%;
 }
 
+/* キャラ2体比較: ピン留めキャラ(左)と選択中キャラ(右)を並べる */
+.compare-wrap {
+    display: flex;
+    gap: var(--sp-4);
+    align-items: flex-start;
+}
+
+.compare-wrap > .char-detail-wrap {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+/* 半分幅では基本情報が1行に収まらないため折り返しを許可する */
+.compare-wrap .char-info-row-top {
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+}
+
+@media (max-width: 700px) {
+    .compare-wrap {
+        flex-direction: column;
+    }
+
+    .compare-wrap > .char-detail-wrap {
+        width: 100%;
+    }
+}
+
 .char-title {
     font-size: 1.5rem;
     font-weight: 700;
