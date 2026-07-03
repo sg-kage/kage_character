@@ -686,7 +686,7 @@ function updateList(resetSelect=false) {
         if (!char._search) return false;
 
         // 0. お気に入りフィルタ
-        if (showFavoritesOnly && !favorites.has(String(char.CharacterID))) return false;
+        if (showFavoritesOnly && !favorites.has(String(char.position))) return false;
 
         // 1. テキスト検索（キーワードごとのAND検索）
         const matchKeywords = filterKeywords.every(token => {
@@ -760,8 +760,10 @@ function updateList(resetSelect=false) {
         li.appendChild(attrDot);
 
         // 1. お気に入りスター
-        const charId = String(char.CharacterID);
-        const isFav = favorites.has(charId);
+        // お気に入りは char.position をキーにする（CharacterID は配列インデックスに
+        // 過ぎず、データ並び替えで値がずれるため識別子として不適切）
+        const favId = String(char.position);
+        const isFav = favorites.has(favId);
         const favStar = document.createElement('span');
         favStar.className = 'fav-star' + (isFav ? ' is-fav' : '');
         favStar.textContent = isFav ? '★' : '☆';
@@ -770,7 +772,7 @@ function updateList(resetSelect=false) {
         favStar.setAttribute('aria-pressed', isFav ? 'true' : 'false');
         favStar.onclick = (e) => {
             e.stopPropagation();
-            toggleFavorite(charId);
+            toggleFavorite(favId);
         };
         li.appendChild(favStar);
 
@@ -1352,6 +1354,37 @@ function prepareSearchData() {
         [c.ultimate, c.ex_ultimate, c.skill1, c.skill2, c.traits, c.combo, c.magic_item1, c.magic_item2].forEach(t => processSkillData(t, effectSet));
         c._effects = Array.from(effectSet);
     });
+
+    migrateFavoritesToPosition();
+}
+
+/**
+ * お気に入りキーの移行: CharacterID(配列インデックス) → position(安定ID)
+ * 旧実装は char.CharacterID（＝データ配列内の並び順そのもの）をキーにしていたため、
+ * データの並び替えや途中挿入で値がずれ、別キャラのお気に入りとして誤認識される
+ * 危険があった。一度だけ、現在のロード内容を使って「旧ID(=配列インデックス)」を
+ * 「そのキャラの position」に変換し、以後は position をキーとして扱う。
+ */
+function migrateFavoritesToPosition() {
+    if (localStorage.getItem('kage_fav_migrated_v2')) return;
+    safeSetItem('kage_fav_migrated_v2', '1');
+    if (!favorites.size) return;
+
+    const migrated = new Set();
+    favorites.forEach(idStr => {
+        const idx = parseInt(idStr, 10);
+        const char = characters[idx];
+        // 移行時点ではまだ CharacterID===配列インデックスの旧仕様のはずなので、
+        // 一致するキャラが見つかればその position へ変換する
+        if (char && String(char.CharacterID) === idStr) {
+            migrated.add(String(char.position));
+        } else {
+            // 一致しない場合は既に position 形式である可能性もあるためそのまま残す
+            migrated.add(idStr);
+        }
+    });
+    favorites = migrated;
+    saveFavorites();
 }
 
 /**
