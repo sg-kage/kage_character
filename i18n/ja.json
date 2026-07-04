@@ -57,11 +57,20 @@
     "label": "お気に入りデータ:",
     "export": "エクスポート",
     "import": "インポート",
+    "share": "共有リンクをコピー",
     "exportDone": "お気に入り{count}件をクリップボードにコピーしました。\n機種変更先の「インポート」に貼り付けてください。",
     "exportManual": "以下のデータをコピーして保存してください:",
     "importPrompt": "エクスポートしたお気に入りデータを貼り付けてください:",
     "importDone": "お気に入り{count}件を取り込みました。",
-    "importFail": "データを読み取れませんでした。エクスポートしたデータをそのまま貼り付けてください。"
+    "importFail": "データを読み取れませんでした。エクスポートしたデータをそのまま貼り付けてください。",
+    "shareEmpty": "お気に入りが登録されていません。まず★でキャラクターを登録してください。",
+    "shareDone": "共有リンクをコピーしました（{count}件）。このURLを送ると、相手の画面にお気に入りキャラの一覧が表示されます。",
+    "shareManual": "以下のURLをコピーして送ってください:",
+    "sharedBanner": "共有されたお気に入り: {count}件を表示中",
+    "sharedBannerPartial": "共有されたお気に入り: {matched}/{total}件を表示中（一部は現在のデータに見つかりません）",
+    "sharedAddBtn": "自分のお気に入りに追加",
+    "sharedDismissBtn": "解除",
+    "sharedAddDone": "お気に入りに追加しました（{count}件）。"
   },
   "level": {
     "skillLv": "スキルLv:",

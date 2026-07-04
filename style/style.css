@@ -785,6 +785,11 @@ li.selected {
     justify-content: space-between;
 }
 
+.magic-btn-full {
+    width: 100%;
+    margin-top: var(--sp-2);
+}
+
 .skill-btn-group {
     display: grid;
     grid-template-columns: repeat(11, 1fr);
@@ -1689,6 +1694,55 @@ li.selected {
 
 #active-filters:empty {
     display: none;
+}
+
+/* =========================================
+   Shared Favorites Banner (?favs= 経由の共有表示)
+   ========================================= */
+#shared-favs-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sp-2);
+    background: var(--accent-subtle);
+    border: 1px solid var(--border-accent);
+    border-radius: var(--radius-sm);
+    padding: var(--sp-2) var(--sp-3);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+#shared-favs-banner.is-hidden {
+    display: none;
+}
+
+#shared-favs-banner .shared-favs-text {
+    flex: 1 1 auto;
+    min-width: 120px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+#shared-favs-banner button {
+    font-size: var(--text-xs);
+    padding: var(--sp-1) var(--sp-2);
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+#shared-favs-banner button:hover {
+    background: var(--bg-card-hover);
+}
+
+#shared-favs-banner #shared-favs-add-btn {
+    background: var(--accent-dim);
+    color: #fff;
 }
 
 .filter-pill {

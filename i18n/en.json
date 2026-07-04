@@ -58,11 +58,20 @@
     "label": "",
     "export": "",
     "import": "",
+    "share": "",
     "exportDone": "",
     "exportManual": "",
     "importPrompt": "",
     "importDone": "",
-    "importFail": ""
+    "importFail": "",
+    "shareEmpty": "",
+    "shareDone": "",
+    "shareManual": "",
+    "sharedBanner": "",
+    "sharedBannerPartial": "",
+    "sharedAddBtn": "",
+    "sharedDismissBtn": "",
+    "sharedAddDone": ""
   },
   "level": {
     "skillLv": "",

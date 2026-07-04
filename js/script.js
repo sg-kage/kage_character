@@ -65,6 +65,9 @@ let showImages = false;       // 画像表示フラグ
 let favorites = new Set();
 let showFavoritesOnly = false;
 
+// URL(?favs=)経由で共有されたお気に入り一覧（表示専用フィルタ。自分の favorites とは別）
+let sharedFavorites = null;
+
 // 2体比較用にピン留めしたキャラ（null = 比較モードOFF）
 let compareChar = null;
 
@@ -93,6 +96,7 @@ const ELS = {
     // コントロール
     captureBtn: document.getElementById('capture-btn'),
     compareBtn: document.getElementById('compare-btn'),
+    sharedFavBanner: document.getElementById('shared-favs-banner'),
     sortBtn: document.getElementById('sort-btn'),
     imgBtn: document.getElementById("toggle-img-btn"),
     toggleRow: document.getElementById('filter-toggle-row'),
@@ -687,6 +691,7 @@ function updateList(resetSelect=false) {
 
         // 0. お気に入りフィルタ
         if (showFavoritesOnly && !favorites.has(String(char.position))) return false;
+        if (sharedFavorites && !sharedFavorites.has(String(char.position))) return false;
 
         // 1. テキスト検索（キーワードごとのAND検索）
         const matchKeywords = filterKeywords.every(token => {
@@ -1415,6 +1420,15 @@ function handleUrlParameter() {
         updateSearchClearVisibility();
     }
     applyFilterStateToButtons();
+
+    // --- 共有お気に入り (?favs=position,position,...) の復元 ---
+    // 自分の favorites とは別枠で保持し、閲覧専用フィルタとして扱う（自動で自分の
+    // お気に入りへ書き込まない。追加するかはユーザーがバナーのボタンで選ぶ）
+    const favsParam = params.get('favs');
+    if (favsParam) {
+        sharedFavorites = new Set(favsParam.split(',').filter(Boolean));
+    }
+    updateSharedFavBanner();
 
     const targetPos = params.get('pos');
 
@@ -2273,6 +2287,87 @@ function setupFavoriteTransfer() {
         updateList(false);
         alert(I18N.t('fav.importDone', { count: ids.length }));
     };
+
+    setupFavoriteShareButton();
+}
+
+/**
+ * 「共有リンクをコピー」ボタンのセットアップ
+ * 現在のお気に入り(position配列)を ?favs= に載せたURLを生成し、クリップボードへコピーする。
+ * 開いた相手の画面では自分の favorites には触れず、閲覧専用の絞り込み(sharedFavorites)として表示される。
+ */
+function setupFavoriteShareButton() {
+    const shareBtn = document.getElementById('fav-share-btn');
+    if (!shareBtn) return;
+
+    shareBtn.onclick = async () => {
+        if (!favorites.size) {
+            alert(I18N.t('fav.shareEmpty'));
+            return;
+        }
+        const url = new URL(window.location.origin + window.location.pathname);
+        url.searchParams.set('favs', [...favorites].join(','));
+        const shareUrl = url.toString();
+
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            alert(I18N.t('fav.shareDone', { count: favorites.size }));
+        } catch (_) {
+            window.prompt(I18N.t('fav.shareManual'), shareUrl);
+        }
+    };
+}
+
+/**
+ * 共有お気に入り(?favs=)バナーの表示更新
+ * sharedFavorites が null なら非表示。値があれば件数を表示し、
+ * 「自分のお気に入りに追加」「解除」の操作を提供する。
+ */
+function updateSharedFavBanner() {
+    const banner = ELS.sharedFavBanner;
+    if (!banner) return;
+
+    if (!sharedFavorites || !sharedFavorites.size) {
+        banner.classList.add('is-hidden');
+        banner.innerHTML = '';
+        return;
+    }
+
+    const matchedCount = characters.filter(c => sharedFavorites.has(String(c.position))).length;
+    const totalCount = sharedFavorites.size;
+    const text = matchedCount < totalCount
+        ? I18N.t('fav.sharedBannerPartial', { matched: matchedCount, total: totalCount })
+        : I18N.t('fav.sharedBanner', { count: totalCount });
+
+    banner.classList.remove('is-hidden');
+    banner.innerHTML = `
+        <span class="shared-favs-text">${escapeHtml(text)}</span>
+        <button type="button" id="shared-favs-add-btn">${escapeHtml(I18N.t('fav.sharedAddBtn'))}</button>
+        <button type="button" id="shared-favs-dismiss-btn">${escapeHtml(I18N.t('fav.sharedDismissBtn'))}</button>
+    `;
+
+    document.getElementById('shared-favs-add-btn').onclick = () => {
+        sharedFavorites.forEach(id => favorites.add(id));
+        saveFavorites();
+        const count = sharedFavorites.size;
+        dismissSharedFavorites();
+        alert(I18N.t('fav.sharedAddDone', { count }));
+    };
+    document.getElementById('shared-favs-dismiss-btn').onclick = () => {
+        dismissSharedFavorites();
+    };
+}
+
+/**
+ * 共有お気に入り表示の解除。URLの ?favs= も除去して通常表示に戻す。
+ */
+function dismissSharedFavorites() {
+    sharedFavorites = null;
+    const url = new URL(window.location);
+    url.searchParams.delete('favs');
+    window.history.replaceState({}, '', url);
+    updateSharedFavBanner();
+    updateList(true);
 }
 
 
