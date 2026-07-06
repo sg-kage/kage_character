@@ -852,6 +852,14 @@ function updateList(resetSelect=false) {
 }
 
 /**
+ * URLオブジェクトを人間が読める文字列に変換する
+ * （日本語の%エンコードと、区切りカンマの %2C を元の文字に戻す）
+ */
+function toDisplayUrl(url) {
+    return decodeURI(url.toString()).replace(/%2C/gi, ',');
+}
+
+/**
  * フィルタ・検索条件をURLパラメータへ反映する（replaceState なので履歴は汚さない）
  * 生成されたURLをそのまま共有すると、同じ絞り込み結果を再現できる
  */
@@ -872,7 +880,7 @@ function syncUrlWithFilters() {
     setOrDel('fav', showFavoritesOnly ? '1' : '');
     setOrDel('sort', positionSorted ? 'pos' : '');
 
-    window.history.replaceState({}, '', url);
+    window.history.replaceState({}, '', toDisplayUrl(url));
 }
 
 /**
@@ -1125,7 +1133,7 @@ function showDetail(char, filter = []) {
     if (char.position) {
         const url = new URL(window.location);
         url.searchParams.set('pos', char.position);
-        window.history.replaceState({}, '', url);
+        window.history.replaceState({}, '', toDisplayUrl(url));
     }
 
     // 2体比較: ピン留めキャラがあれば 左=ピン留め / 右=現在選択 の並列表示
@@ -2307,7 +2315,7 @@ function setupFavoriteShareButton() {
         }
         const url = new URL(window.location.origin + window.location.pathname);
         url.searchParams.set('favs', [...favorites].join(','));
-        const shareUrl = url.toString();
+        const shareUrl = toDisplayUrl(url);
 
         try {
             await navigator.clipboard.writeText(shareUrl);
@@ -2365,7 +2373,7 @@ function dismissSharedFavorites() {
     sharedFavorites = null;
     const url = new URL(window.location);
     url.searchParams.delete('favs');
-    window.history.replaceState({}, '', url);
+    window.history.replaceState({}, '', toDisplayUrl(url));
     updateSharedFavBanner();
     updateList(true);
 }
