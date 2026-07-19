@@ -1,3 +1,48 @@
+# TODO: 3改修 ③比較URL共有 / ①英語対応仕上げ / ②PWA化（2026-07-19）
+
+計画詳細: `C:\Users\MY\.claude\plans\virtual-seeking-volcano.md`
+
+## ③ 2体比較のURL共有（?cmp=）
+- [x] showDetail の ?pos= 反映ブロックに cmp 書込/削除を追加
+- [x] handleUrlParameter の pos 解決成功時に cmp 復元（characters から position 逆引き→compareChar 代入→showDetail）
+- [x] 検証: 付与/復元/解除/cmp==pos無視/不明cmp無視/フィルタ操作後の保持
+
+## ① 英語対応の仕上げ
+- [x] en.json 全訳（modal セクションは空のまま温存）、search.cmd* は英語プレフィックス表記
+- [x] ja/en に data セクション新設（attribute/role/gacha/rarity の表示変換マップ、ja は恒等）
+- [x] script.js: tData() ヘルパー + ボタン生成/詳細表示/ピルの表示のみ差し替え（内部値は日本語のまま）
+- [x] textContent を値として参照している箇所の洗い出し→dataset.value 化（applyFilterStateToButtons の setActive / ピル除去の2箇所）
+- [x] fieldMap に英語エイリアス追加（trait/traits/skill/ult/ultimate/magic/item/combo/normal、両ロケール常時有効）
+- [x] index.html: header-controls に lang-select 追加、script.js: setupLangControl()
+- [x] 追加発見: list-height-select の「10件」等が静的HTMLで i18n 未対応 → setupListHeightControl で level.heightUnit を適用
+- [x] 検証: ?lang=en 全域英語化・フィルタ動作・日英プレフィックス・切替往復・ja 既定表示不変
+
+## ② PWA化
+- [x] kage.webp から PNG アイコン生成（512/192/180、preview の canvas 経由。icon-512=546KB/icon-192=93KB/apple-touch=81KB）
+- [x] manifest.webmanifest 作成（相対パス、standalone、#0a0a0f、any+maskable）
+- [x] sw.js 作成（GET のみ・同一オリジンのみ・キャラ画像 cache-first・他 network-first・プリキャッシュ・旧版削除・navigate は './' に集約）
+- [x] index.html: manifest リンク・apple-touch-icon PNG 化・SW 登録
+- [x] 検証: SW 登録→オフライン再読込→復帰後のデータ更新フロー・manifest 妥当性
+
+## レビュー
+
+### 実装サマリ（2026-07-19 完了）
+**変更**: js/script.js / js/i18n.js / index.html / i18n/ja.json / i18n/en.json / README.md
+**新規**: manifest.webmanifest / sw.js / image/icon-512.png / image/icon-192.png / image/apple-touch-icon.png / .claude/launch.json
+
+**検証結果（preview / localhost:8765）**
+- ③: ピン→`?pos=220&cmp=386` 付与→新規状態で開き比較復元（左=シャドウ/右=シド）。cmp==pos・cmp=999999 は無視されURLからも除去。解除で cmp 消滅。復元は characters から position 逆引きなのでオブジェクト古参照問題も回避
+- ①: `?lang=en` で全UI英語化（タイトル/ボタン/enum=Red・Attacker・Fes等/ピル "Attribute: Red"/ヘルプ/placeholder）。内部値は日本語のまま（URL は attr=赤/gacha=フェス）。trait:シールド と 特殊:シールド がともに20件で一致。切替UIで en↔ja 往復・localStorage 保存・ja 表示は改修前と同一
+- ②: SW 登録・activated・controller 取得・precache（kage-v1-app）確認。サーバ停止状態で 195件リスト+キャラ詳細を完全表示（オフラインOK）。サーバ再開後のデータ取得も従来どおり
+- 共通: node --check（script.js/sw.js）OK、manifest JSON 妥当、ja/en 144キー完全一致（空は modal の17キーのみ=温存方針どおり）、コンソールエラー0、375px でヘッダー(右端351)・Lv設定パネル(59〜359)とも viewport 内・横スクロールなし
+
+### 補足
+- スクショ証跡は Browser pane の screenshot がタイムアウトし取得不可（ページ自体は正常動作、検証は DOM 読み取りで実施）
+- キャラデータ英語版（all_characters_en.json）は別途パイプライン作業（未着手・ja フォールバックで動作）
+- sw.js の CACHE_VERSION は 'kage-v1'。プリキャッシュ対象を変えるときに上げる（通常のファイル更新は network-first なので version 上げ不要）
+
+---
+
 # TODO: お気に入りのURL共有機能（2026-07-03 完了）
 
 ユーザー要望: 「お気に入りにしたキャラをURLで渡して表示させる機能がほしい」

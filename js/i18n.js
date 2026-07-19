@@ -8,7 +8,7 @@
  *   - 未訳キー (null / 空文字) は既定ロケール(ja)へ自動フォールバック
  *
  * 注意:
- *   - 切り替えUIはまだ用意していない。?lang=en で動作確認のみ可能。
+ *   - 切り替えUIはヘッダー右上の #lang-select（script.js の setupLangControl）。
  *   - キャラデータ(属性/ロール/グループ名など)の翻訳はUIリソースではなく
  *     キャラデータファイル(characters/all_characters_<locale>.json)側で行う。
  *   - script.js は DOMContentLoaded 内で必ず `await I18N.ready` してから使うこと。

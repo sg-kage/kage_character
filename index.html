@@ -41,8 +41,9 @@
 
   <meta name="theme-color" content="#0a0a0f">
 
-  <link rel="apple-touch-icon" href="image/kage.webp">
+  <link rel="apple-touch-icon" href="image/apple-touch-icon.png">
   <link rel="icon" href="image/kage.webp" type="image/webp">
+  <link rel="manifest" href="manifest.webmanifest">
 
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -70,6 +71,10 @@
       <p class="data-update" id="data-update"></p>
     </div>
     <div class="header-controls">
+      <select id="lang-select" data-i18n-attr="aria-label:header.langLabel" aria-label="表示言語">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+      </select>
       <select id="font-size-select" data-i18n-attr="aria-label:level.fontSize" aria-label="文字サイズ">
         <option value="small" data-i18n="level.fontSmall">文字小</option>
         <option value="medium" data-i18n="level.fontMedium">文字中</option>
@@ -203,6 +208,11 @@
     </small>
   </footer>
 
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
+    }
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
   <script src="js/i18n.js"></script>
   <script src="js/script.js"></script>

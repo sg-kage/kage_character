@@ -106,6 +106,7 @@ const ELS = {
     magicVal: document.getElementById('magic-val'),
     listHeightSelect: document.getElementById('list-height-select'),
     fontSizeSelect: document.getElementById('font-size-select'),
+    langSelect: document.getElementById('lang-select'),
     panelBtn: document.getElementById('toggle-panel-btn'),
     controlPanel: document.getElementById('level-control-panel'),
     
@@ -141,6 +142,17 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+/**
+ * enum系データ値（属性/ロール/ガチャ/レア度）の表示用変換
+ * 内部の正規値（日本語）は変えず、表示時のみ i18n 辞書 data.* で解決する。
+ * 辞書に無い値はそのまま返す（新しいカテゴリ値が来ても壊さない）
+ */
+function tData(category, value) {
+    const key = `data.${category}.${value}`;
+    const s = I18N.t(key);
+    return s === key ? value : s;
 }
 
 
@@ -190,6 +202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupCaptureButton();
     setupCompareButton();
     setupFavoriteTransfer();
+    setupLangControl();
     setupFontSizeControl();
     setupListHeightControl();
     setupKeyboardNavigation();
@@ -394,7 +407,7 @@ function setupStaticButtons() {
     const roleFrag = document.createDocumentFragment();
     CONFIG.roles.forEach(role => {
         const btn = document.createElement('button');
-        btn.textContent = role;
+        btn.textContent = tData('role', role);
         btn.className = "attr-btn role-btn";
         
         btn.setAttribute('aria-pressed', 'false');
@@ -414,7 +427,7 @@ function setupStaticButtons() {
     const attrFrag = document.createDocumentFragment();
     ["赤","緑","黄","青"].forEach(attr => {
         const btn = document.createElement('button');
-        btn.textContent = attr;
+        btn.textContent = tData('attribute', attr);
         btn.className = "attr-btn";
         btn.dataset.attr = attr;
 
@@ -677,12 +690,12 @@ function updateList(resetSelect=false) {
 
     // 項目指定検索用のマッピング (例: "特技:攻撃" で skill1/2 を検索)
     const fieldMap = {
-        "特殊": ["traits"], 
-        "特技": ["skill1", "skill2"], 
-        "奥義": ["ultimate","ex_ultimate"],
-        "魔道具": ["magic_item1", "magic_item2"], 
-        "コンボ": ["combo"], 
-        "通常": ["normal_attack"]
+        "特殊": ["traits"], "trait": ["traits"], "traits": ["traits"],
+        "特技": ["skill1", "skill2"], "skill": ["skill1", "skill2"],
+        "奥義": ["ultimate","ex_ultimate"], "ult": ["ultimate","ex_ultimate"], "ultimate": ["ultimate","ex_ultimate"],
+        "魔道具": ["magic_item1", "magic_item2"], "magic": ["magic_item1", "magic_item2"], "item": ["magic_item1", "magic_item2"],
+        "コンボ": ["combo"], "combo": ["combo"],
+        "通常": ["normal_attack"], "normal": ["normal_attack"]
     };
 
     // --- フィルタリング実行 ---
@@ -1046,11 +1059,11 @@ function buildCharDetailHtml(char, filter = []) {
             <div class="char-info-row-top">
                 <div class="char-info-item">
                     <span class="char-label">${I18N.t('label.attribute')}</span>
-                    <span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(char.attribute)}</span>
+                    <span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(tData('attribute', char.attribute))}</span>
                 </div>
                 <div class="char-info-item">
                     <span class="char-label">${I18N.t('label.role')}</span>
-                    <span class="char-value">${highlightDetail(char.role)}</span>
+                    <span class="char-value">${highlightDetail(tData('role', char.role))}</span>
                 </div>
                 <div class="char-info-item">
                     <span class="char-label">${I18N.t('label.position')}</span>
@@ -1058,11 +1071,11 @@ function buildCharDetailHtml(char, filter = []) {
                 </div>
                 <div class="char-info-item">
                     <span class="char-label">${I18N.t('label.rarity')}</span>
-                    <span class="char-value">${highlightDetail(char.rarity)}</span>
+                    <span class="char-value">${highlightDetail(tData('rarity', char.rarity))}</span>
                 </div>
                 <div class="char-info-item">
                     <span class="char-label">${I18N.t('label.gacha')}</span>
-                    <span class="char-value">${highlightDetail(char.gacha)}</span>
+                    <span class="char-value">${highlightDetail(tData('gacha', char.gacha))}</span>
                 </div>
             </div>
             <div class="char-info-row-bottom">
@@ -1129,10 +1142,15 @@ function showDetail(char, filter = []) {
         return;
     }
 
-    // URLパラメータ更新（共有用）
+    // URLパラメータ更新（共有用）。比較ピン中は ?cmp= も反映する
     if (char.position) {
         const url = new URL(window.location);
         url.searchParams.set('pos', char.position);
+        if (compareChar && compareChar !== char && compareChar.position) {
+            url.searchParams.set('cmp', compareChar.position);
+        } else {
+            url.searchParams.delete('cmp');
+        }
         window.history.replaceState({}, '', toDisplayUrl(url));
     }
 
@@ -1443,6 +1461,12 @@ function handleUrlParameter() {
     if (targetPos) {
         const targetChar = characters.find(c => String(c.position) === targetPos);
         if (targetChar) {
+            // ?cmp= があれば比較ピンも復元（左=ピン / 右=pos のキャラ）
+            const cmpParam = params.get('cmp');
+            if (cmpParam && cmpParam !== targetPos) {
+                compareChar = characters.find(c => String(c.position) === cmpParam) || null;
+            }
+
             updateList(true); // 一度全リスト生成
 
             // 生成リスト内での位置を特定
@@ -1479,7 +1503,7 @@ function applyFilterStateToButtons() {
         if (!container) return;
         container.querySelectorAll('.group-btn').forEach(btn => {
             if (btn.id) return; // effect-mode-btn などの特殊ボタンを除外
-            btn.classList.toggle('active', set.has(btn.textContent));
+            btn.classList.toggle('active', set.has(btn.dataset.value || btn.textContent));
         });
     };
     setActive(ELS.gachaBtns, selectedGachas);
@@ -1542,7 +1566,8 @@ function setupGachaButtons() {
     container.innerHTML = "";
     ["フェス","恒常","季節","コラボ"].forEach(g => {
         const btn = document.createElement('button');
-        btn.textContent = g; btn.className = "group-btn";
+        btn.textContent = tData('gacha', g); btn.className = "group-btn";
+        btn.dataset.value = g;
         btn.onclick = () => {
             btn.classList.toggle('active');
             if (selectedGachas.has(g)) selectedGachas.delete(g); else selectedGachas.add(g);
@@ -1557,7 +1582,8 @@ function setupRarityButtons() {
     container.innerHTML = "";
     ["SS","S","A"].forEach(r => {
         const btn = document.createElement('button');
-        btn.textContent = r; btn.className = "group-btn";
+        btn.textContent = tData('rarity', r); btn.className = "group-btn";
+        btn.dataset.value = r;
         btn.onclick = () => {
             btn.classList.toggle('active');
             if (selectedRarities.has(r)) selectedRarities.delete(r); else selectedRarities.add(r);
@@ -2141,6 +2167,18 @@ function setupOptionPanel() {
  */
 const FONT_SCALE_MAP = { small: '90%', medium: '100%', large: '112%' };
 
+/**
+ * 言語切替セレクトの初期化
+ * 実際の切替は I18N.setLocale() が担当（localStorage 保存 + ?lang= 付きリロード）
+ */
+function setupLangControl() {
+    if (!ELS.langSelect) return;
+    ELS.langSelect.value = I18N.locale;
+    ELS.langSelect.addEventListener('change', () => {
+        I18N.setLocale(ELS.langSelect.value);
+    });
+}
+
 function setupFontSizeControl() {
     if (!ELS.fontSizeSelect) return;
 
@@ -2168,7 +2206,12 @@ function setupFontSizeControl() {
  */
 function setupListHeightControl() {
     if (!ELS.listHeightSelect || !ELS.list) return;
-    
+
+    // 静的HTMLの件数表記（「10件」等）をロケールに合わせて解決
+    ELS.listHeightSelect.querySelectorAll('option:not([value="auto"])').forEach(opt => {
+        opt.textContent = I18N.t('level.heightUnit', { n: opt.value });
+    });
+
     const saved = localStorage.getItem('kage_list_height');
     if (saved) ELS.listHeightSelect.value = saved;
 
@@ -2486,23 +2529,23 @@ function updateActiveFilterPills() {
 
     // 配列駆動のピル生成
     const pillDefs = [
-        { set: selectedAttrs, label: I18N.t('label.attribute'), colorFn: updateAttrBtnColors, container: null },
-        { set: selectedRoles, label: I18N.t('label.role'), colorFn: updateRoleBtnColors, container: null },
-        { set: selectedGachas, label: I18N.t('label.gacha'), colorFn: null, container: ELS.gachaBtns },
-        { set: selectedRarities, label: I18N.t('label.rarity'), colorFn: null, container: ELS.rarityBtns },
-        { set: selectedGroups, label: I18N.t('label.group'), colorFn: null, container: ELS.groupBtns },
-        { set: selectedNames, label: I18N.t('label.character'), colorFn: null, container: ELS.nameBtns },
-        { set: selectedEffects, label: I18N.t('toggle.effect'), colorFn: null, container: ELS.effectBtns },
+        { set: selectedAttrs, label: I18N.t('label.attribute'), cat: 'attribute', colorFn: updateAttrBtnColors, container: null },
+        { set: selectedRoles, label: I18N.t('label.role'), cat: 'role', colorFn: updateRoleBtnColors, container: null },
+        { set: selectedGachas, label: I18N.t('label.gacha'), cat: 'gacha', colorFn: null, container: ELS.gachaBtns },
+        { set: selectedRarities, label: I18N.t('label.rarity'), cat: 'rarity', colorFn: null, container: ELS.rarityBtns },
+        { set: selectedGroups, label: I18N.t('label.group'), cat: null, colorFn: null, container: ELS.groupBtns },
+        { set: selectedNames, label: I18N.t('label.character'), cat: null, colorFn: null, container: ELS.nameBtns },
+        { set: selectedEffects, label: I18N.t('toggle.effect'), cat: null, colorFn: null, container: ELS.effectBtns },
     ];
 
-    pillDefs.forEach(({ set, label, colorFn, container }) => {
+    pillDefs.forEach(({ set, label, cat, colorFn, container }) => {
         set.forEach(value => {
-            frag.appendChild(createFilterPill(`${label}: ${value}`, () => {
+            frag.appendChild(createFilterPill(`${label}: ${cat ? tData(cat, value) : value}`, () => {
                 set.delete(value);
                 if (colorFn) colorFn();
                 if (container) {
                     container.querySelectorAll('.group-btn').forEach(btn => {
-                        if (btn.textContent === value) btn.classList.remove('active');
+                        if ((btn.dataset.value || btn.textContent) === value) btn.classList.remove('active');
                     });
                 }
                 updateList(true);
