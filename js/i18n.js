@@ -15,9 +15,12 @@
  * ==============================================================================
  */
 (function () {
-  const SUPPORTED = ['ja', 'en'];
+  const SUPPORTED = ['ja', 'en', 'tw'];
   const DEFAULT_LOCALE = 'ja';
   const STORAGE_KEY = 'kage_lang';
+  // ロケール識別子はデータファイル名に合わせた短縮形。html の lang 属性には
+  // BCP-47 の正しいタグが必要なため対応表を持つ。
+  const HTML_LANG = { ja: 'ja', en: 'en', tw: 'zh-TW' };
 
   // --- ロケール解決 (優先度: URLパラメータ > localStorage > 既定) ---
   function resolveLocale() {
@@ -106,7 +109,7 @@
         dict = fallback;
       }
     }
-    document.documentElement.setAttribute('lang', locale);
+    document.documentElement.setAttribute('lang', HTML_LANG[locale] || locale);
     applyStaticDom();
   })();
 

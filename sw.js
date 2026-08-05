@@ -24,6 +24,7 @@ const PRECACHE_URLS = [
     'js/script.js',
     'i18n/ja.json',
     'i18n/en.json',
+    'i18n/tw.json',
     'characters/update_date_ja.json',
     'manifest.webmanifest',
     'image/kage.webp'
