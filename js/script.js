@@ -210,6 +210,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 5. データロード開始
     loadCharacters();
     loadUpdateDate();
+    showAiNotice();
 });
 
 /**
@@ -1323,6 +1324,14 @@ async function loadUpdateDate() {
         const el = document.getElementById('data-update');
         if (el && updated) el.textContent = I18N.t('msg.dataUpdate', { date: updated });
     } catch (_) { /* 表示は任意。失敗してもアプリ動作には影響しない */ }
+}
+
+/**
+ * AI翻訳である旨の注意書きを表示する（ja はキャラデータが原本なので出さない）
+ */
+function showAiNotice() {
+    const el = document.getElementById('ai-notice');
+    if (el) el.hidden = I18N.dataLocale === I18N.DEFAULT_LOCALE;
 }
 
 /**

@@ -200,6 +200,17 @@ h1 {
     padding-left: var(--sp-4);
 }
 
+.ai-notice {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: var(--sp-1);
+    padding-left: var(--sp-4);
+}
+
+.ai-notice[hidden] {
+    display: none;
+}
+
 /* =========================================
    Layout Container
    ========================================= */

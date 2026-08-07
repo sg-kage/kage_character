@@ -132,6 +132,7 @@
     "retry": "Reload",
     "hitCount": "Hits: {count}",
     "dataUpdate": "Data updated: {date} (JST)",
+    "aiNotice": "This English version is machine-translated by AI and may contain errors.",
     "captureFail": "Capture failed:",
     "previewShow": "Displaying image...",
     "previewFail": "Failed to show the preview. Open it from the save button.",

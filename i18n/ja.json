@@ -131,6 +131,7 @@
     "retry": "再読み込み",
     "hitCount": "ヒット件数: {count}件",
     "dataUpdate": "データ更新日: {date} (JST)",
+    "aiNotice": "英語版・繁体字版はAIによる翻訳のため、内容が間違っている可能性があります。",
     "captureFail": "キャプチャに失敗しました:",
     "previewShow": "画像を表示しています...",
     "previewFail": "プレビューの表示に失敗しました。保存ボタンから開いてください。",
