@@ -11,5 +11,10 @@
   },
   "msg": {
     "aiNotice": "此繁體中文版本為AI翻譯，內容可能有誤。"
+  },
+  "footer": {
+    "creator": "製作者：",
+    "discord": "Discord 伺服器：",
+    "disclaimer": "本網站 <a href=\"https://sg-kage.github.io/kage_character\" target=\"_blank\" rel=\"noopener\">kage_character</a> 為《我想成為影之強者！Master of Garden》的粉絲個人經營的非官方、非營利網站，與 Team CARAVAN、Aiming Inc. 及其他權利人並無任何關聯，亦未獲得這些公司的認可、贊助或授權。<br>站內刊載的遊戲內圖片、文字等內容之著作權、商標權及其他智慧財產權，均歸各該權利人所有。"
   }
 }
