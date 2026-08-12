@@ -19,7 +19,8 @@
     "attribute": { "赤": "Red", "緑": "Green", "黄": "Yellow", "青": "Blue" },
     "role": { "アタッカー": "Attacker", "タンク": "Tank", "サポーター": "Support" },
     "gacha": { "フェス": "Fes", "恒常": "Standard", "季節": "Seasonal", "コラボ": "Collab" },
-    "rarity": { "SS": "SS", "S": "S", "A": "A" }
+    "rarity": { "SS": "SS", "S": "S", "A": "A" },
+    "arousal": { "特技1": "Skill 1", "特技2": "Skill 2", "奥義": "Ultimate", "魔道具": "Magic Item", "特殊": "Trait", "通常攻撃": "Normal Attack" }
   },
   "search": {
     "placeholder": "Name, skill, trait:shield magic:parry etc.",

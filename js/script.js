@@ -157,6 +157,16 @@ function tData(category, value) {
 
 
 /**
+ * 覚醒順（「特技1→奥義→…」）の表示用変換
+ * データは全言語で日本語表記のため、区切りごとに data.arousal で解決する。
+ */
+function tArousal(text) {
+    if (!text) return '';
+    return text.split('→').map(t => tData('arousal', t.trim())).join('→');
+}
+
+
+/**
  * かな正規化ヘルパー
  * 検索時にひらがな・カタカナを同一視するための変換
  */
@@ -277,6 +287,21 @@ const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
  */
 function charImageBase(char) {
     return char.image || char.name;
+}
+
+/**
+ * 表示名からキャラ名部分だけを取り出して配列で返す。
+ * ja/tw は「キャラ名[肩書]」、en は「Title: Character Name」の形式。
+ */
+function baseNamesOf(name) {
+    let base;
+    if (name.includes('[')) {
+        base = name.split('[')[0];
+    } else {
+        const parts = name.split(CONFIG.REGEX.splitColon);
+        base = parts.length > 1 ? parts.slice(1).join(':') : name;
+    }
+    return base.split(CONFIG.REGEX.splitName).map(n => n.trim()).filter(Boolean);
 }
 
 function setupImageFallback() {
@@ -739,9 +764,7 @@ function updateList(resetSelect=false) {
         
         // 名前フィルタ（バリエーション違いを同一視）
         if (selectedNames.size > 0) {
-            const cleanName = char.name.split('[')[0].trim();
-            const names = cleanName.split(CONFIG.REGEX.splitName).map(n => n.trim());
-            if (!names.some(n => selectedNames.has(n))) return false;
+            if (!baseNamesOf(char.name).some(n => selectedNames.has(n))) return false;
         }
 
         // 効果フィルタ（AND/OR モード対応）
@@ -1095,7 +1118,7 @@ function buildCharDetailHtml(char, filter = []) {
                 </div>
                 <div class="char-info-item char-info-wide">
                     <span class="char-label">${I18N.t('label.arousal')}</span>
-                    <span class="char-value char-value-plain">${escapeHtml(char.arousal)}</span>
+                    <span class="char-value char-value-plain">${escapeHtml(tArousal(char.arousal))}</span>
                 </div>
             </div>
         </div>`;
@@ -1393,6 +1416,7 @@ function prepareSearchData() {
             c.role,
             String(c.position || ''),
             c.arousal || '',
+            tArousal(c.arousal),
             (c.group || []).join(' '),
             c.aliases ? (Array.isArray(c.aliases) ? c.aliases.join(' ') : c.aliases) : '',
             FIELD_KEYS.map(f => c._fieldSearch[f]).join(' ')
@@ -1635,7 +1659,7 @@ function setupNameButtons() {
     const container = ELS.nameBtns;
     container.innerHTML = "";
     const allNames = new Set();
-    characters.forEach(c => c.name.split('[')[0].split(CONFIG.REGEX.splitName).forEach(n => allNames.add(n.trim())));
+    characters.forEach(c => baseNamesOf(c.name).forEach(n => allNames.add(n)));
     
     Array.from(allNames)
         .sort((a, b) => customSort(a, b, 'name'))
