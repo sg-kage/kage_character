@@ -5,7 +5,8 @@
     "ogTitle": "【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン",
     "ogDescription": "カゲマスの全キャラ性能を検索できるデータベースサイト。スキル詳細、魔道具、覚醒前後の切り替え確認が可能です。",
     "twitterTitle": "【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン",
-    "twitterDescription": "カゲマスの全キャラ性能を検索できるデータベースサイト。スキル詳細、魔道具、覚醒前後の切り替え確認が可能です。"
+    "twitterDescription": "カゲマスの全キャラ性能を検索できるデータベースサイト。スキル詳細、魔道具、覚醒前後の切り替え確認が可能です。",
+    "siteName": "カゲマスキャラ検索DB"
   },
   "header": {
     "brandMain": "カゲマスキャラ検索",
@@ -137,25 +138,6 @@
     "previewFail": "プレビューの表示に失敗しました。保存ボタンから開いてください。",
     "saveImage": "画像を保存",
     "close": "閉じる"
-  },
-  "modal": {
-    "intro": "健全なプレイヤーのみ使用可能です。",
-    "tosNote": "（<a href=\"https://aiming-inc.com/ja/tos/\" target=\"_blank\" rel=\"noopener\">Aiming</a>の利用規約を遵守してください）",
-    "condIntro": "最低限以下に該当する行為をしていない、<br>または過去にしていないことが条件です",
-    "itemCheat": "・チート行為",
-    "itemGlitch": "・グリッチ行為<br>　（例：意図的なギルメンの入れ替えによる加算）",
-    "itemSubAccount": "・サブアカウントの使用",
-    "itemMoney": "・金銭のやり取り",
-    "itemScraping": "・外部ツールを使ったデータ取得",
-    "showOriginal": "オリジナル利用規約抜粋を見る",
-    "confirm": "これらに該当しませんか？",
-    "agree": "はい",
-    "deny": "いいえ",
-    "denyAlert": "ご利用いただけません。",
-    "originalTitle": "【オリジナル利用規約抜粋】",
-    "originalItem1": "・利用者は本サイトの内容を無断転載・再配布してはなりません。",
-    "originalItem2": "・自動取得スクリプトなどの使用は禁止されています。",
-    "originalClose": "閉じる"
   },
   "footer": {
     "creator": "作成者:",

@@ -1,6 +1,18 @@
 {
-  "_note": "繁體中文テンプレート。未記入のキーは自動的に ja へフォールバックする（js/i18n.js の resolve）。キー構成は ja.json に合わせて少しずつ追記する。",
+  "_note": "繁體中文リソース。未記入のキーは自動的に ja へフォールバックする（js/i18n.js の resolve）。キー構成は ja.json に合わせること。",
+  "meta": {
+    "title": "【影之強者】角色檢索 | 我想成為影之強者！Master of Garden",
+    "description": "《我想成為影之強者！Master of Garden》的全角色資料庫。可查詢技能效果、連擊倍率、屬性、角色定位與專屬魔道具的性能，適合編隊與攻略參考。",
+    "ogTitle": "【影之強者】角色檢索 | 我想成為影之強者！Master of Garden",
+    "ogDescription": "可查詢《影之強者》全角色性能的資料庫網站。支援技能詳情、魔道具，以及覺醒前後的切換確認。",
+    "twitterTitle": "【影之強者】角色檢索 | 我想成為影之強者！Master of Garden",
+    "twitterDescription": "可查詢《影之強者》全角色性能的資料庫網站。支援技能詳情、魔道具，以及覺醒前後的切換確認。",
+    "siteName": "影之強者角色檢索DB"
+  },
   "header": {
+    "brandMain": "影之強者角色檢索",
+    "brandSub": "我想成為影之強者！Master of Garden",
+    "subDesc": "以屬性、角色定位、技能、魔道具篩選全角色",
     "langLabel": "顯示語言"
   },
   "data": {
@@ -9,12 +21,130 @@
     "gacha": { "フェス": "祭典", "恒常": "常駐", "季節": "季節", "コラボ": "聯名" },
     "rarity": { "SS": "SS", "S": "S", "A": "A" }
   },
+  "search": {
+    "placeholder": "角色名 技能等 特殊:護盾 魔道具:格擋 等",
+    "ariaFilter": "角色搜尋篩選",
+    "ariaClear": "清除搜尋",
+    "helpSummary": "搜尋指令的使用方式",
+    "helpIntro": "在關鍵字前加上<b>欄位名稱:</b>，就能只搜尋該欄位。",
+    "helpExample1": "範例：「特殊:護盾 魔道具:格擋」",
+    "helpExample2": "全形與半形字元不予區分即可搜尋。",
+    "cmdTraits": "特殊:",
+    "cmdMagic": "魔道具:",
+    "cmdUltimate": "奧義:",
+    "cmdSkill": "特技:",
+    "cmdCombo": "連擊:",
+    "cmdNormal": "普攻:"
+  },
+  "toggle": {
+    "name": "角色名",
+    "group": "群組",
+    "effect": "效果",
+    "gacha": "轉蛋",
+    "rarity": "稀有度"
+  },
+  "btn": {
+    "sort": "位置排序",
+    "ariaSort": "切換位置排序",
+    "imgOn": "圖片: ON",
+    "imgOff": "圖片: OFF",
+    "ariaImg": "切換角色圖片顯示",
+    "lvSetting": "等級設定",
+    "ariaLvSetting": "技能／魔道具等級設定面板",
+    "capture": "截圖",
+    "ariaCapture": "儲存角色詳情的截圖",
+    "favTitle": "只顯示我的最愛",
+    "favPill": "★ 我的最愛",
+    "ariaFavStar": "切換我的最愛",
+    "clearAll": "全部清除 ×",
+    "compare": "雙角色比較",
+    "compareStop": "取消比較",
+    "ariaCompare": "切換雙角色比較",
+    "compareHint": "固定目前的角色，與下一個選擇的角色並排顯示"
+  },
+  "fav": {
+    "label": "我的最愛資料:",
+    "export": "匯出",
+    "import": "匯入",
+    "share": "複製分享連結",
+    "exportDone": "已將 {count} 筆我的最愛複製到剪貼簿。\n請在新裝置的「匯入」貼上。",
+    "exportManual": "請複製並保存以下資料:",
+    "importPrompt": "請貼上匯出的我的最愛資料:",
+    "importDone": "已匯入 {count} 筆我的最愛。",
+    "importFail": "無法讀取資料。請直接貼上匯出時的資料。",
+    "shareEmpty": "尚未登錄我的最愛。請先用★登錄角色。",
+    "shareDone": "已複製分享連結（{count} 筆）。傳送這個網址後，對方的畫面就會顯示我的最愛角色一覽。",
+    "shareManual": "請複製並傳送以下網址:",
+    "sharedBanner": "分享的我的最愛: 顯示 {count} 筆",
+    "sharedBannerPartial": "分享的我的最愛: 顯示 {matched}/{total} 筆（部分在目前的資料中找不到）",
+    "sharedAddBtn": "加入我的最愛",
+    "sharedDismissBtn": "取消",
+    "sharedAddDone": "已加入我的最愛（{count} 筆）。"
+  },
+  "level": {
+    "skillLv": "技能Lv:",
+    "magicLv": "魔道具Lv:",
+    "listHeight": "清單顯示筆數",
+    "heightAuto": "自動",
+    "heightUnit": "{n}筆",
+    "fontSize": "文字大小",
+    "fontSmall": "字級小",
+    "fontMedium": "字級中",
+    "fontLarge": "字級大"
+  },
+  "effect": {
+    "modeAnd": "效果搜尋: AND",
+    "modeOr": "效果搜尋: OR"
+  },
+  "tab": {
+    "compare": "比較",
+    "normal": "覺醒前",
+    "awakened": "覺醒後"
+  },
+  "label": {
+    "normal": "覺醒前",
+    "awakened": "覺醒後",
+    "attribute": "屬性",
+    "role": "角色定位",
+    "position": "位置",
+    "rarity": "稀有度",
+    "gacha": "轉蛋",
+    "group": "群組",
+    "arousal": "覺醒",
+    "character": "角色"
+  },
+  "section": {
+    "exUltimate": "究極奧義",
+    "ultimate": "奧義",
+    "skill1": "特技1",
+    "skill2": "特技2",
+    "traits": "特殊",
+    "combo": "連擊",
+    "normalAttack": "普通攻擊",
+    "magicItem1": "魔道具1",
+    "magicItem2": "魔道具2"
+  },
   "msg": {
-    "aiNotice": "此繁體中文版本為AI翻譯，內容可能有誤。"
+    "loading": "資料載入中...",
+    "selectChar": "請選擇角色",
+    "noResults": "找不到符合條件的角色",
+    "noResultsSub": "請試著更改篩選條件",
+    "loadFail": "資料載入失敗。",
+    "retry": "重新載入",
+    "hitCount": "符合: {count} 筆",
+    "dataUpdate": "資料更新日: {date} (JST)",
+    "aiNotice": "此繁體中文版本為AI翻譯，內容可能有誤。",
+    "captureFail": "截圖失敗:",
+    "previewShow": "正在顯示圖片...",
+    "previewFail": "預覽顯示失敗。請從儲存按鈕開啟。",
+    "saveImage": "儲存圖片",
+    "close": "關閉"
   },
   "footer": {
     "creator": "製作者：",
+    "creatorLink": "kagenotify（X／原 Twitter）",
     "discord": "Discord 伺服器：",
+    "discordLink": "陰マス通知",
     "disclaimer": "本網站 <a href=\"https://sg-kage.github.io/kage_character\" target=\"_blank\" rel=\"noopener\">kage_character</a> 為《我想成為影之強者！Master of Garden》的粉絲個人經營的非官方、非營利網站，與 Team CARAVAN、Aiming Inc. 及其他權利人並無任何關聯，亦未獲得這些公司的認可、贊助或授權。<br>站內刊載的遊戲內圖片、文字等內容之著作權、商標權及其他智慧財產權，均歸各該權利人所有。"
   }
 }

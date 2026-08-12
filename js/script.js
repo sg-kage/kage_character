@@ -271,6 +271,14 @@ const IMG_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent(
     '<path d="M20 84c0-15 12-24 28-24s28 9 28 24z" fill="#4a5268"/></svg>'
 );
 
+/**
+ * 画像ファイル名のベース名を返す。
+ * 画像は日本語名で保存されているため、en/tw では JSON の image を使う。
+ */
+function charImageBase(char) {
+    return char.image || char.name;
+}
+
 function setupImageFallback() {
     document.addEventListener('error', (e) => {
         const t = e.target;
@@ -693,10 +701,10 @@ function updateList(resetSelect=false) {
     const fieldMap = {
         "特殊": ["traits"], "trait": ["traits"], "traits": ["traits"],
         "特技": ["skill1", "skill2"], "skill": ["skill1", "skill2"],
-        "奥義": ["ultimate","ex_ultimate"], "ult": ["ultimate","ex_ultimate"], "ultimate": ["ultimate","ex_ultimate"],
+        "奥義": ["ultimate","ex_ultimate"], "奧義": ["ultimate","ex_ultimate"], "ult": ["ultimate","ex_ultimate"], "ultimate": ["ultimate","ex_ultimate"],
         "魔道具": ["magic_item1", "magic_item2"], "magic": ["magic_item1", "magic_item2"], "item": ["magic_item1", "magic_item2"],
-        "コンボ": ["combo"], "combo": ["combo"],
-        "通常": ["normal_attack"], "normal": ["normal_attack"]
+        "コンボ": ["combo"], "連擊": ["combo"], "combo": ["combo"],
+        "通常": ["normal_attack"], "普攻": ["normal_attack"], "普通攻擊": ["normal_attack"], "normal": ["normal_attack"]
     };
 
     // --- フィルタリング実行 ---
@@ -801,7 +809,7 @@ function updateList(resetSelect=false) {
             imgArea1.className = 'list-img-area';
 
             const img1 = document.createElement('img');
-            img1.src = `image/characters/${char.name}.webp`;
+            img1.src = `image/characters/${charImageBase(char)}.webp`;
             img1.className = 'list-img';
             img1.loading = 'lazy';
             imgArea1.appendChild(img1);
@@ -820,7 +828,7 @@ function updateList(resetSelect=false) {
         // JSON の has_ex フラグで出し分け、無駄な 404 を防止
         if (showImages && char.has_ex) {
             const img2 = document.createElement('img');
-            img2.src = `image/characters/${char.name}_Ex.webp`;
+            img2.src = `image/characters/${charImageBase(char)}_Ex.webp`;
             img2.className = 'list-img-ex';
             img2.loading = 'lazy';
             li.appendChild(img2);
@@ -1026,9 +1034,10 @@ function buildCharDetailHtml(char, filter = []) {
     let imageHtml = "";
     if (showImages) {
         const base = "image/characters/";
-        const imgData = [{ src: `${base}${char.name}.webp`, suffix: "" }];
+        const imgBase = charImageBase(char);
+        const imgData = [{ src: `${base}${imgBase}.webp`, suffix: "" }];
         if (char.has_ex) {
-            imgData.push({ src: `${base}${char.name}_Ex.webp`, suffix: " Ex" });
+            imgData.push({ src: `${base}${imgBase}_Ex.webp`, suffix: " Ex" });
         }
 
         imageHtml = `

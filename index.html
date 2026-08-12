@@ -12,7 +12,7 @@
   <meta property="og:title" data-i18n-attr="content:meta.ogTitle" content="【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン">
   <meta property="og:description" data-i18n-attr="content:meta.ogDescription" content="カゲマスの全キャラ性能を検索できるデータベースサイト。スキル詳細、魔道具、覚醒前後の切り替え確認が可能です。">
   <meta property="og:url" content="https://sg-kage.github.io/kage_character/">
-  <meta property="og:site_name" content="カゲマスキャラ検索DB">
+  <meta property="og:site_name" data-i18n-attr="content:meta.siteName" content="カゲマスキャラ検索DB">
   <meta property="og:locale" content="ja_JP">
   <meta property="og:image" content="https://sg-kage.github.io/kage_character/image/thumbnail.webp">
 
@@ -72,12 +72,12 @@
       <p class="ai-notice" id="ai-notice" data-i18n="msg.aiNotice" hidden>英語版・繁体字版はAIによる翻訳のため、内容が間違っている可能性があります。</p>
     </div>
     <div class="header-controls">
-      <select id="lang-select" data-i18n-attr="aria-label:header.langLabel" aria-label="表示言語">
+      <select id="lang-select" class="header-select" data-i18n-attr="aria-label:header.langLabel" aria-label="表示言語">
         <option value="ja">日本語</option>
         <option value="en">English</option>
         <option value="tw">繁體中文</option>
       </select>
-      <select id="font-size-select" data-i18n-attr="aria-label:level.fontSize" aria-label="文字サイズ">
+      <select id="font-size-select" class="header-select" data-i18n-attr="aria-label:level.fontSize" aria-label="文字サイズ">
         <option value="small" data-i18n="level.fontSmall">文字小</option>
         <option value="medium" data-i18n="level.fontMedium">文字中</option>
         <option value="large" data-i18n="level.fontLarge">文字大</option>

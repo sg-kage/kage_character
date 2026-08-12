@@ -1,15 +1,16 @@
 {
   "_note": "English template. Empty values fall back to ja automatically. Fill in incrementally. Keys must mirror ja.json.",
   "meta": {
-    "title": "Kagemasu Character Search | The Eminence in Shadow: Master of Garden",
-    "description": "Character database for 'The Eminence in Shadow: Master of Garden' (Kagemasu). Search skill effects, combo multipliers, attributes, roles, and magic item performance for every character.",
-    "ogTitle": "Kagemasu Character Search | The Eminence in Shadow: Master of Garden",
-    "ogDescription": "Searchable database of every Kagemasu character: skill details, magic items, and pre/post-awakening comparison.",
-    "twitterTitle": "Kagemasu Character Search | The Eminence in Shadow: Master of Garden",
-    "twitterDescription": "Searchable database of every Kagemasu character: skill details, magic items, and pre/post-awakening comparison."
+    "title": "Master of Garden Character Search | The Eminence in Shadow (Kagemasu)",
+    "description": "Character database for The Eminence in Shadow: Master of Garden (Kagemasu). Search skill effects, combo multipliers, attributes, roles, and magic item performance for every character.",
+    "ogTitle": "Master of Garden Character Search | The Eminence in Shadow (Kagemasu)",
+    "ogDescription": "Searchable database of every Master of Garden character: skill details, magic items, and pre/post-awakening comparison.",
+    "twitterTitle": "Master of Garden Character Search | The Eminence in Shadow (Kagemasu)",
+    "twitterDescription": "Searchable database of every Master of Garden character: skill details, magic items, and pre/post-awakening comparison.",
+    "siteName": "Master of Garden Character Search DB"
   },
   "header": {
-    "brandMain": "Kagemasu Character Search",
+    "brandMain": "Master of Garden Character Search",
     "brandSub": "The Eminence in Shadow: Master of Garden",
     "subDesc": "Filter every character by attribute, role, skills, and magic items",
     "langLabel": "Language"
@@ -138,25 +139,6 @@
     "previewFail": "Failed to show the preview. Open it from the save button.",
     "saveImage": "Save image",
     "close": "Close"
-  },
-  "modal": {
-    "intro": "",
-    "tosNote": "",
-    "condIntro": "",
-    "itemCheat": "",
-    "itemGlitch": "",
-    "itemSubAccount": "",
-    "itemMoney": "",
-    "itemScraping": "",
-    "showOriginal": "",
-    "confirm": "",
-    "agree": "",
-    "deny": "",
-    "denyAlert": "",
-    "originalTitle": "",
-    "originalItem1": "",
-    "originalItem2": "",
-    "originalClose": ""
   },
   "footer": {
     "creator": "Creator:",

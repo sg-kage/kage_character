@@ -21,6 +21,8 @@
   // ロケール識別子はデータファイル名に合わせた短縮形。html の lang 属性には
   // BCP-47 の正しいタグが必要なため対応表を持つ。
   const HTML_LANG = { ja: 'ja', en: 'en', tw: 'zh-TW' };
+  // og:locale は BCP-47 ではなく language_TERRITORY 形式
+  const OG_LOCALE = { ja: 'ja_JP', en: 'en_US', tw: 'zh_TW' };
 
   // --- ロケール解決 (優先度: URLパラメータ > localStorage > 既定) ---
   function resolveLocale() {
@@ -110,6 +112,8 @@
       }
     }
     document.documentElement.setAttribute('lang', HTML_LANG[locale] || locale);
+    const ogLocale = document.querySelector('meta[property="og:locale"]');
+    if (ogLocale) ogLocale.setAttribute('content', OG_LOCALE[locale] || locale);
     applyStaticDom();
   })();
 
@@ -125,8 +129,10 @@
     setLocale(loc) {
       if (!SUPPORTED.includes(loc)) return;
       try { localStorage.setItem(STORAGE_KEY, loc); } catch (_) {}
+      // lang は共有URLの先頭に置く（他パラメータの順序は保つ）
       const url = new URL(location.href);
-      url.searchParams.set('lang', loc);
+      const rest = [...url.searchParams].filter(([k]) => k !== 'lang');
+      url.search = new URLSearchParams([['lang', loc], ...rest]).toString();
       location.href = url.toString();
     }
   };

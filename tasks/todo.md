@@ -189,3 +189,107 @@
 - a11y: favBtn aria-pressed false→true、行スター role=button/label/pressed を確認
 - 画像: 一覧4枚＋詳細画像をわざと404→全て data:image/svg+xml に差し替え・`.img-placeholder` 付与・壊れアイコンや空白なし（PC/スマホ幅で目視）
 - `node --check` OK、ja/en btn キー一致、コンソールエラー0
+
+# TODO: 日本語以外でキャラ画像が表示されない 2026-08-12
+
+原因: 画像は日本語名（`image/characters/<日本語名>.webp`）で保存されているが、script.js が
+表示名 `char.name` からパスを組み立てていたため、en/tw では訳名でリクエストして 404 になっていた。
+
+## 対応
+- 生成側 `CSV/ja/02_all_characters_make.py`: キャラ個別JSONのファイル名（＝日本語名）を `image` フィールドとして付与。`name` と一致する ja では付けないので ja のデータは無変更
+- `all_characters_en.json` / `all_characters_tw.json` を再生成してリポジトリへ反映（update_date_*.json は内容変更ではないため元の値を維持）
+- `js/script.js`: `charImageBase(char)`（`char.image || char.name`）を追加し、一覧の通常/Ex画像・詳細画像の計4か所で使用
+
+## 検証（preview: localhost:8765）
+- en: list-img 198件、data-ph（プレースホルダ差し替え）0件、src が日本語名になっていることを確認
+- tw: 198/198 が naturalWidth>0 で読み込み成功、プレースホルダ0件
+- ja: 198/198 読み込み成功（回帰なし）、コンソールエラー0件
+
+# TODO: 言語セレクトの見た目がヘッダーと合っていない 2026-08-12
+
+原因: `#lang-select` に CSS が一切当たっておらずブラウザ標準のまま（白背景・グレー枠・角丸なし・高さ19px）。
+隣の `#font-size-select` は `#font-size-select` セレクタで個別に暗色スタイルが当たっていた。
+
+## 対応
+- `#font-size-select` 専用だったスタイルを `.header-select` クラスに一般化し、`index.html` の言語・文字サイズ両セレクトに付与
+- `appearance: none` ＋ CSS グラデーションの自前矢印にして、OS 標準ドロップダウン矢印による見た目のブレを解消（`-webkit-appearance` も併記）
+- `option` にも暗色背景を指定。`.header-btn` に `line-height: 1.5` を追加し、セレクトとボタンの高さを一致させた
+- 480px 以下のメディアクエリにも `.header-select` の padding 調整を追加（`.header-btn` と同じ縮小率）
+
+## 検証（preview: localhost:8765）
+- デスクトップ ja/en: 言語・文字サイズ・画像ボタンの高さが 36px で揃い、背景 `--bg-elevated` / 角丸 8px も一致
+- モバイル幅(375px) en: ラベルが長い "English" でも折り返しやはみ出しなし
+- `#list-height-select`（一覧の「自動」）は別コンテキストのため今回は変更せず
+
+## 追記: URLの lang パラメータの位置 2026-08-12
+
+`URLSearchParams.set()` は既存キーなら位置を維持・新規キーなら末尾追加のため、`lang` の位置が入り口で
+変わっていた（`?lang=en` で来訪→先頭 / セレクトで切替→末尾）。i18n.js の `setLocale()` で
+`lang` を先頭に置き直すよう変更（他パラメータの相対順序は維持）。機能への影響はなく、共有URLの見た目の一貫性のみ。
+
+検証: `?q=シド&sort=pos` から en→tw と切り替え、`?lang=xx&q=シド&sort=pos&pos=319` の形で lang が先頭・重複なし・コンソールエラー0件を確認。
+
+# TODO: モーダル削除 & 多言語対応の棚卸し 2026-08-12
+
+## モーダル削除
+`js/modal.js` は index.html から読み込まれておらず（script タグは i18n.js と script.js のみ、`#modal-container` も不在）、
+既に完全な死にコードだった。以下をまとめて削除。
+- `js/modal.js`（利用規約モーダル一式）
+- `style/style.css` の Terms Modal セクション（#terms-modal-bg / #terms-modal / #show-original-terms-btn / #agree-btn / #deny-btn / #original-terms-modal 系）と 480px 以下の `#terms-modal` 調整、計151行
+- `i18n/ja.json` `i18n/en.json` の `modal.*`（17キー）。tw には元から無し
+- 検証: node --check OK、JSON パース OK、`[id*="terms"]` の要素0件、一覧198件表示、コンソールエラー0件
+
+## 多言語対応の現状（棚卸し結果）
+- en: UI 146キー中 146 翻訳済み（modal 削除後は欠けなし）＝実質完了
+- tw: 20キー分（data.* / header.langLabel / msg.aiNotice / footer 3件）のみで、**126キーが未翻訳＝ja へフォールバック**。
+  ボタン・検索・ラベル・セクション見出し・meta（title/description/OGP）が日本語のまま表示される
+- 非i18n箇所（両言語共通の残課題）
+  - `index.html` の一覧件数セレクト `10件/15件/20件` がハードコード
+  - `og:site_name` と JSON-LD (`name` / `description`) が日本語固定（静的タグのため言語切替で変わらない）
+- script.js 内の日本語リテラル（"赤"/"アタッカー"/"フェス"、検索コマンドの "特技:" など）は
+  キャラデータ側のキーと検索エイリアスであり、表示は `data.*` 経由で翻訳される。仕様どおりで対応不要
+
+# TODO: 繁体字(tw)のUI翻訳を完成させる 2026-08-12
+
+## 対応
+- `i18n/tw.json` を 20キー → ja/en と同じ 128キーに拡充（meta / header / search / toggle / btn / fav / level / effect / tab / label / section / msg / footer すべて）
+  - 既訳（data.* / langLabel / aiNotice / footer 3件）はそのまま維持
+  - 用語は tw のキャラデータ側の表記に合わせた: シールド→護盾、パリィ→格擋、奥義→奧義、コンボ→連擊、通常攻撃→普通攻擊
+  - 検索例文は実データでヒットすることを確認して確定（`特殊:護盾 魔道具:格擋` = 1件。当初案の「招架」は0件だったため差し替え）
+- `js/script.js` の fieldMap に繁体字の項目名エイリアスを追加（奧義 / 連擊 / 普攻 / 普通攻擊）。
+  特殊・特技・魔道具は日本語と同じ字形のため既存キーで動作する
+- OGP: `og:site_name` を `meta.siteName` で i18n 化し、3言語に追加。`og:locale` は i18n.js で
+  ロケールに応じて ja_JP / en_US / zh_TW を出し分け（BCP-47 とは形式が違うため HTML_LANG とは別表）
+- JSON-LD (`application/ld+json`) は構造化データのため今回は日本語固定のまま（言語別に出し分けるなら別途）
+
+## 訂正
+前回「一覧件数セレクトが 10件/15件/20件 でハードコード」と報告したが誤り。
+`script.js` の `applyListHeight()` が `level.heightUnit` ({n}件 / {n} rows / {n}筆) で上書きしており、既に i18n 済みだった。
+
+## 検証（preview: localhost:8765）
+- tw: ヘッダー・フィルタ・検索欄・ヒット件数(符合: 198 筆)・Lv設定パネル(技能Lv / 魔道具Lv / 我的最愛資料)・件数セレクト(10筆…) が繁体字表示。
+  画面テキスト中に残る日本語はキャラ名などのデータ由来と Discord サーバー名「陰マス通知」（固有名詞のため意図的に非翻訳）のみ
+- tw 検索コマンド: 奧義:攻擊=118件 / 特殊:護盾=20件 / 連擊:攻擊=12件 / 普攻:傷害=198件 / 魔道具:格擋=5件、奧義:zzz=0件（パース正常）
+- en: trait:shield=20件 / magic:parry=5件、og:locale=en_US、og:site_name=Kagemasu Character Search DB
+- ja: 特殊:シールド=20件 / 魔道具:パリィ=5件 / 奥義:ダメージ=154件、件数セレクト「10件」、画像198件、回帰なし
+- コンソールエラー0件
+
+## 修正: tw のサイト名から作品名が抜けていた 2026-08-12
+ja「カゲマスキャラ検索」/ en「Kagemasu Character Search」は作品略称＋キャラ検索の構成だが、
+tw を「角色檢索」とだけ訳したため作品名が消えていた。繁体字版の公式タイトル
+《我想成為影之強者！Master of Garden》に合わせ、略称「影之強者」を補って以下を修正。
+- header.brandMain: 角色檢索 → 影之強者角色檢索
+- meta.title / ogTitle / twitterTitle: 【影之強者】角色檢索 | 我想成為影之強者！Master of Garden
+- meta.ogDescription / twitterDescription: 冒頭に《影之強者》を明記
+- meta.siteName: 角色檢索資料庫 → 影之強者角色檢索DB
+検証: tw でタイトル・ヘッダー・og:site_name が上記表示。375px 幅でもヘッダー見出しは1行で収まる（133px / 375px）
+
+## 修正: en のサイト名も分かりやすく 2026-08-12
+"Kagemasu" は日本語略称のローマ字表記で英語圏では通じないため、ゲームの通称 "Master of Garden" を主にした。
+検索流入のため "Kagemasu" はタイトル・description に併記して残す。
+- header.brandMain: Kagemasu Character Search → Master of Garden Character Search
+- meta.title / ogTitle / twitterTitle: Master of Garden Character Search | The Eminence in Shadow (Kagemasu)
+- meta.ogDescription / twitterDescription: every Kagemasu character → every Master of Garden character
+- meta.siteName: Master of Garden Character Search DB
+- meta.description: 引用符を外して The Eminence in Shadow: Master of Garden (Kagemasu) 表記に統一
+検証: en でタイトル・ヘッダー・og:site_name を確認。375px 幅でも見出しは1行（297px / 375px）で横スクロールなし、コンソールエラー0件
