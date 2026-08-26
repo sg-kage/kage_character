@@ -64,6 +64,8 @@
 
   /**
    * data-i18n 属性を持つ要素にテキストを流し込む。
+   * 辞書に引けないキーは上書きしない。HTML 側の既定文言(ja)を残すことで、
+   * 辞書の読み込みに失敗したクローラにキー名がインデックスされるのを防ぐ。
    *   data-i18n="key"           → textContent
    *   data-i18n-html="key"      → innerHTML (リンク等を含む文言用)
    *   data-i18n-attr="attr:key" → 指定属性 (";" 区切りで複数可)
@@ -71,10 +73,12 @@
   function applyStaticDom(root) {
     const scope = root || document;
     scope.querySelectorAll('[data-i18n]').forEach(el => {
-      el.textContent = t(el.getAttribute('data-i18n'));
+      const v = resolve(el.getAttribute('data-i18n'));
+      if (v != null && v !== '') el.textContent = v;
     });
     scope.querySelectorAll('[data-i18n-html]').forEach(el => {
-      el.innerHTML = t(el.getAttribute('data-i18n-html'));
+      const v = resolve(el.getAttribute('data-i18n-html'));
+      if (v != null && v !== '') el.innerHTML = v;
     });
     scope.querySelectorAll('[data-i18n-attr]').forEach(el => {
       el.getAttribute('data-i18n-attr').split(';').forEach(pair => {
@@ -82,7 +86,9 @@
         if (idx < 0) return;
         const attr = pair.slice(0, idx).trim();
         const key = pair.slice(idx + 1).trim();
-        if (attr && key) el.setAttribute(attr, t(key));
+        if (!attr || !key) return;
+        const v = resolve(key);
+        if (v != null && v !== '') el.setAttribute(attr, v);
       });
     });
   }
