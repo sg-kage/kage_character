@@ -94,13 +94,19 @@
   }
 
   async function fetchDict(loc) {
-    const resp = await fetch(`i18n/${loc}.json`, { cache: 'no-cache' });
+    const url = `i18n/${loc}.json`;
+    // index.html の先頭で開始済みの取得があればそれを使う
+    const pre = window.kagePrefetched && window.kagePrefetched(url);
+    const resp = await (pre || fetch(url, { cache: 'no-cache' }));
     if (!resp.ok) throw new Error(`i18n load failed: ${loc} (${resp.status})`);
     return resp.json();
   }
 
   // --- 初期化 (script.js はこの ready を待つ) ---
   const ready = (async () => {
+    // 既定辞書と表示ロケール辞書は並行して取得する
+    const localePromise = locale === DEFAULT_LOCALE ? null : fetchDict(locale);
+    if (localePromise) localePromise.catch(() => {});
     try {
       fallback = await fetchDict(DEFAULT_LOCALE);
     } catch (e) {
@@ -111,7 +117,7 @@
       dict = fallback;
     } else {
       try {
-        dict = await fetchDict(locale);
+        dict = await localePromise;
       } catch (e) {
         console.warn(`[i18n] ${locale} の読み込みに失敗。ja へフォールバックします。`, e);
         dict = fallback;

@@ -4,6 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="meta.title">【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン</title>
+  <script>
+    // 起動に必要なデータの取得を HTML の解析中に開始する（js/ の到着を待たない）。
+    // ロケール判定は i18n.js の resolveLocale と同じ規則。ずれても URL が一致しない取得が使われないだけ。
+    (function () {
+      var pending = {};
+      window.kagePrefetched = function (url) { var p = pending[url]; delete pending[url]; return p; };
+      try {
+        var supported = ['ja', 'en', 'tw'];
+        var loc = new URLSearchParams(location.search).get('lang');
+        if (supported.indexOf(loc) < 0) loc = localStorage.getItem('kage_lang');
+        if (supported.indexOf(loc) < 0) loc = 'ja';
+        var start = function (url, init) { pending[url] = fetch(url, init); pending[url].catch(function () {}); };
+        start('i18n/ja.json', { cache: 'no-cache' });
+        if (loc !== 'ja') start('i18n/' + loc + '.json', { cache: 'no-cache' });
+        // 保存済みデータがある再訪時は script.js がそれで即表示するので本体は取らない
+        if (!localStorage.getItem('kage_char_data_v3_' + loc)) start('characters/all_characters_' + loc + '.json');
+      } catch (e) { /* 取得は各スクリプトが通常どおり行う */ }
+    })();
+  </script>
   <meta name="description" data-i18n-attr="content:meta.description" content="『陰の実力者になりたくて！マスターオブガーデン（カゲマス）』の全キャラクターデータベースです。スキル効果、コンボ倍率、属性、ロール、専用魔道具の性能を検索できます。パーティ編成や攻略の参考に。">
   <link rel="canonical" href="https://sg-kage.github.io/kage_character/">
   <meta name="robots" content="index, follow">
@@ -48,7 +67,9 @@
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+  <!-- フォントCSSは約120KBあるため描画をブロックさせない（読み込み後に適用） -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"></noscript>
   <link rel="stylesheet" href="style/style.css">
 
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-79BGMS7Q1F"></script>
@@ -215,7 +236,6 @@
       window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
     }
   </script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
   <script src="js/i18n.js"></script>
   <script src="js/script.js"></script>
 </body>

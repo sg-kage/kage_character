@@ -293,3 +293,25 @@ tw を「角色檢索」とだけ訳したため作品名が消えていた。�
 - meta.siteName: Master of Garden Character Search DB
 - meta.description: 引用符を外して The Eminence in Shadow: Master of Garden (Kagemasu) 表記に統一
 検証: en でタイトル・ヘッダー・og:site_name を確認。375px 幅でも見出しは1行（297px / 375px）で横スクロールなし、コンソールエラー0件
+
+## 改善: 初回起動の高速化 2026-10-03
+本番計測で JS 処理は約11ms と無視でき、ネットワークの直列待ちが支配的だった
+（HTML → i18n.js → ja.json → DOMContentLoaded → HEAD → GET の順に往復が連なる。GitHub Pages は1往復 約200ms）。
+- [x] script.js: キャラデータ取得を fetchCharacterData() に分離し、スクリプト読込直後（DOMContentLoaded・辞書待ちの前）に開始
+- [x] script.js: localStorage キャッシュが無い初回は HEAD を省いて直接 GET（Last-Modified は GET 応答から保存）
+- [x] script.js / index.html: html2canvas（転送46KB・展開199KB、パースをブロック）をスクショ初回押下時の遅延読み込みに変更
+- [x] index.html: Google Fonts CSS（転送122KB・展開466KB、描画ブロック）を media="print" → onload で非ブロック化
+- [x] i18n.js: en/tw 時に ja 辞書と表示ロケール辞書を並行取得
+- 検証（ローカル）: 初回は all_characters の GET 1本のみ・ja.json と並行して DCL 前に開始、205件表示。再訪は HEAD のみでキャッシュ利用。
+  スクショ押下で html2canvas が読み込まれ 2200px の画像を生成。?lang=en で辞書2本が同時開始・200件表示。取得失敗→再試行ボタン→復帰。コンソールエラー0件
+- 見送り: favicon の kage.webp が 565KB（描画は止めないが SW のプリキャッシュでも取得される）。小さいアイコンへの差し替えは別途検討
+
+## 改善: 初回起動の高速化（第2弾）2026-10-03
+- [x] index.html: `<head>` 先頭のインラインスクリプトで i18n 辞書とキャラデータ（保存済みデータが無い時のみ）の取得を開始。
+      i18n.js / script.js は `kagePrefetched(url)` で受け取る（URL 一致時のみ・1回限り。ずれたら通常どおり自前で取得）
+- [x] script.js: 保存済みデータがあれば通信を待たずに表示し、HEAD による更新確認は裏で実施（stale-while-revalidate）。
+      更新があれば applyUpdatedCharacters() で差し替え、フィルタ・選択中キャラ・比較ピンは position で引き継ぐ
+- 検証（ローカル）: 初回は ja.json と all_characters が CSS/JS と同時刻に開始・二重取得なし。再訪は HEAD のみで、
+  HEAD が応答しない状態でも 19ms で205件表示。古い保存データ（1件欠落・旧 Last-Modified）で ?attr=青&pos=386&cmp=385 を開くと
+  裏で取得→205件に更新され、青フィルタ・シャドウ選択・比較ピン(385)が維持。?lang=en 初回も3本同時開始で200件表示、取得失敗→再試行で復帰
+- 仕様上の注意: データ更新直後の再訪では、一瞬だけ古いデータが表示されてから新データに描き直される

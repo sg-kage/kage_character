@@ -1256,74 +1256,78 @@ function localeDataUrl(base, loc) {
 }
 
 /**
+ * index.html の先頭で開始済みの取得があれば受け取る（1回限り。無ければ undefined）
+ */
+function takePrefetched(url) {
+    return window.kagePrefetched ? window.kagePrefetched(url) : undefined;
+}
+
+/**
+ * キャラデータをネットワークから取得し、localStorage に保存して返す
+ * knownLastModified を渡すと HEAD で版を確認し、同じ版なら本体を取らずに null を返す
+ */
+async function fetchCharacterData(knownLastModified) {
+    // ロケール別データを優先。キャッシュキーもロケール別に分ける
+    let jsonUrl = localeDataUrl('all_characters');
+    const cacheKeyData = `kage_char_data_v3_${I18N.dataLocale}`;
+    const cacheKeyTime = `kage_char_time_v3_${I18N.dataLocale}`;
+    // ロケール別ファイルが無ければ ja データにフォールバック
+    const fetchWithFallback = async (init) => {
+        let resp = await ((!init && takePrefetched(jsonUrl)) || fetch(jsonUrl, init));
+        if (!resp.ok && I18N.dataLocale !== I18N.DEFAULT_LOCALE) {
+            jsonUrl = localeDataUrl('all_characters', I18N.DEFAULT_LOCALE);
+            resp = await fetch(jsonUrl, init);
+        }
+        if (!resp.ok) throw new Error("Network response was not ok");
+        return resp;
+    };
+
+    if (knownLastModified) {
+        const headResp = await fetchWithFallback({ method: 'HEAD' });
+        if (headResp.headers.get('Last-Modified') === knownLastModified) return null;
+    }
+
+    console.log("Downloading new data...");
+    const resp = await fetchWithFallback();
+    const data = await resp.json();
+    try {
+        localStorage.setItem(cacheKeyData, JSON.stringify(data));
+        localStorage.setItem(cacheKeyTime, resp.headers.get('Last-Modified'));
+    } catch (e) { console.warn("Cache quota exceeded", e); }
+    return data;
+}
+
+/**
  * JSONデータの取得とキャッシュ管理
+ * 保存済みデータがあれば通信を待たずに表示し、更新の有無は裏で確認する
  */
 async function loadCharacters() {
     if (isLoadingCharacters) return;
     isLoadingCharacters = true;
 
-    // ロケール別データを優先。キャッシュキーもロケール別に分ける
-    let jsonUrl = localeDataUrl('all_characters');
-    const cacheKeyData = `kage_char_data_v3_${I18N.dataLocale}`;
-    const cacheKeyTime = `kage_char_time_v3_${I18N.dataLocale}`;
-
     try {
-        // 更新確認 (HEADリクエスト)
-        let headResp = await fetch(jsonUrl, { method: 'HEAD' });
-        // ロケール別ファイルが無ければ ja データにフォールバック
-        if (!headResp.ok && I18N.dataLocale !== I18N.DEFAULT_LOCALE) {
-            jsonUrl = localeDataUrl('all_characters', I18N.DEFAULT_LOCALE);
-            headResp = await fetch(jsonUrl, { method: 'HEAD' });
-        }
-        if (!headResp.ok) throw new Error("Network response was not ok");
-        
-        const serverLastModified = headResp.headers.get('Last-Modified');
-        const localLastModified = localStorage.getItem(cacheKeyTime);
-        const localData = localStorage.getItem(cacheKeyData);
-
-        // キャッシュが有効ならそれを使用
-        if (localData && localLastModified && serverLastModified === localLastModified) {
-            characters = JSON.parse(localData);
-            prepareSearchData(); // ★修正: キャッシュ時も検索用データを構築する
-            initButtons();
-            handleUrlParameter();
-            return; 
+        const cachedData = localStorage.getItem(`kage_char_data_v3_${I18N.dataLocale}`);
+        let cached = null;
+        if (cachedData) {
+            try { cached = JSON.parse(cachedData); }
+            catch (parseErr) { console.error("Cache parse failed:", parseErr); }
         }
 
-        console.log("Downloading new data...");
-        const resp = await fetch(jsonUrl);
-        if(resp.ok){
-            characters = await resp.json();
-
-            // 検索・効果フィルタ用の事前データ処理
+        if (cached) {
+            characters = cached;
             prepareSearchData();
-
-            // キャッシュ保存
-            try {
-                localStorage.setItem(cacheKeyData, JSON.stringify(characters));
-                localStorage.setItem(cacheKeyTime, serverLastModified);
-            } catch (e) { console.warn("Cache quota exceeded", e); }
-
             initButtons();
             handleUrlParameter();
+            revalidateCharacters(localStorage.getItem(`kage_char_time_v3_${I18N.dataLocale}`));
+            return;
         }
+
+        characters = await fetchCharacterData();
+        prepareSearchData();
+        initButtons();
+        handleUrlParameter();
     } catch (err) {
         console.error("Failed to load characters:", err);
-
-        // キャッシュフォールバック: ネットワーク失敗時にlocalStorageのデータを使用
-        const cachedData = localStorage.getItem(cacheKeyData);
-        if (cachedData) {
-            try {
-                characters = JSON.parse(cachedData);
-                prepareSearchData();
-                initButtons();
-                handleUrlParameter();
-                console.log("Using cached data as fallback");
-                return;
-            } catch (parseErr) {
-                console.error("Cache parse failed:", parseErr);
-            }
-        }
 
         if (ELS.list) {
             ELS.list.innerHTML = `<li class="loading-state" style="flex-direction:column; gap:8px; color:#f88;">
@@ -1338,6 +1342,41 @@ async function loadCharacters() {
         }
     } finally {
         isLoadingCharacters = false;
+    }
+}
+
+/**
+ * 保存済みデータで表示した後に、サーバー側の更新を確認して反映する
+ * （失敗しても表示中のデータで動作を続ける）
+ */
+async function revalidateCharacters(lastModified) {
+    try {
+        const data = await fetchCharacterData(lastModified);
+        if (data) applyUpdatedCharacters(data);
+    } catch (err) {
+        console.warn("Character data revalidation failed:", err);
+    }
+}
+
+/**
+ * 新しいデータへ差し替えて再描画する。フィルタ・選択中キャラ・比較ピンは position で引き継ぐ
+ */
+function applyUpdatedCharacters(data) {
+    const selectedPos = lastFiltered[selectedIdx]?.position;
+    const comparePos = compareChar?.position;
+
+    characters = data;
+    prepareSearchData();
+    initButtons();
+    applyFilterStateToButtons();
+    compareChar = comparePos == null ? null : (characters.find(c => c.position === comparePos) || null);
+    updateList(false);
+
+    const idx = lastFiltered.findIndex(c => c.position === selectedPos);
+    if (idx !== -1 && idx !== selectedIdx) {
+        selectedIdx = idx;
+        showDetail(lastFiltered[idx], getCurrentHighlightKeywords());
+        highlightSelected();
     }
 }
 
@@ -1712,6 +1751,30 @@ function setupEffectButtons() {
    ========================================= */
 
 /**
+ * html2canvas を初回のスクショ時にだけ読み込む（起動時の読み込み・実行を避ける）
+ */
+let html2canvasPromise = null;
+function loadHtml2Canvas() {
+    if (window.html2canvas) return Promise.resolve();
+    if (!html2canvasPromise) {
+        html2canvasPromise = new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+            s.integrity = 'sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H';
+            s.crossOrigin = 'anonymous';
+            s.onload = () => resolve();
+            s.onerror = () => {
+                html2canvasPromise = null;  // 次回押下で再試行できるようにする
+                s.remove();
+                reject(new Error('html2canvas load failed'));
+            };
+            document.head.appendChild(s);
+        });
+    }
+    return html2canvasPromise;
+}
+
+/**
  * html2canvas を用いたスクリーンショット撮影機能のセットアップ
  */
 function setupCaptureButton() {
@@ -1966,7 +2029,7 @@ function setupCaptureButton() {
         let clone = null;
         let mountNode = null;
         try {
-            await waitImagesLoaded(ELS.detail);
+            await Promise.all([loadHtml2Canvas(), waitImagesLoaded(ELS.detail)]);
 
             clone = ELS.detail.cloneNode(true);
             clone.classList.add('capture-target');
