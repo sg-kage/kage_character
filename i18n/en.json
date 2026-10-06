@@ -45,6 +45,7 @@
     "rarity": "Rarity"
   },
   "btn": {
+    "feedback": "Feedback",
     "sort": "Pos. order",
     "ariaSort": "Toggle position order sort",
     "imgOn": "Images: ON",

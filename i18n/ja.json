@@ -44,6 +44,7 @@
     "rarity": "レア度"
   },
   "btn": {
+    "feedback": "要望・不具合報告",
     "sort": "ポジ順",
     "ariaSort": "ポジション順ソート切替",
     "imgOn": "画像: ON",
