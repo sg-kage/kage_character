@@ -143,7 +143,9 @@
       try { localStorage.setItem(STORAGE_KEY, loc); } catch (_) {}
       // lang は共有URLの先頭に置く（他パラメータの順序は保つ）
       const url = new URL(location.href);
-      const rest = [...url.searchParams].filter(([k]) => k !== 'lang');
+      // group/name/effect/q の値はロケールごとのデータ表記なので、別ロケールへは持ち越さない
+      const LOCALE_DEPENDENT = ['lang', 'group', 'name', 'effect', 'q'];
+      const rest = [...url.searchParams].filter(([k]) => !LOCALE_DEPENDENT.includes(k));
       url.search = new URLSearchParams([['lang', loc], ...rest]).toString();
       location.href = url.toString();
     }

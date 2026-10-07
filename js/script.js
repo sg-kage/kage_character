@@ -1461,10 +1461,14 @@ function prepareSearchData() {
             FIELD_KEYS.map(f => c._fieldSearch[f]).join(' ')
         ].join(' '));
 
-        // 効果（『』で囲まれた文字）の抽出
-        const effectSet = new Set();
-        [c.ultimate, c.ex_ultimate, c.skill1, c.skill2, c.traits, c.combo, c.magic_item1, c.magic_item2].forEach(t => processSkillData(t, effectSet));
-        c._effects = Array.from(effectSet);
+        // 効果: データの effects を使う。effects が無い旧データ（保存済みキャッシュ等）は『』から抽出する
+        if (Array.isArray(c.effects)) {
+            c._effects = c.effects;
+        } else {
+            const effectSet = new Set();
+            [c.ultimate, c.ex_ultimate, c.skill1, c.skill2, c.traits, c.combo, c.magic_item1, c.magic_item2].forEach(t => processSkillData(t, effectSet));
+            c._effects = Array.from(effectSet);
+        }
     });
 
     migrateFavoritesToPosition();
@@ -2605,6 +2609,9 @@ function setupKeyboardNavigation() {
                 scrollToSelected();
             }
         } else if (e.key === 'Enter') {
+            // ボタン・リンクにフォーカスがあるときは、その要素の既定動作に任せる
+            const ae = document.activeElement;
+            if (ae && ae !== document.body && !ELS.list.contains(ae)) return;
             e.preventDefault();
             if (lastFiltered[selectedIdx]) {
                 tabMode = 0;
