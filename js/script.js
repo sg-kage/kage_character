@@ -145,6 +145,22 @@ function escapeHtml(str) {
 }
 
 /**
+ * span 等をボタンとしてキーボード操作できるようにする（Tab で到達、Enter/Space で click）
+ * stopPropagation で親要素や document のキー処理に流さない
+ */
+function makeKeyboardButton(el, label) {
+    el.setAttribute('role', 'button');
+    el.tabIndex = 0;
+    if (label) el.setAttribute('aria-label', label);
+    el.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        e.stopPropagation();
+        el.click();
+    });
+}
+
+/**
  * enum系データ値（属性/ロール/ガチャ/レア度）の表示用変換
  * 内部の正規値（日本語）は変えず、表示時のみ i18n 辞書 data.* で解決する。
  * 辞書に無い値はそのまま返す（新しいカテゴリ値が来ても壊さない）
@@ -800,6 +816,7 @@ function updateList(resetSelect=false) {
 
     filtered.forEach((char, idx) => {
         const li = document.createElement('li');
+        li.dataset.pos = char.position;
 
         // 0. 属性カラードット
         const attrDot = document.createElement('span');
@@ -817,8 +834,7 @@ function updateList(resetSelect=false) {
         const favStar = document.createElement('span');
         favStar.className = 'fav-star' + (isFav ? ' is-fav' : '');
         favStar.textContent = isFav ? '★' : '☆';
-        favStar.setAttribute('role', 'button');
-        favStar.setAttribute('aria-label', I18N.t('btn.ariaFavStar'));
+        makeKeyboardButton(favStar, I18N.t('btn.ariaFavStar'));
         favStar.setAttribute('aria-pressed', isFav ? 'true' : 'false');
         favStar.onclick = (e) => {
             e.stopPropagation();
@@ -863,6 +879,12 @@ function updateList(resetSelect=false) {
             selectedIdx = idx; 
             highlightSelected(); 
         };
+        li.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            e.preventDefault();
+            e.stopPropagation();
+            li.click();
+        });
         fragment.appendChild(li);
     });
 
@@ -934,8 +956,13 @@ function syncUrlWithFilters() {
 function highlightSelected() {
     const items = ELS.list.children;
     for (let i = 0; i < items.length; i++) {
-        if (i === selectedIdx) items[i].classList.add('selected');
-        else items[i].classList.remove('selected');
+        const isSel = i === selectedIdx;
+        items[i].classList.toggle('selected', isSel);
+        // Tab で止まるのは選択中の1行とその★だけにする（roving tabindex）
+        if (!items[i].dataset.pos) continue;
+        items[i].tabIndex = isSel ? 0 : -1;
+        const star = items[i].querySelector('.fav-star');
+        if (star) star.tabIndex = isSel ? 0 : -1;
     }
 }
 
@@ -947,7 +974,7 @@ function highlightSelected() {
 /**
  * コンボ情報のHTMLブロック生成
  */
-function comboBlock(combo, filter=[]) {
+function comboBlock(combo) {
     let res = "";
     if (Array.isArray(combo)) {
         res = combo
@@ -968,27 +995,9 @@ function comboBlock(combo, filter=[]) {
 }
 
 /**
- * スキルオブジェクトからテキストデータを抽出するヘルパー
- */
-function extractSkillText(skill, isMagic, tabType) {
-    if (typeof skill === 'string') return { raw: skill, name: '' };
-    if (typeof skill !== 'object') return { raw: '', name: '' };
-
-    const name = skill.title || skill.name || '';
-    if (isMagic) {
-        return { raw: skill.effect || skill.normal || skill.description || '', name };
-    }
-    if (tabType === undefined) {
-        return { raw: skill.normal || '', awakened: skill.awakened || '', name };
-    }
-    const text = tabType === 1 ? (skill.normal || '') : (skill.awakened || '');
-    return { raw: text, name };
-}
-
-/**
  * スキル情報のHTMLブロック生成（覚醒前・後を併記）
  */
-function skillBlockBothInline(arr, filter=[], isMagic=false) {
+function skillBlockBothInline(arr, isMagic=false) {
     if (!arr) return "";
     if (!Array.isArray(arr)) arr = [arr];
     const type = isMagic ? 'magic' : 'affinity';
@@ -1021,7 +1030,7 @@ function skillBlockBothInline(arr, filter=[], isMagic=false) {
 /**
  * スキル情報のHTMLブロック生成（比較タブ用）
  */
-function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
+function skillBlockCompare(arr, tabType=0, isMagic=false) {
     if (!arr) return "";
     if (!Array.isArray(arr)) arr = [arr];
     const calcType = isMagic ? 'magic' : 'affinity';
@@ -1045,12 +1054,10 @@ function skillBlockCompare(arr, filter=[], tabType=0, isMagic=false) {
  * キャラクター1体分の詳細HTML（.char-detail-wrap）を生成する
  * showDetail の単体表示と2体比較表示の両方から利用する
  * @param {Object} char - 対象キャラクターオブジェクト
- * @param {Array} filter - ハイライト用キーワード配列
  * @returns {string} 詳細HTML文字列
  */
-function buildCharDetailHtml(char, filter = []) {
+function buildCharDetailHtml(char) {
     const attrColor = CONFIG.attributes[char.attribute] || "#E0E0E0";
-    const highlightDetail = (val) => escapeHtml(val);
 
     // --- 画像表示セクション (動き停止 & サイズ最適化) ---
     // Ex画像は has_ex が true のキャラだけ出力して 404 を防ぐ
@@ -1068,7 +1075,7 @@ function buildCharDetailHtml(char, filter = []) {
             ${imgData.map(img => `
                 <img
                     src="${img.src}"
-                    alt="${char.name}${img.suffix}"
+                    alt="${escapeHtml(char.name)}${img.suffix}"
                     class="char-image"
                     crossorigin="anonymous"
                     loading="lazy"
@@ -1084,7 +1091,7 @@ function buildCharDetailHtml(char, filter = []) {
     let mainContent = `
     <div class="char-detail-wrap">
         <div class="char-title" style="color:${attrColor};">
-            ${highlightDetail(char.name)}
+            ${escapeHtml(char.name)}
         </div>
         ${imageHtml}
 
@@ -1092,23 +1099,23 @@ function buildCharDetailHtml(char, filter = []) {
             <div class="char-info-row-top">
                 <div class="char-info-item">
                     <span class="char-label">${I18N.t('label.attribute')}</span>
-                    <span class="char-value ${attributeClass(char.attribute)}">${highlightDetail(tData('attribute', char.attribute))}</span>
+                    <span class="char-value ${attributeClass(char.attribute)}">${escapeHtml(tData('attribute', char.attribute))}</span>
                 </div>
                 <div class="char-info-item">
                     <span class="char-label">${I18N.t('label.role')}</span>
-                    <span class="char-value">${highlightDetail(tData('role', char.role))}</span>
+                    <span class="char-value">${escapeHtml(tData('role', char.role))}</span>
                 </div>
                 <div class="char-info-item">
                     <span class="char-label">${I18N.t('label.position')}</span>
-                    <span class="char-value">${highlightDetail(char.position)}</span>
+                    <span class="char-value">${escapeHtml(char.position)}</span>
                 </div>
                 <div class="char-info-item">
                     <span class="char-label">${I18N.t('label.rarity')}</span>
-                    <span class="char-value">${highlightDetail(tData('rarity', char.rarity))}</span>
+                    <span class="char-value">${escapeHtml(tData('rarity', char.rarity))}</span>
                 </div>
                 <div class="char-info-item">
                     <span class="char-label">${I18N.t('label.gacha')}</span>
-                    <span class="char-value">${highlightDetail(tData('gacha', char.gacha))}</span>
+                    <span class="char-value">${escapeHtml(tData('gacha', char.gacha))}</span>
                 </div>
             </div>
             <div class="char-info-row-bottom">
@@ -1127,9 +1134,9 @@ function buildCharDetailHtml(char, filter = []) {
     const sect = (title, data, isMag = false) => {
         if (!data || (Array.isArray(data) && data.length === 0)) return "";
         let content;
-        if (tabMode === 0) content = skillBlockBothInline(data, filter, isMag);
-        else if (tabMode === 1) content = skillBlockCompare(data, filter, 1, isMag);
-        else content = skillBlockCompare(data, filter, 2, isMag);
+        if (tabMode === 0) content = skillBlockBothInline(data, isMag);
+        else if (tabMode === 1) content = skillBlockCompare(data, 1, isMag);
+        else content = skillBlockCompare(data, 2, isMag);
         
         if (!content) return "";
         return `
@@ -1140,7 +1147,7 @@ function buildCharDetailHtml(char, filter = []) {
     };
 
     // --- 各スキルの結合 ---
-    const comboContent = comboBlock(char.combo, filter);
+    const comboContent = comboBlock(char.combo);
     const comboSection = comboContent ? `
         <div class="char-section" style="border-left:3px solid ${attrColor};">
             <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">${I18N.t('section.combo')}</div>
@@ -1189,9 +1196,9 @@ function showDetail(char, filter = []) {
 
     // 2体比較: ピン留めキャラがあれば 左=ピン留め / 右=現在選択 の並列表示
     if (compareChar && compareChar !== char) {
-        ELS.detail.innerHTML = `<div class="compare-wrap">${buildCharDetailHtml(compareChar, filter)}${buildCharDetailHtml(char, filter)}</div>`;
+        ELS.detail.innerHTML = `<div class="compare-wrap">${buildCharDetailHtml(compareChar)}${buildCharDetailHtml(char)}</div>`;
     } else {
-        ELS.detail.innerHTML = buildCharDetailHtml(char, filter);
+        ELS.detail.innerHTML = buildCharDetailHtml(char);
     }
 
     // --- タブ生成 ---
@@ -1271,9 +1278,11 @@ async function fetchCharacterData(knownLastModified) {
     let jsonUrl = localeDataUrl('all_characters');
     const cacheKeyData = `kage_char_data_v3_${I18N.dataLocale}`;
     const cacheKeyTime = `kage_char_time_v3_${I18N.dataLocale}`;
-    // ロケール別ファイルが無ければ ja データにフォールバック
-    const fetchWithFallback = async (init) => {
-        let resp = await ((!init && takePrefetched(jsonUrl)) || fetch(jsonUrl, init));
+    // ロケール別ファイルが無ければ ja データにフォールバック。
+    // GitHub Pages は max-age=600 を返すため、no-cache でないと更新直後の版を見逃す
+    const fetchWithFallback = async (method) => {
+        const init = { method, cache: 'no-cache' };
+        let resp = await ((method === 'GET' && takePrefetched(jsonUrl)) || fetch(jsonUrl, init));
         if (!resp.ok && I18N.dataLocale !== I18N.DEFAULT_LOCALE) {
             jsonUrl = localeDataUrl('all_characters', I18N.DEFAULT_LOCALE);
             resp = await fetch(jsonUrl, init);
@@ -1283,18 +1292,37 @@ async function fetchCharacterData(knownLastModified) {
     };
 
     if (knownLastModified) {
-        const headResp = await fetchWithFallback({ method: 'HEAD' });
+        const headResp = await fetchWithFallback('HEAD');
         if (headResp.headers.get('Last-Modified') === knownLastModified) return null;
     }
 
     console.log("Downloading new data...");
-    const resp = await fetchWithFallback();
+    const resp = await fetchWithFallback('GET');
     const data = await resp.json();
-    try {
-        localStorage.setItem(cacheKeyData, JSON.stringify(data));
-        localStorage.setItem(cacheKeyTime, resp.headers.get('Last-Modified'));
-    } catch (e) { console.warn("Cache quota exceeded", e); }
+    if (!Array.isArray(data)) throw new Error("Invalid character data");
+    saveCharacterCache(cacheKeyData, cacheKeyTime, data, resp.headers.get('Last-Modified'));
     return data;
+}
+
+/**
+ * キャラデータを localStorage に保存する。容量を空けるため他ロケール・旧版のキャッシュは先に消す。
+ * 保存に失敗したら古い data/time を残さない（残すと毎回「更新あり」と判定され全量を取り直す）
+ */
+function saveCharacterCache(dataKey, timeKey, data, lastModified) {
+    try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (/^kage_char_(data|time)_/.test(k) && k !== dataKey && k !== timeKey) localStorage.removeItem(k);
+        }
+        localStorage.setItem(dataKey, JSON.stringify(data));
+        localStorage.setItem(timeKey, lastModified);
+    } catch (e) {
+        console.warn("Cache quota exceeded", e);
+        try {
+            localStorage.removeItem(dataKey);
+            localStorage.removeItem(timeKey);
+        } catch (_) { /* localStorage 不可環境 */ }
+    }
 }
 
 /**
@@ -1311,6 +1339,7 @@ async function loadCharacters() {
         if (cachedData) {
             try { cached = JSON.parse(cachedData); }
             catch (parseErr) { console.error("Cache parse failed:", parseErr); }
+            if (!Array.isArray(cached)) cached = null;
         }
 
         if (cached) {
@@ -1588,7 +1617,7 @@ function applyFilterStateToButtons() {
         if (!container) return;
         container.querySelectorAll('.group-btn').forEach(btn => {
             if (btn.id) return; // effect-mode-btn などの特殊ボタンを除外
-            btn.classList.toggle('active', set.has(btn.dataset.value || btn.textContent));
+            btn.classList.toggle('active', set.has(btn.dataset.value));
         });
     };
     setActive(ELS.gachaBtns, selectedGachas);
@@ -1646,76 +1675,47 @@ function customSort(a, b, type) {
     return a.localeCompare(b, 'ja');
 }
 
-function setupGachaButtons() {
-    const container = ELS.gachaBtns;
-    container.innerHTML = "";
-    ["フェス","恒常","季節","コラボ"].forEach(g => {
+/**
+ * 絞り込みボタン群を描画する。クリックで selectedSet をトグルして一覧を更新する
+ * data-value に正規値を持たせ、表示（label）と切り離す
+ */
+function renderFilterButtons(container, values, selectedSet, label = v => v) {
+    values.forEach(v => {
         const btn = document.createElement('button');
-        btn.textContent = tData('gacha', g); btn.className = "group-btn";
-        btn.dataset.value = g;
+        btn.textContent = label(v);
+        btn.className = "group-btn";
+        btn.dataset.value = v;
         btn.onclick = () => {
             btn.classList.toggle('active');
-            if (selectedGachas.has(g)) selectedGachas.delete(g); else selectedGachas.add(g);
+            if (selectedSet.has(v)) selectedSet.delete(v); else selectedSet.add(v);
             updateList(true);
         };
         container.appendChild(btn);
     });
+}
+
+function setupGachaButtons() {
+    ELS.gachaBtns.innerHTML = "";
+    renderFilterButtons(ELS.gachaBtns, ["フェス","恒常","季節","コラボ"], selectedGachas, g => tData('gacha', g));
 }
 
 function setupRarityButtons() {
-    const container = ELS.rarityBtns;
-    container.innerHTML = "";
-    ["SS","S","A"].forEach(r => {
-        const btn = document.createElement('button');
-        btn.textContent = tData('rarity', r); btn.className = "group-btn";
-        btn.dataset.value = r;
-        btn.onclick = () => {
-            btn.classList.toggle('active');
-            if (selectedRarities.has(r)) selectedRarities.delete(r); else selectedRarities.add(r);
-            updateList(true);
-        };
-        container.appendChild(btn);
-    });
+    ELS.rarityBtns.innerHTML = "";
+    renderFilterButtons(ELS.rarityBtns, ["SS","S","A"], selectedRarities, r => tData('rarity', r));
 }
 
 function setupGroupButtons() {
-    const container = ELS.groupBtns;
-    container.innerHTML = "";
     const allGroups = new Set();
     characters.forEach(char => char.group?.forEach(g => allGroups.add(g)));
-    
-    Array.from(allGroups)
-        .sort((a, b) => customSort(a, b, 'group'))
-        .forEach(g => {
-            const btn = document.createElement('button');
-            btn.textContent = g; btn.className = "group-btn";
-            btn.onclick = () => {
-                btn.classList.toggle('active');
-                if (selectedGroups.has(g)) selectedGroups.delete(g); else selectedGroups.add(g);
-                updateList(true);
-            };
-            container.appendChild(btn);
-        });
+    ELS.groupBtns.innerHTML = "";
+    renderFilterButtons(ELS.groupBtns, Array.from(allGroups).sort((a, b) => customSort(a, b, 'group')), selectedGroups);
 }
 
 function setupNameButtons() {
-    const container = ELS.nameBtns;
-    container.innerHTML = "";
     const allNames = new Set();
     characters.forEach(c => baseNamesOf(c.name).forEach(n => allNames.add(n)));
-    
-    Array.from(allNames)
-        .sort((a, b) => customSort(a, b, 'name'))
-        .forEach(n => {
-            const btn = document.createElement('button');
-            btn.textContent = n; btn.className = "group-btn";
-            btn.onclick = () => {
-                btn.classList.toggle('active');
-                if (selectedNames.has(n)) selectedNames.delete(n); else selectedNames.add(n);
-                updateList(true);
-            };
-            container.appendChild(btn);
-        });
+    ELS.nameBtns.innerHTML = "";
+    renderFilterButtons(ELS.nameBtns, Array.from(allNames).sort((a, b) => customSort(a, b, 'name')), selectedNames);
 }
 
 function setupEffectButtons() {
@@ -1736,17 +1736,7 @@ function setupEffectButtons() {
 
     const allEffects = new Set();
     characters.forEach(c => (c._effects||[]).forEach(e => allEffects.add(e)));
-
-    Array.from(allEffects).sort((a,b) => a.localeCompare(b, 'ja')).forEach(e => {
-        const btn = document.createElement('button');
-        btn.textContent = e; btn.className = "group-btn";
-        btn.onclick = () => {
-            btn.classList.toggle('active');
-            if (selectedEffects.has(e)) selectedEffects.delete(e); else selectedEffects.add(e);
-            updateList(true);
-        };
-        container.appendChild(btn);
-    });
+    renderFilterButtons(container, Array.from(allEffects).sort((a,b) => a.localeCompare(b, 'ja')), selectedEffects);
 }
 
 
@@ -2394,7 +2384,10 @@ function toggleFavorite(charId) {
         favorites.add(charId);
     }
     saveFavorites();
+    const hadFocus = document.activeElement?.classList.contains('fav-star');
     updateList(false);
+    // 一覧を作り直すとフォーカスが外れるため、キーボード操作中なら同じキャラの★へ戻す
+    if (hadFocus) ELS.list.querySelector(`li[data-pos="${CSS.escape(charId)}"] .fav-star`)?.focus();
 }
 
 function saveFavorites() {
@@ -2590,28 +2583,21 @@ function setupKeyboardNavigation() {
 
         const highlightKeywords = getCurrentHighlightKeywords();
 
-        if (e.key === 'ArrowDown') {
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
             e.preventDefault();
-            if (selectedIdx < lastFiltered.length - 1) {
-                selectedIdx++;
-                tabMode = 0;
-                showDetail(lastFiltered[selectedIdx], highlightKeywords);
-                highlightSelected();
-                scrollToSelected();
-            }
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            if (selectedIdx > 0) {
-                selectedIdx--;
-                tabMode = 0;
-                showDetail(lastFiltered[selectedIdx], highlightKeywords);
-                highlightSelected();
-                scrollToSelected();
-            }
+            const next = selectedIdx + (e.key === 'ArrowDown' ? 1 : -1);
+            if (next < 0 || next >= lastFiltered.length) return;
+            const focusInList = ELS.list.contains(document.activeElement);
+            selectedIdx = next;
+            tabMode = 0;
+            showDetail(lastFiltered[selectedIdx], highlightKeywords);
+            highlightSelected();
+            scrollToSelected();
+            if (focusInList) ELS.list.children[selectedIdx]?.focus({ preventScroll: true });
         } else if (e.key === 'Enter') {
-            // ボタン・リンクにフォーカスがあるときは、その要素の既定動作に任せる
+            // ボタン・リンク・リスト項目にフォーカスがあるときは、その要素の動作に任せる
             const ae = document.activeElement;
-            if (ae && ae !== document.body && !ELS.list.contains(ae)) return;
+            if (ae && ae !== document.body) return;
             e.preventDefault();
             if (lastFiltered[selectedIdx]) {
                 tabMode = 0;
@@ -2641,25 +2627,21 @@ function updateActiveFilterPills() {
 
     // 配列駆動のピル生成
     const pillDefs = [
-        { set: selectedAttrs, label: I18N.t('label.attribute'), cat: 'attribute', colorFn: updateAttrBtnColors, container: null },
-        { set: selectedRoles, label: I18N.t('label.role'), cat: 'role', colorFn: updateRoleBtnColors, container: null },
-        { set: selectedGachas, label: I18N.t('label.gacha'), cat: 'gacha', colorFn: null, container: ELS.gachaBtns },
-        { set: selectedRarities, label: I18N.t('label.rarity'), cat: 'rarity', colorFn: null, container: ELS.rarityBtns },
-        { set: selectedGroups, label: I18N.t('label.group'), cat: null, colorFn: null, container: ELS.groupBtns },
-        { set: selectedNames, label: I18N.t('label.character'), cat: null, colorFn: null, container: ELS.nameBtns },
-        { set: selectedEffects, label: I18N.t('toggle.effect'), cat: null, colorFn: null, container: ELS.effectBtns },
+        { set: selectedAttrs, label: I18N.t('label.attribute'), cat: 'attribute' },
+        { set: selectedRoles, label: I18N.t('label.role'), cat: 'role' },
+        { set: selectedGachas, label: I18N.t('label.gacha'), cat: 'gacha' },
+        { set: selectedRarities, label: I18N.t('label.rarity'), cat: 'rarity' },
+        { set: selectedGroups, label: I18N.t('label.group'), cat: null },
+        { set: selectedNames, label: I18N.t('label.character'), cat: null },
+        { set: selectedEffects, label: I18N.t('toggle.effect'), cat: null },
     ];
 
-    pillDefs.forEach(({ set, label, cat, colorFn, container }) => {
+    // 解除後のボタンの見た目（active / aria-pressed）は状態から一括で作り直す
+    pillDefs.forEach(({ set, label, cat }) => {
         set.forEach(value => {
             frag.appendChild(createFilterPill(`${label}: ${cat ? tData(cat, value) : value}`, () => {
                 set.delete(value);
-                if (colorFn) colorFn();
-                if (container) {
-                    container.querySelectorAll('.group-btn').forEach(btn => {
-                        if ((btn.dataset.value || btn.textContent) === value) btn.classList.remove('active');
-                    });
-                }
+                applyFilterStateToButtons();
                 updateList(true);
             }));
         });
@@ -2669,8 +2651,7 @@ function updateActiveFilterPills() {
     if (showFavoritesOnly) {
         frag.appendChild(createFilterPill(I18N.t('btn.favPill'), () => {
             showFavoritesOnly = false;
-            const favBtn = document.getElementById('fav-filter-btn');
-            if (favBtn) favBtn.classList.remove('active');
+            applyFilterStateToButtons();
             updateList(true);
         }));
     }
@@ -2700,6 +2681,7 @@ function createFilterPill(text, onRemove) {
     const x = document.createElement('span');
     x.className = 'filter-pill-remove';
     x.textContent = '×';
+    makeKeyboardButton(x, I18N.t('btn.ariaPillRemove', { name: text }));
     x.onclick = (e) => {
         e.stopPropagation();
         onRemove();
@@ -2709,45 +2691,16 @@ function createFilterPill(text, onRemove) {
 }
 
 function updateToggleBtnCounts() {
-    const nameBtn = document.getElementById('name-toggle-btn');
-    const groupBtn = document.getElementById('group-toggle-btn');
-    const effectBtn = document.getElementById('effect-toggle-btn');
-
-    if (nameBtn) {
-        const isOpen = ELS.nameBtns.classList.contains('is-open');
-        const arrow = isOpen ? '▲' : '▼';
-        nameBtn.textContent = selectedNames.size > 0
-            ? `${I18N.t('toggle.name')}${arrow} (${selectedNames.size})`
-            : `${I18N.t('toggle.name')}${arrow}`;
-    }
-    if (groupBtn) {
-        const isOpen = ELS.groupBtns.classList.contains('is-open');
-        const arrow = isOpen ? '▲' : '▼';
-        groupBtn.textContent = selectedGroups.size > 0
-            ? `${I18N.t('toggle.group')}${arrow} (${selectedGroups.size})`
-            : `${I18N.t('toggle.group')}${arrow}`;
-    }
-    if (effectBtn) {
-        const isOpen = ELS.effectBtns.classList.contains('is-open');
-        const arrow = isOpen ? '▲' : '▼';
-        effectBtn.textContent = selectedEffects.size > 0
-            ? `${I18N.t('toggle.effect')}${arrow} (${selectedEffects.size})`
-            : `${I18N.t('toggle.effect')}${arrow}`;
-    }
-    const gachaBtn = document.getElementById('gacha-toggle-btn');
-    if (gachaBtn) {
-        const isOpen = ELS.gachaBtns.classList.contains('is-open');
-        const arrow = isOpen ? '▲' : '▼';
-        gachaBtn.textContent = selectedGachas.size > 0
-            ? `${I18N.t('toggle.gacha')}${arrow} (${selectedGachas.size})`
-            : `${I18N.t('toggle.gacha')}${arrow}`;
-    }
-    const rarityBtn = document.getElementById('rarity-toggle-btn');
-    if (rarityBtn) {
-        const isOpen = ELS.rarityBtns.classList.contains('is-open');
-        const arrow = isOpen ? '▲' : '▼';
-        rarityBtn.textContent = selectedRarities.size > 0
-            ? `${I18N.t('toggle.rarity')}${arrow} (${selectedRarities.size})`
-            : `${I18N.t('toggle.rarity')}${arrow}`;
-    }
+    [
+        ['name-toggle-btn', 'toggle.name', ELS.nameBtns, selectedNames],
+        ['group-toggle-btn', 'toggle.group', ELS.groupBtns, selectedGroups],
+        ['effect-toggle-btn', 'toggle.effect', ELS.effectBtns, selectedEffects],
+        ['gacha-toggle-btn', 'toggle.gacha', ELS.gachaBtns, selectedGachas],
+        ['rarity-toggle-btn', 'toggle.rarity', ELS.rarityBtns, selectedRarities],
+    ].forEach(([id, key, panel, set]) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        const arrow = panel.classList.contains('is-open') ? '▲' : '▼';
+        btn.textContent = `${I18N.t(key)}${arrow}` + (set.size > 0 ? ` (${set.size})` : '');
+    });
 }

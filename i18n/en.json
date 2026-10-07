@@ -58,6 +58,7 @@
     "favTitle": "Show favorites only",
     "favPill": "★ Favorites",
     "ariaFavStar": "Toggle favorite",
+    "ariaPillRemove": "Remove \"{name}\"",
     "clearAll": "Clear all ×",
     "compare": "Compare",
     "compareStop": "Stop compare",

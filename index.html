@@ -19,7 +19,7 @@
         start('i18n/ja.json', { cache: 'no-cache' });
         if (loc !== 'ja') start('i18n/' + loc + '.json', { cache: 'no-cache' });
         // 保存済みデータがある再訪時は script.js がそれで即表示するので本体は取らない
-        if (!localStorage.getItem('kage_char_data_v3_' + loc)) start('characters/all_characters_' + loc + '.json');
+        if (!localStorage.getItem('kage_char_data_v3_' + loc)) start('characters/all_characters_' + loc + '.json', { cache: 'no-cache' });
       } catch (e) { /* 取得は各スクリプトが通常どおり行う */ }
     })();
   </script>
@@ -61,7 +61,7 @@
   <meta name="theme-color" content="#0a0a0f">
 
   <link rel="apple-touch-icon" href="image/apple-touch-icon.png">
-  <link rel="icon" href="image/kage.webp" type="image/webp">
+  <link rel="icon" href="image/favicon.png" type="image/png" sizes="48x48">
   <link rel="manifest" href="manifest.webmanifest">
 
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">

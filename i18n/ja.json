@@ -57,6 +57,7 @@
     "favTitle": "お気に入りのみ表示",
     "favPill": "★ お気に入り",
     "ariaFavStar": "お気に入り登録切替",
+    "ariaPillRemove": "「{name}」を解除",
     "clearAll": "すべて解除 ×",
     "compare": "2体比較",
     "compareStop": "比較解除",

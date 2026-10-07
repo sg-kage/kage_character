@@ -58,6 +58,7 @@
     "favTitle": "只顯示我的最愛",
     "favPill": "★ 我的最愛",
     "ariaFavStar": "切換我的最愛",
+    "ariaPillRemove": "移除「{name}」",
     "clearAll": "全部清除 ×",
     "compare": "雙角色比較",
     "compareStop": "取消比較",

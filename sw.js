@@ -9,10 +9,11 @@
  *   - GET 以外（HEAD 等）は扱わない。script.js の loadCharacters() が
  *     HEAD + Last-Modified でデータ更新を判定しているため、素通しが必須。
  *   - クロスオリジン（Google Fonts / CDN / GA）は扱わない。
- *   - キャラ画像のみ cache-first（枚数が多く、ほぼ不変のため）。
+ *   - キャラ画像のみ stale-while-revalidate（枚数が多く即表示したいが、
+ *     同名ファイルの差し替えも次回表示から反映させたいため）。
  * ==============================================================================
  */
-const CACHE_VERSION = 'kage-v1';
+const CACHE_VERSION = 'kage-v2';
 const APP_CACHE = `${CACHE_VERSION}-app`;
 const IMG_CACHE = `${CACHE_VERSION}-img`;
 
@@ -27,7 +28,7 @@ const PRECACHE_URLS = [
     'i18n/tw.json',
     'characters/update_date_ja.json',
     'manifest.webmanifest',
-    'image/kage.webp'
+    'image/favicon.png'
 ];
 
 self.addEventListener('install', (e) => {
@@ -54,15 +55,18 @@ self.addEventListener('fetch', (e) => {
     const url = new URL(req.url);
     if (url.origin !== self.location.origin) return;
 
-    // キャラ画像: cache-first
+    // キャラ画像: stale-while-revalidate（キャッシュを即返し、裏で取り直して次回に反映）
     if (url.pathname.includes('/image/characters/')) {
         e.respondWith(
             caches.open(IMG_CACHE).then(async (cache) => {
                 const hit = await cache.match(req);
-                if (hit) return hit;
-                const resp = await fetch(req);
-                if (resp.ok) cache.put(req, resp.clone());
-                return resp;
+                const update = fetch(req).then((resp) => {
+                    if (resp.ok) cache.put(req, resp.clone());
+                    return resp;
+                });
+                if (!hit) return update;
+                e.waitUntil(update.catch(() => {}));
+                return hit;
             })
         );
         return;
