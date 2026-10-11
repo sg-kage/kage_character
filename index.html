@@ -19,7 +19,7 @@
         start('i18n/ja.json', { cache: 'no-cache' });
         if (loc !== 'ja') start('i18n/' + loc + '.json', { cache: 'no-cache' });
         // 保存済みデータがある再訪時は script.js がそれで即表示するので本体は取らない
-        if (!localStorage.getItem('kage_char_data_v3_' + loc)) start('characters/all_characters_' + loc + '.json', { cache: 'no-cache' });
+        if (!localStorage.getItem('kage_char_data_v3_' + loc)) start('characters/all_characters_' + loc + '.bin', { cache: 'no-cache' });
       } catch (e) { /* 取得は各スクリプトが通常どおり行う */ }
     })();
   </script>
@@ -238,6 +238,7 @@
     }
   </script>
   <script src="js/i18n.js"></script>
+  <script src="js/kage-data.js"></script>
   <script src="js/script.js"></script>
 </body>
 </html>

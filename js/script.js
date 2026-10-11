@@ -1256,10 +1256,10 @@ function setupCompareButton() {
 
 /**
  * ロケール別データファイルのパスを返す
- * 例: localeDataUrl('all_characters') -> 'characters/all_characters_ja.json'
+ * 例: localeDataUrl('all_characters', undefined, 'bin') -> 'characters/all_characters_ja.bin'
  */
-function localeDataUrl(base, loc) {
-    return `characters/${base}_${loc || I18N.dataLocale}.json`;
+function localeDataUrl(base, loc, ext = 'json') {
+    return `characters/${base}_${loc || I18N.dataLocale}.${ext}`;
 }
 
 /**
@@ -1275,17 +1275,17 @@ function takePrefetched(url) {
  */
 async function fetchCharacterData(knownLastModified) {
     // ロケール別データを優先。キャッシュキーもロケール別に分ける
-    let jsonUrl = localeDataUrl('all_characters');
+    let dataUrl = localeDataUrl('all_characters', undefined, 'bin');
     const cacheKeyData = `kage_char_data_v3_${I18N.dataLocale}`;
     const cacheKeyTime = `kage_char_time_v3_${I18N.dataLocale}`;
     // ロケール別ファイルが無ければ ja データにフォールバック。
     // GitHub Pages は max-age=600 を返すため、no-cache でないと更新直後の版を見逃す
     const fetchWithFallback = async (method) => {
         const init = { method, cache: 'no-cache' };
-        let resp = await ((method === 'GET' && takePrefetched(jsonUrl)) || fetch(jsonUrl, init));
+        let resp = await ((method === 'GET' && takePrefetched(dataUrl)) || fetch(dataUrl, init));
         if (!resp.ok && I18N.dataLocale !== I18N.DEFAULT_LOCALE) {
-            jsonUrl = localeDataUrl('all_characters', I18N.DEFAULT_LOCALE);
-            resp = await fetch(jsonUrl, init);
+            dataUrl = localeDataUrl('all_characters', I18N.DEFAULT_LOCALE, 'bin');
+            resp = await fetch(dataUrl, init);
         }
         if (!resp.ok) throw new Error("Network response was not ok");
         return resp;
@@ -1298,7 +1298,7 @@ async function fetchCharacterData(knownLastModified) {
 
     console.log("Downloading new data...");
     const resp = await fetchWithFallback('GET');
-    const data = await resp.json();
+    const data = await KageData.decode(await resp.arrayBuffer());
     if (!Array.isArray(data)) throw new Error("Invalid character data");
     saveCharacterCache(cacheKeyData, cacheKeyTime, data, resp.headers.get('Last-Modified'));
     return data;

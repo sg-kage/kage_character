@@ -40,12 +40,13 @@ kage_character/
 │   ├── ja.json                   # 日本語UI文言（既定・原本）
 │   └── en.json                   # 英語UI文言（空＝ja へフォールバックする雛形）
 ├── characters/
-│   ├── all_characters_ja.json    # キャラクターデータベース（日本語）
+│   ├── all_characters_ja.bin     # キャラクターデータベース（日本語・難読化済み）
 │   └── update_date_ja.json       # データ更新日（日本語）
 ├── image/
 │   └── characters/               # キャラクター画像 (.webp)
 ├── js/
 │   ├── i18n.js                   # i18n ローダー（ロケール解決・t()）
+│   ├── kage-data.js              # キャラデータ(.bin)の復号（kage_site からも読み込む）
 │   └── script.js                 # メインロジック
 └── style/
     └── style.css                 # スタイルシート
@@ -60,7 +61,7 @@ UI文言とキャラデータを**ロケール別ファイル**に分離した�
 `<locale>` を ISO コード（例: `en`）として:
 
 1. **UI文言**: `i18n/<locale>.json` を作成（`i18n/ja.json` と同じキー構造）。空文字のキーは `ja` にフォールバックするため、訳せたものから埋めればよい。`js/i18n.js` の `SUPPORTED` 配列に `<locale>` を追加する。
-2. **キャラデータ**: `characters/all_characters_<locale>.json` と `characters/update_date_<locale>.json` を配置（生成スクリプト側で `_<locale>` 名で出力する）。無い場合は `_ja` に自動フォールバックする。
+2. **キャラデータ**: `characters/all_characters_<locale>.bin` と `characters/update_date_<locale>.json` を配置（生成スクリプト側で `_<locale>` 名で出力する）。無い場合は `_ja` に自動フォールバックする。
 3. `index.html` の `#lang-select` に `<option value="<locale>">言語名</option>` を追加する（切替は `I18N.setLocale()` が処理）。
 
 ### 翻訳しない文言について
@@ -71,7 +72,9 @@ UI文言とキャラデータを**ロケール別ファイル**に分離した�
 
 ## キャラクターデータの更新
 
-`characters/all_characters_ja.json` を編集します（日本語データ）。他言語は `characters/all_characters_<locale>.json`。
+サイトの `characters/all_characters_<locale>.bin` は直接編集しません。カゲマス図鑑/json 側で `all_characters_<locale>.json` を作り、`python 03_publish_site.py` を実行すると同じフォルダに `.bin` が出力されます。それを `characters/` に置きます。
+
+`.bin` は持ち出し抑止のための難読化で、gzip した JSON を固定鍵で XOR したものです（復号は `js/kage-data.js`）。鍵は `js/kage-data.js` と `03_publish_site.py` の `KEY` で一致させてください。リポジトリは公開されているため、鍵と過去の平文履歴は誰でも見られます。
 
 ### データ構造
 

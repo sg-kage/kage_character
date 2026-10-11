@@ -10,7 +10,7 @@
  * 注意:
  *   - 切り替えUIはヘッダー右上の #lang-select（script.js の setupLangControl）。
  *   - キャラデータ(属性/ロール/グループ名など)の翻訳はUIリソースではなく
- *     キャラデータファイル(characters/all_characters_<locale>.json)側で行う。
+ *     キャラデータファイル(characters/all_characters_<locale>.bin)側で行う。
  *   - script.js は DOMContentLoaded 内で必ず `await I18N.ready` してから使うこと。
  * ==============================================================================
  */

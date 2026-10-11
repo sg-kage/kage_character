@@ -22,6 +22,7 @@ const PRECACHE_URLS = [
     'index.html',
     'style/style.css',
     'js/i18n.js',
+    'js/kage-data.js',
     'js/script.js',
     'i18n/ja.json',
     'i18n/en.json',
