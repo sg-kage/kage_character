@@ -97,7 +97,14 @@
   },
   "effect": {
     "modeAnd": "效果搜尋: AND",
-    "modeOr": "效果搜尋: OR"
+    "modeOr": "效果搜尋: OR",
+    "target": "對象",
+    "targetAll": "全部",
+    "targetSelf": "自己",
+    "targetAlly": "我方",
+    "targetEnemy": "敵方",
+    "headStat": "能力值",
+    "headBuff": "特殊效果"
   },
   "tab": {
     "compare": "比較",

@@ -96,7 +96,14 @@
   },
   "effect": {
     "modeAnd": "効果検索: AND",
-    "modeOr": "効果検索: OR"
+    "modeOr": "効果検索: OR",
+    "target": "対象",
+    "targetAll": "すべて",
+    "targetSelf": "自分",
+    "targetAlly": "味方",
+    "targetEnemy": "敵",
+    "headStat": "ステータス",
+    "headBuff": "特殊効果"
   },
   "tab": {
     "compare": "比較",

@@ -97,7 +97,14 @@
   },
   "effect": {
     "modeAnd": "Effect search: AND",
-    "modeOr": "Effect search: OR"
+    "modeOr": "Effect search: OR",
+    "target": "Target",
+    "targetAll": "All",
+    "targetSelf": "Self",
+    "targetAlly": "Allies",
+    "targetEnemy": "Enemies",
+    "headStat": "Stats",
+    "headBuff": "Special Effects"
   },
   "tab": {
     "compare": "Compare",

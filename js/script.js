@@ -58,6 +58,7 @@ let selectedRarities = new Set();
 let currentAffinity = 3;      // 現在の好感度Lv
 let currentMagicLv = 5;        // 現在の魔力覚醒Lv（初期ボタンのactiveと一致）
 let effectMode = 'and';       // 効果検索モード ('and' | 'or')
+let effectTarget = '';        // 効果検索の対象 ('' | 'self' | 'ally' | 'enemy')
 let tabMode = 0;              // 詳細タブモード (0:比較, 1:覚醒前, 2:覚醒後)
 let showImages = false;       // 画像表示フラグ
 
@@ -581,6 +582,8 @@ function updateSearchClearVisibility() {
 function clearAllFilters() {
     [selectedAttrs, selectedRoles, selectedGachas, selectedRarities,
      selectedGroups, selectedNames, selectedEffects].forEach(s => s.clear());
+    effectTarget = '';
+    setupEffectButtons();
 
     showFavoritesOnly = false;
     const favBtn = document.getElementById('fav-filter-btn');
@@ -696,6 +699,8 @@ function applyHighlightDOM(root, keywords) {
 
     if (!safeWords.length) return;
 
+    highlightEffectPhrases(root, keywords);
+
     const splitRegex = new RegExp(`(${safeWords.join('|')})`, 'gi');
     const testRegex = new RegExp(`^(${safeWords.join('|')})$`, 'i');
 
@@ -728,6 +733,58 @@ function applyHighlightDOM(root, keywords) {
             });
             node.parentNode.replaceChild(frag, node);
         }
+    });
+}
+
+/**
+ * 「防御力ダウン」のような効果名で、本文の「防御力を10秒間10%ダウン」をハイライトする。
+ * 数値は別の <span> なので、テキストノードをまたいで照合する
+ */
+const EFFECT_VERBS = { 'アップ': 'アップ', 'ダウン': 'ダウン|減少', 'カット': 'カット', '提升': '提升', '降低': '降低', '減少': '減少' };
+function highlightEffectPhrases(root, keywords) {
+    const patterns = [];
+    keywords.forEach(k => {
+        const verb = Object.keys(EFFECT_VERBS).find(v => k.length > v.length && k.endsWith(v));
+        if (!verb) return;
+        const stat = k.slice(0, -verb.length).replace(CONFIG.REGEX.unsafeChars, '\\$&');
+        patterns.push(`${stat}[^、，,＋。\\n]{0,40}?(?:${EFFECT_VERBS[verb]})`);
+    });
+    if (!patterns.length) return;
+
+    const nodes = [];
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode: node => node.parentElement?.closest('.hit') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+    });
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+
+    let text = '';
+    const starts = nodes.map(n => { const s = text.length; text += n.nodeValue; return s; });
+    const ranges = nodes.map(() => []);
+    for (const m of text.matchAll(new RegExp(patterns.join('|'), 'gi'))) {
+        const end = m.index + m[0].length;
+        nodes.forEach((n, i) => {
+            const a = Math.max(m.index, starts[i]) - starts[i];
+            const b = Math.min(end, starts[i] + n.nodeValue.length) - starts[i];
+            if (a < b) ranges[i].push([a, b]);
+        });
+    }
+
+    nodes.forEach((node, i) => {
+        if (!ranges[i].length) return;
+        const v = node.nodeValue;
+        const frag = document.createDocumentFragment();
+        let pos = 0;
+        ranges[i].forEach(([a, b]) => {
+            if (a < pos) return;
+            if (a > pos) frag.appendChild(document.createTextNode(v.slice(pos, a)));
+            const span = document.createElement('span');
+            span.className = 'hit hit-effect';
+            span.textContent = v.slice(a, b);
+            frag.appendChild(span);
+            pos = b;
+        });
+        if (pos < v.length) frag.appendChild(document.createTextNode(v.slice(pos)));
+        node.parentNode.replaceChild(frag, node);
     });
 }
 
@@ -785,14 +842,20 @@ function updateList(resetSelect=false) {
 
         // 効果フィルタ（AND/OR モード対応）
         if (selectedEffects.size > 0) {
-            const charEffects = new Set(char._effects || []);
+            const has = effectTarget
+                ? e => char._effectTags.has(`${effectTarget}:${e}`)
+                : e => char._effectAny.has(e);
             if (effectMode === 'and') {
-                for (const e of selectedEffects) if (!charEffects.has(e)) return false;
+                for (const e of selectedEffects) if (!has(e)) return false;
             } else {
                 let hit = false;
-                for (const e of selectedEffects) if (charEffects.has(e)) { hit = true; break; }
+                for (const e of selectedEffects) if (has(e)) { hit = true; break; }
                 if (!hit) return false;
             }
+        } else if (effectTarget) {
+            let hit = false;
+            for (const t of char._effectTags) if (t.startsWith(effectTarget + ':')) { hit = true; break; }
+            if (!hit) return false;
         }
         return true;
     });
@@ -944,6 +1007,7 @@ function syncUrlWithFilters() {
     setOrDel('name', [...selectedNames].join(','));
     setOrDel('effect', [...selectedEffects].join(','));
     setOrDel('em', effectMode === 'or' ? 'or' : '');
+    setOrDel('et', effectTarget);
     setOrDel('fav', showFavoritesOnly ? '1' : '');
     setOrDel('sort', positionSorted ? 'pos' : '');
 
@@ -1487,7 +1551,9 @@ function prepareSearchData() {
             tArousal(c.arousal),
             (c.group || []).join(' '),
             c.aliases ? (Array.isArray(c.aliases) ? c.aliases.join(' ') : c.aliases) : '',
-            FIELD_KEYS.map(f => c._fieldSearch[f]).join(' ')
+            FIELD_KEYS.map(f => c._fieldSearch[f]).join(' '),
+            // 本文は「攻撃力を15秒間30%アップ」なので、「攻撃力アップ」でも当たるよう効果名を足す
+            (c.effect_tags || []).map(effectTagName).join(' ')
         ].join(' '));
 
         // 効果: データの effects を使う。effects が無い旧データ（保存済みキャッシュ等）は『』から抽出する
@@ -1498,6 +1564,10 @@ function prepareSearchData() {
             [c.ultimate, c.ex_ultimate, c.skill1, c.skill2, c.traits, c.combo, c.magic_item1, c.magic_item2].forEach(t => processSkillData(t, effectSet));
             c._effects = Array.from(effectSet);
         }
+        // 対象付きの効果 ("self|ally|enemy:効果名")。effect_tags が無い旧データでは空になる
+        c._effectTags = new Set(c.effect_tags || []);
+        c._effectAny = new Set(c._effects);
+        c._effectTags.forEach(t => c._effectAny.add(effectTagName(t)));
     });
 
     migrateFavoritesToPosition();
@@ -1552,6 +1622,7 @@ function handleUrlParameter() {
     readSet('name', selectedNames);
     readSet('effect', selectedEffects);
     if (params.get('em') === 'or') effectMode = 'or';
+    if (EFFECT_TARGETS.includes(params.get('et'))) effectTarget = params.get('et');
     if (params.get('fav') === '1') showFavoritesOnly = true;
     if (params.get('sort') === 'pos') positionSorted = true;
     const q = params.get('q');
@@ -1624,10 +1695,8 @@ function applyFilterStateToButtons() {
     setActive(ELS.rarityBtns, selectedRarities);
     setActive(ELS.groupBtns, selectedGroups);
     setActive(ELS.nameBtns, selectedNames);
-    setActive(ELS.effectBtns, selectedEffects);
-
-    const modeBtn = document.getElementById('effect-mode-btn');
-    if (modeBtn) modeBtn.textContent = effectMode === 'and' ? I18N.t('effect.modeAnd') : I18N.t('effect.modeOr');
+    // 効果は対象によって並ぶボタンが変わるので作り直す（active / モード表示もここで反映される）
+    setupEffectButtons();
 
     const favBtn = document.getElementById('fav-filter-btn');
     if (favBtn) {
@@ -1734,9 +1803,62 @@ function setupEffectButtons() {
     };
     container.appendChild(modeBtn);
 
-    const allEffects = new Set();
-    characters.forEach(c => (c._effects||[]).forEach(e => allEffects.add(e)));
-    renderFilterButtons(container, Array.from(allEffects).sort((a,b) => a.localeCompare(b, 'ja')), selectedEffects);
+    // 対象の切り替え（単一選択）。切り替えるとその対象に付く効果だけを並べ直す
+    const targetRow = document.createElement('div');
+    targetRow.className = 'effect-target-row';
+    targetRow.setAttribute('role', 'group');
+    targetRow.setAttribute('aria-label', I18N.t('effect.target'));
+    ['', ...EFFECT_TARGETS].forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'effect-target-btn' + (t === effectTarget ? ' active' : '');
+        btn.setAttribute('aria-pressed', String(t === effectTarget));
+        btn.textContent = I18N.t(EFFECT_TARGET_LABEL[t]);
+        btn.onclick = () => {
+            if (effectTarget === t) return;
+            effectTarget = t;
+            setupEffectButtons();
+            updateList(true);
+        };
+        targetRow.appendChild(btn);
+    });
+    container.appendChild(targetRow);
+
+    // ステータスは該当キャラの多い順、バフ名は名前順
+    const buffs = new Set(), stats = new Map(), onTarget = new Set(selectedEffects);
+    characters.forEach(c => {
+        (c._effects || []).forEach(e => buffs.add(e));
+        c._effectTags.forEach(t => {
+            const name = effectTagName(t);
+            if (!c._effects.includes(name)) stats.set(name, 0);
+            if (t.startsWith(effectTarget + ':')) onTarget.add(name);
+        });
+    });
+    characters.forEach(c => stats.forEach((n, name) => {
+        if (effectTarget ? c._effectTags.has(`${effectTarget}:${name}`) : c._effectAny.has(name)) stats.set(name, n + 1);
+    }));
+    // 対象を選んでいるときは、その対象に付く効果だけを出す（選択中のものは解除できるよう残す）
+    const shown = e => !effectTarget || onTarget.has(e);
+    const statList = [...stats.keys()].filter(shown)
+        .sort((a, b) => stats.get(b) - stats.get(a) || a.localeCompare(b, 'ja'));
+    const buffList = [...buffs].filter(shown).sort((a, b) => a.localeCompare(b, 'ja'));
+
+    [['effect.headStat', statList], ['effect.headBuff', buffList]].forEach(([key, list]) => {
+        if (list.length === 0) return;
+        const head = document.createElement('div');
+        head.className = 'effect-section-head';
+        head.textContent = I18N.t(key);
+        container.appendChild(head);
+        renderFilterButtons(container, list, selectedEffects);
+    });
+    container.querySelectorAll('.group-btn[data-value]').forEach(btn =>
+        btn.classList.toggle('active', selectedEffects.has(btn.dataset.value)));
+}
+
+const EFFECT_TARGETS = ['self', 'ally', 'enemy'];
+const EFFECT_TARGET_LABEL = { '': 'effect.targetAll', self: 'effect.targetSelf', ally: 'effect.targetAlly', enemy: 'effect.targetEnemy' };
+
+function effectTagName(tag) {
+    return tag.slice(tag.indexOf(':') + 1);
 }
 
 
@@ -2635,6 +2757,14 @@ function updateActiveFilterPills() {
         { set: selectedNames, label: I18N.t('label.character'), cat: null },
         { set: selectedEffects, label: I18N.t('toggle.effect'), cat: null },
     ];
+
+    if (effectTarget) {
+        frag.appendChild(createFilterPill(`${I18N.t('effect.target')}: ${I18N.t(EFFECT_TARGET_LABEL[effectTarget])}`, () => {
+            effectTarget = '';
+            setupEffectButtons();
+            updateList(true);
+        }));
+    }
 
     // 解除後のボタンの見た目（active / aria-pressed）は状態から一括で作り直す
     pillDefs.forEach(({ set, label, cat }) => {
