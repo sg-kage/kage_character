@@ -626,8 +626,8 @@ h1 {
 #list li {
     display: flex;
     align-items: center;
-    gap: var(--sp-2);
-    padding: 0 var(--sp-3);
+    gap: 6px;
+    padding: 0 var(--sp-2);
     height: 36px;
     cursor: pointer;
     border-radius: var(--radius-sm);
@@ -645,7 +645,7 @@ li.selected {
     /* 左から右へ溶けるアクセントグラデーションで選択を上品に示す */
     background: linear-gradient(90deg, var(--accent-glow), rgba(142, 123, 255, 0.03));
     border-left: 3px solid var(--accent);
-    padding-left: calc(var(--sp-3) - 3px);
+    padding-left: calc(var(--sp-2) - 3px);
 }
 
 /* List item child elements */
@@ -1589,7 +1589,7 @@ a.header-btn {
 
     .fav-star {
         font-size: var(--text-md);
-        padding: var(--sp-1);
+        padding: var(--sp-1) 2px;
     }
 
     .filter-pill {
