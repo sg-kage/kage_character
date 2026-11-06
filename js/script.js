@@ -1823,24 +1823,19 @@ function setupEffectButtons() {
     });
     container.appendChild(targetRow);
 
-    // ステータスは該当キャラの多い順、バフ名は名前順
-    const buffs = new Set(), stats = new Map(), onTarget = new Set(selectedEffects);
+    const buffs = new Set(), stats = new Set(), onTarget = new Set(selectedEffects);
     characters.forEach(c => {
         (c._effects || []).forEach(e => buffs.add(e));
         c._effectTags.forEach(t => {
             const name = effectTagName(t);
-            if (!c._effects.includes(name)) stats.set(name, 0);
+            if (!c._effects.includes(name)) stats.add(name);
             if (t.startsWith(effectTarget + ':')) onTarget.add(name);
         });
     });
-    characters.forEach(c => stats.forEach((n, name) => {
-        if (effectTarget ? c._effectTags.has(`${effectTarget}:${name}`) : c._effectAny.has(name)) stats.set(name, n + 1);
-    }));
     // 対象を選んでいるときは、その対象に付く効果だけを出す（選択中のものは解除できるよう残す）
     const shown = e => !effectTarget || onTarget.has(e);
-    const statList = [...stats.keys()].filter(shown)
-        .sort((a, b) => stats.get(b) - stats.get(a) || a.localeCompare(b, 'ja'));
-    const buffList = [...buffs].filter(shown).sort((a, b) => a.localeCompare(b, 'ja'));
+    const statList = [...stats].filter(shown).sort();
+    const buffList = [...buffs].filter(shown).sort();
 
     [['effect.headStat', statList], ['effect.headBuff', buffList]].forEach(([key, list]) => {
         if (list.length === 0) return;
