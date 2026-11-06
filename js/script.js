@@ -727,8 +727,9 @@ const HIT_TAG_GROUPS = [
 ];
 
 /**
- * 検索語がキャラのどの項目に書かれているかをタグのラベルで返す
+ * 検索語がキャラのどの項目に書かれているかを返す
  * @param {{text: string, fields: string[]|null, phrase: RegExp|null}[]} tokens - 除外でない検索語
+ * @returns {{label: string, fields: string[]}[]}
  */
 function hitTagsOf(char, tokens) {
     if (!tokens.length) return [];
@@ -741,7 +742,19 @@ function hitTagsOf(char, tokens) {
     };
     return HIT_TAG_GROUPS
         .filter(([, fields]) => fields.some(hit))
-        .map(([key]) => I18N.t(key).replace(/[:：]$/, ''));
+        .map(([key, fields]) => ({ label: I18N.t(key).replace(/[:：]$/, ''), fields }));
+}
+
+/**
+ * 詳細で、指定した項目（data-field）にある最初のヒット箇所へスクロールする（ヒットが無ければ項目の先頭）
+ */
+function scrollToHitInFields(fields) {
+    // 2体比較では選択中のキャラが後ろの .char-detail-wrap
+    const wrap = [...ELS.detail.querySelectorAll('.char-detail-wrap')].pop();
+    if (!wrap) return;
+    const sections = [...wrap.querySelectorAll('.char-section[data-field]')].filter(s => fields.includes(s.dataset.field));
+    const target = sections.map(s => s.querySelector('.hit')).find(Boolean) || sections[0];
+    if (target) target.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
 /**
@@ -990,10 +1003,16 @@ function updateList(resetSelect=false) {
         if (hitTags.length) {
             const tagWrap = document.createElement('span');
             tagWrap.className = 'list-hits';
-            hitTags.forEach(label => {
+            hitTags.forEach(({ label, fields }) => {
                 const tag = document.createElement('span');
                 tag.className = 'hit-tag';
                 tag.textContent = label;
+                makeKeyboardButton(tag);
+                tag.onclick = (e) => {
+                    e.stopPropagation();
+                    li.click();
+                    scrollToHitInFields(fields);
+                };
                 tagWrap.appendChild(tag);
             });
             li.appendChild(tagWrap);
@@ -1101,6 +1120,7 @@ function highlightSelected() {
         items[i].tabIndex = isSel ? 0 : -1;
         const star = items[i].querySelector('.fav-star');
         if (star) star.tabIndex = isSel ? 0 : -1;
+        items[i].querySelectorAll('.hit-tag').forEach(tag => { tag.tabIndex = isSel ? 0 : -1; });
     }
 }
 
@@ -1268,18 +1288,19 @@ function buildCharDetailHtml(char) {
             </div>
         </div>`;
 
-    // --- スキルセクション構築ヘルパー ---
-    const sect = (title, data, isMag = false) => {
+    // --- スキルセクション構築ヘルパー（data-field は一覧のヒット箇所タグから飛ぶ先の目印） ---
+    const sect = (field, titleKey, isMag = false) => {
+        const data = char[field];
         if (!data || (Array.isArray(data) && data.length === 0)) return "";
         let content;
         if (tabMode === 0) content = skillBlockBothInline(data, isMag);
         else if (tabMode === 1) content = skillBlockCompare(data, 1, isMag);
         else content = skillBlockCompare(data, 2, isMag);
-        
+
         if (!content) return "";
         return `
-        <div class="char-section" style="border-left:3px solid ${attrColor};">
-            <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">${title}</div>
+        <div class="char-section" data-field="${field}" style="border-left:3px solid ${attrColor};">
+            <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">${I18N.t(titleKey)}</div>
             <div class="char-section-content">${content}</div>
         </div>`;
     };
@@ -1287,21 +1308,21 @@ function buildCharDetailHtml(char) {
     // --- 各スキルの結合 ---
     const comboContent = comboBlock(char.combo);
     const comboSection = comboContent ? `
-        <div class="char-section" style="border-left:3px solid ${attrColor};">
+        <div class="char-section" data-field="combo" style="border-left:3px solid ${attrColor};">
             <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">${I18N.t('section.combo')}</div>
             <div class="char-section-content">${comboContent}</div>
         </div>` : "";
 
     mainContent += `
-        ${sect(I18N.t('section.exUltimate'), char.ex_ultimate)}
-        ${sect(I18N.t('section.ultimate'), char.ultimate)}
-        ${sect(I18N.t('section.skill1'), char.skill1)}
-        ${sect(I18N.t('section.skill2'), char.skill2)}
-        ${sect(I18N.t('section.traits'), char.traits)}
+        ${sect('ex_ultimate', 'section.exUltimate')}
+        ${sect('ultimate', 'section.ultimate')}
+        ${sect('skill1', 'section.skill1')}
+        ${sect('skill2', 'section.skill2')}
+        ${sect('traits', 'section.traits')}
         ${comboSection}
-        ${sect(I18N.t('section.normalAttack'), char.normal_attack)}
-        ${sect(I18N.t('section.magicItem1'), char.magic_item1, true)}
-        ${sect(I18N.t('section.magicItem2'), char.magic_item2, true)}
+        ${sect('normal_attack', 'section.normalAttack')}
+        ${sect('magic_item1', 'section.magicItem1', true)}
+        ${sect('magic_item2', 'section.magicItem2', true)}
         ${similarSection(char, attrColor)}
     </div>`;
 

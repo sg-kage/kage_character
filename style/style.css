@@ -716,6 +716,7 @@ li.selected {
 }
 
 .hit-tag {
+    position: relative;
     padding: 1px 5px;
     border-radius: 4px;
     background: var(--accent-glow);
@@ -723,6 +724,20 @@ li.selected {
     font-size: 0.65em;
     line-height: 1.4;
     white-space: nowrap;
+    cursor: pointer;
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+/* 押すと詳細のその項目へ飛ぶ。見た目は小さいままで、押せる範囲を行の高さ近くまで広げる（スマホ用） */
+.hit-tag::after {
+    content: '';
+    position: absolute;
+    inset: -10px -1px;
+}
+
+.hit-tag:hover {
+    background: rgba(142, 123, 255, 0.28);
+    color: var(--text-primary);
 }
 
 /* =========================================
