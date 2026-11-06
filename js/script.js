@@ -72,6 +72,15 @@ let sharedFavorites = null;
 // 2体比較用にピン留めしたキャラ（null = 比較モードOFF）
 let compareChar = null;
 
+// 新キャラの NEW 表示（見つけてから NEW_BADGE_DAYS 日だけ出す）
+const NEW_BADGE_DAYS = 7;
+let newPositions = new Set();
+
+// 似た性能のキャラ: 効果ごとの重み（珍しい効果ほど重い。prepareSearchData で計算）
+const SIMILAR_LIMIT = 5;
+const SIMILAR_MIN_SCORE = 0.15;
+let simWeights = new Map();
+
 // データロード排他制御
 let isLoadingCharacters = false;
 
@@ -228,6 +237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupOptionPanel();
     setupCaptureButton();
     setupCompareButton();
+    setupSimilarCharacters();
     setupFavoriteTransfer();
     setupLangControl();
     setupFontSizeControl();
@@ -400,7 +410,7 @@ function updateLevelDisplay(type, lv) {
 function refreshDetail() {
     if(lastFiltered.length > 0 && lastFiltered[selectedIdx]) {
         // 検索キーワードハイライトを維持しつつ再描画
-        showDetail(lastFiltered[selectedIdx], getCurrentFilterKeywords());
+        showDetail(lastFiltered[selectedIdx], getCurrentHighlightKeywords());
     }
 }
 
@@ -667,14 +677,71 @@ function getCurrentFilterKeywords() {
         .filter(k => k);
 }
 
+// 項目指定検索の項目名 → 検索するフィールド (例: "特技:攻撃" で skill1/2 を検索)
+const SEARCH_FIELD_MAP = {
+    "特殊": ["traits"], "trait": ["traits"], "traits": ["traits"],
+    "特技": ["skill1", "skill2"], "skill": ["skill1", "skill2"],
+    "奥義": ["ultimate","ex_ultimate"], "奧義": ["ultimate","ex_ultimate"], "ult": ["ultimate","ex_ultimate"], "ultimate": ["ultimate","ex_ultimate"],
+    "魔道具": ["magic_item1", "magic_item2"], "magic": ["magic_item1", "magic_item2"], "item": ["magic_item1", "magic_item2"],
+    "コンボ": ["combo"], "連擊": ["combo"], "combo": ["combo"],
+    "通常": ["normal_attack"], "普攻": ["normal_attack"], "普通攻擊": ["normal_attack"], "normal": ["normal_attack"]
+};
+
 /**
- * 詳細画面のハイライトに使うキーワード配列を返す（項目指定のコロン部分を除去）
+ * 検索窓の語を解釈する。先頭が - の語は除外、「項目名:語」は項目指定（未知の項目名なら語全体で全文検索）
+ * @returns {{text: string, fields: string[]|null, exclude: boolean}[]}
+ */
+function parseSearchTokens() {
+    return getCurrentFilterKeywords().flatMap(raw => {
+        const exclude = raw.startsWith('-');
+        const body = exclude ? raw.slice(1) : raw;
+        // 「シールド -」と入力途中の - だけの語では絞り込まない
+        if (!body) return [];
+        const [key, val] = body.split(CONFIG.REGEX.splitColon);
+        if (val && SEARCH_FIELD_MAP[key]) return [{ text: val, fields: SEARCH_FIELD_MAP[key], exclude }];
+        return [{ text: body, fields: null, exclude }];
+    });
+}
+
+function tokenMatches(char, token) {
+    return token.fields
+        ? token.fields.some(f => (char._fieldSearch?.[f] || '').includes(token.text))
+        : char._search.includes(token.text);
+}
+
+/**
+ * 詳細画面のハイライトに使うキーワード配列を返す（除外語は含めない）
  */
 function getCurrentHighlightKeywords() {
-    return getCurrentFilterKeywords().map(k => {
-        if (k.includes(':') || k.includes('：')) return k.split(CONFIG.REGEX.splitColon)[1];
-        return k;
-    }).filter(k => k);
+    return parseSearchTokens().filter(t => !t.exclude).map(t => t.text);
+}
+
+// 一覧のヒット箇所タグ。詳細の表示順で、ラベルは検索コマンド名からコロンを外したもの
+const HIT_TAG_GROUPS = [
+    ['search.cmdUltimate', ['ex_ultimate', 'ultimate']],
+    ['search.cmdSkill', ['skill1', 'skill2']],
+    ['search.cmdTraits', ['traits']],
+    ['search.cmdCombo', ['combo']],
+    ['search.cmdNormal', ['normal_attack']],
+    ['search.cmdMagic', ['magic_item1', 'magic_item2']]
+];
+
+/**
+ * 検索語がキャラのどの項目に書かれているかをタグのラベルで返す
+ * @param {{text: string, fields: string[]|null, phrase: RegExp|null}[]} tokens - 除外でない検索語
+ */
+function hitTagsOf(char, tokens) {
+    if (!tokens.length) return [];
+    const hit = f => {
+        const text = char._fieldSearch?.[f] || '';
+        // 変動値 {最小, 最大} の「,」で効果名の照合が切れないよう、数値1つにしてから当てる
+        const plain = text.replace(CONFIG.REGEX.dynamicVal, '$2');
+        return tokens.some(t => (!t.fields || t.fields.includes(f))
+            && (text.includes(t.text) || (t.phrase !== null && t.phrase.test(plain))));
+    };
+    return HIT_TAG_GROUPS
+        .filter(([, fields]) => fields.some(hit))
+        .map(([key]) => I18N.t(key).replace(/[:：]$/, ''));
 }
 
 /**
@@ -741,14 +808,19 @@ function applyHighlightDOM(root, keywords) {
  * 数値は別の <span> なので、テキストノードをまたいで照合する
  */
 const EFFECT_VERBS = { 'アップ': 'アップ', 'ダウン': 'ダウン|減少', 'カット': 'カット', '提升': '提升', '降低': '降低', '減少': '減少' };
+
+/**
+ * 効果名を、本文の「〇〇を…アップ」に当てる正規表現の文字列にする（効果名の形でなければ null）
+ */
+function effectPhrasePattern(keyword) {
+    const verb = Object.keys(EFFECT_VERBS).find(v => keyword.length > v.length && keyword.endsWith(v));
+    if (!verb) return null;
+    const stat = keyword.slice(0, -verb.length).replace(CONFIG.REGEX.unsafeChars, '\\$&');
+    return `${stat}[^、，,＋。\\n]{0,40}?(?:${EFFECT_VERBS[verb]})`;
+}
+
 function highlightEffectPhrases(root, keywords) {
-    const patterns = [];
-    keywords.forEach(k => {
-        const verb = Object.keys(EFFECT_VERBS).find(v => k.length > v.length && k.endsWith(v));
-        if (!verb) return;
-        const stat = k.slice(0, -verb.length).replace(CONFIG.REGEX.unsafeChars, '\\$&');
-        patterns.push(`${stat}[^、，,＋。\\n]{0,40}?(?:${EFFECT_VERBS[verb]})`);
-    });
+    const patterns = keywords.map(effectPhrasePattern).filter(Boolean);
     if (!patterns.length) return;
 
     const nodes = [];
@@ -793,17 +865,11 @@ function highlightEffectPhrases(root, keywords) {
  * @param {boolean} resetSelect - 選択状態をリセットして先頭を表示するか
  */
 function updateList(resetSelect=false) {
-    const filterKeywords = getCurrentFilterKeywords();
-
-    // 項目指定検索用のマッピング (例: "特技:攻撃" で skill1/2 を検索)
-    const fieldMap = {
-        "特殊": ["traits"], "trait": ["traits"], "traits": ["traits"],
-        "特技": ["skill1", "skill2"], "skill": ["skill1", "skill2"],
-        "奥義": ["ultimate","ex_ultimate"], "奧義": ["ultimate","ex_ultimate"], "ult": ["ultimate","ex_ultimate"], "ultimate": ["ultimate","ex_ultimate"],
-        "魔道具": ["magic_item1", "magic_item2"], "magic": ["magic_item1", "magic_item2"], "item": ["magic_item1", "magic_item2"],
-        "コンボ": ["combo"], "連擊": ["combo"], "combo": ["combo"],
-        "通常": ["normal_attack"], "普攻": ["normal_attack"], "普通攻擊": ["normal_attack"], "normal": ["normal_attack"]
-    };
+    const searchTokens = parseSearchTokens();
+    const hitTokens = searchTokens.filter(t => !t.exclude).map(t => {
+        const phrase = effectPhrasePattern(t.text);
+        return { ...t, phrase: phrase ? new RegExp(phrase, 'i') : null };
+    });
 
     // --- フィルタリング実行 ---
     let filtered = characters.filter(char => {
@@ -813,20 +879,8 @@ function updateList(resetSelect=false) {
         if (showFavoritesOnly && !favorites.has(String(char.position))) return false;
         if (sharedFavorites && !sharedFavorites.has(String(char.position))) return false;
 
-        // 1. テキスト検索（キーワードごとのAND検索）
-        const matchKeywords = filterKeywords.every(token => {
-            // コロンを含む場合は特定フィールド検索
-            if (token.includes(':') || token.includes('：')) {
-                let [key, val] = token.split(CONFIG.REGEX.splitColon);
-                const targetProps = fieldMap[key];
-                if (targetProps && val) {
-                    return targetProps.some(prop => (char._fieldSearch?.[prop] || '').includes(val));
-                }
-            }
-            // 通常検索：事前生成した _search 文字列に対して検索
-            return char._search.includes(token);
-        });
-        if (!matchKeywords) return false;
+        // 1. テキスト検索（キーワードごとのAND検索。除外語は当たったら外す）
+        if (!searchTokens.every(t => tokenMatches(char, t) !== t.exclude)) return false;
 
         // 2. ボタンフィルタ判定
         if (selectedAttrs.size > 0 && !selectedAttrs.has(char.attribute)) return false;
@@ -924,6 +978,26 @@ function updateList(resetSelect=false) {
         nameSpan.className = 'list-name';
         applyHighlightDOM(nameSpan, highlightKeywords);
         li.appendChild(nameSpan);
+
+        if (newPositions.has(String(char.position))) {
+            const badge = document.createElement('span');
+            badge.className = 'new-badge';
+            badge.textContent = 'NEW';
+            li.appendChild(badge);
+        }
+
+        const hitTags = hitTagsOf(char, hitTokens);
+        if (hitTags.length) {
+            const tagWrap = document.createElement('span');
+            tagWrap.className = 'list-hits';
+            hitTags.forEach(label => {
+                const tag = document.createElement('span');
+                tag.className = 'hit-tag';
+                tag.textContent = label;
+                tagWrap.appendChild(tag);
+            });
+            li.appendChild(tagWrap);
+        }
 
         // 4. 文字の右：Ex画像 (name_Ex.webp)
         // Ex画像は全キャラ分は存在しない (現状2キャラのみ)。
@@ -1228,9 +1302,104 @@ function buildCharDetailHtml(char) {
         ${sect(I18N.t('section.normalAttack'), char.normal_attack)}
         ${sect(I18N.t('section.magicItem1'), char.magic_item1, true)}
         ${sect(I18N.t('section.magicItem2'), char.magic_item2, true)}
+        ${similarSection(char, attrColor)}
     </div>`;
 
     return mainContent;
+}
+
+/**
+ * 効果の重なりが大きいキャラを返す（珍しい効果ほど重く数える重み付き Jaccard）
+ * @returns {{char: Object, shared: string[]}[]} shared は共通の効果名（珍しい順に最大3つ）
+ */
+function findSimilarCharacters(char) {
+    const weight = f => simWeights.get(f) || 0;
+    let own = 0;
+    char._simFeatures.forEach(f => { own += weight(f); });
+
+    return characters
+        .filter(c => c.position !== char.position)
+        .map(c => {
+            let both = 0, other = 0;
+            const shared = [];
+            c._simFeatures.forEach(f => {
+                other += weight(f);
+                if (char._simFeatures.has(f)) { both += weight(f); shared.push(f); }
+            });
+            const union = own + other - both;
+            return { char: c, score: union ? both / union : 0, shared };
+        })
+        .filter(r => r.score >= SIMILAR_MIN_SCORE)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, SIMILAR_LIMIT)
+        .map(r => ({
+            char: r.char,
+            shared: [...new Set(r.shared.sort((a, b) => weight(b) - weight(a)).map(effectTagName))].slice(0, 3)
+        }));
+}
+
+/**
+ * 詳細の最後に出す「似た性能のキャラ」。押したときの処理は setupSimilarCharacters
+ */
+function similarSection(char, attrColor) {
+    const similar = findSimilarCharacters(char);
+    if (!similar.length) return "";
+    const items = similar.map(({ char: c, shared }) => {
+        const dotColor = CONFIG.attributes[c.attribute] || '#888';
+        return `
+            <button type="button" class="similar-item" data-pos="${escapeHtml(String(c.position))}">
+                <span class="attr-dot" style="color:${dotColor}; background:${dotColor};"></span>
+                <span class="similar-name">${escapeHtml(c.name)}</span>
+                <span class="similar-shared">${shared.map(escapeHtml).join(' / ')}</span>
+            </button>`;
+    }).join('');
+    return `
+        <div class="char-section similar-section" style="border-left:3px solid ${attrColor};">
+            <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">${I18N.t('section.similar')}</div>
+            <div class="char-section-content similar-list">${items}</div>
+        </div>`;
+}
+
+/**
+ * 「似た性能のキャラ」を押したらそのキャラを開く。詳細は描画のたびに作り直すので委譲で受ける
+ */
+function setupSimilarCharacters() {
+    ELS.detail.addEventListener('click', (e) => {
+        const item = e.target.closest('.similar-item');
+        if (item) openCharacterByPosition(item.dataset.pos);
+    });
+}
+
+/**
+ * position のキャラを一覧で選んで詳細を開く。今の絞り込みで一覧に無ければ絞り込みを解除してから開く
+ */
+function openCharacterByPosition(pos) {
+    const indexOf = () => lastFiltered.findIndex(c => String(c.position) === String(pos));
+    let idx = indexOf();
+    if (idx === -1) {
+        clearAllFilters();
+        idx = indexOf();
+    }
+    if (idx === -1 && sharedFavorites) {
+        dismissSharedFavorites();
+        idx = indexOf();
+    }
+    if (idx === -1) return;
+
+    selectedIdx = idx;
+    tabMode = 0;
+    showDetail(lastFiltered[idx], getCurrentHighlightKeywords());
+    highlightSelected();
+
+    // scrollIntoView だとスマホではページごと一覧までスクロールしてしまうため、一覧の枠の中だけ動かす
+    const li = ELS.list.children[idx];
+    if (li) {
+        const listRect = ELS.list.getBoundingClientRect();
+        const liRect = li.getBoundingClientRect();
+        ELS.list.scrollTop += (liRect.top - listRect.top) - (listRect.height - liRect.height) / 2;
+    }
+    const detailTop = ELS.detail.getBoundingClientRect().top;
+    if (detailTop < 0) window.scrollBy({ top: detailTop - 12, behavior: 'smooth' });
 }
 
 /**
@@ -1568,9 +1737,75 @@ function prepareSearchData() {
         c._effectTags = new Set(c.effect_tags || []);
         c._effectAny = new Set(c._effects);
         c._effectTags.forEach(t => c._effectAny.add(effectTagName(t)));
+
+        // 似た性能のキャラ用の特徴: 対象付きの効果。対象付きのタグが無い効果は "*:効果名" で足す
+        const tagged = new Set([...c._effectTags].map(effectTagName));
+        c._simFeatures = new Set(c._effectTags);
+        c._effects.forEach(e => { if (!tagged.has(e)) c._simFeatures.add(`*:${e}`); });
     });
 
+    const featureCounts = new Map();
+    characters.forEach(c => c._simFeatures.forEach(f => featureCounts.set(f, (featureCounts.get(f) || 0) + 1)));
+    simWeights = new Map([...featureCounts].map(([f, n]) => [f, Math.log(characters.length / n)]));
+
     migrateFavoritesToPosition();
+    trackNewCharacters();
+}
+
+/**
+ * 前に見たことのないキャラを NEW として記録し、追加があればお知らせを出す。
+ * 見たキャラの一覧は言語共通で、キャラデータの保存分（言語を切り替えると消える）とは別に持つ。
+ * 一覧がまだ無い初回は記録するだけで、NEW もお知らせも出さない
+ */
+function trackNewCharacters() {
+    newPositions = new Set();
+    try {
+        const seenRaw = localStorage.getItem('kage_seen_pos');
+        const seen = new Set(seenRaw ? JSON.parse(seenRaw) : []);
+        const added = seenRaw ? characters.filter(c => !seen.has(String(c.position))) : [];
+        if (!seenRaw || added.length) {
+            characters.forEach(c => seen.add(String(c.position)));
+            safeSetItem('kage_seen_pos', JSON.stringify([...seen]));
+        }
+
+        const now = Date.now();
+        const expire = now - NEW_BADGE_DAYS * 24 * 60 * 60 * 1000;
+        const found = JSON.parse(localStorage.getItem('kage_new_pos') || '{}');
+        added.forEach(c => { found[c.position] = now; });
+        Object.keys(found).forEach(pos => { if (!(found[pos] > expire)) delete found[pos]; });
+        safeSetItem('kage_new_pos', JSON.stringify(found));
+        newPositions = new Set(Object.keys(found));
+
+        if (added.length) showNewCharsToast(added);
+    } catch (e) { /* localStorage が使えない環境では NEW を出さない */ }
+}
+
+/**
+ * 新キャラ追加のお知らせを画面下に出す（8秒で消える。×でも閉じられる）
+ */
+function showNewCharsToast(added) {
+    const MAX_NAMES = 3;
+    let names = added.slice(0, MAX_NAMES).map(c => c.name).join(' / ');
+    if (added.length > MAX_NAMES) names += ' ' + I18N.t('msg.newCharsMore', { count: added.length - MAX_NAMES });
+
+    document.getElementById('new-chars-toast')?.remove();
+    const toast = document.createElement('div');
+    toast.id = 'new-chars-toast';
+    toast.className = 'update-toast';
+    toast.setAttribute('role', 'status');
+
+    const text = document.createElement('span');
+    text.textContent = I18N.t('msg.newChars', { names });
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'update-toast-close';
+    close.textContent = '×';
+    close.setAttribute('aria-label', I18N.t('msg.close'));
+    close.onclick = () => toast.remove();
+
+    toast.append(text, close);
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 8000);
 }
 
 /**
@@ -2120,6 +2355,11 @@ function setupCaptureButton() {
                 background: transparent !important;
                 padding: 0 !important;
                 border-radius: 0 !important;
+            }
+
+            /* 「似た性能のキャラ」は画面内の移動用なのでスクショには入れない */
+            .capture-target .similar-section {
+                display: none !important;
             }
         `;
         document.head.appendChild(style);

@@ -29,6 +29,7 @@
     "helpSummary": "搜尋指令的使用方式",
     "helpIntro": "在關鍵字前加上<b>欄位名稱:</b>，就能只搜尋該欄位。",
     "helpExample1": "範例：「特殊:護盾 魔道具:格擋」",
+    "helpExclude": "在字詞前加上<b>-</b>，即可排除包含該字詞的角色。範例：「護盾 -闇影」",
     "helpExample2": "全形與半形字元不予區分即可搜尋。",
     "cmdTraits": "特殊:",
     "cmdMagic": "魔道具:",
@@ -132,7 +133,8 @@
     "combo": "連擊",
     "normalAttack": "普通攻擊",
     "magicItem1": "魔道具1",
-    "magicItem2": "魔道具2"
+    "magicItem2": "魔道具2",
+    "similar": "性能相似的角色β"
   },
   "msg": {
     "loading": "資料載入中...",
@@ -148,7 +150,9 @@
     "previewShow": "正在顯示圖片...",
     "previewFail": "預覽顯示失敗。請從儲存按鈕開啟。",
     "saveImage": "儲存圖片",
-    "close": "關閉"
+    "close": "關閉",
+    "newChars": "已新增角色：{names}",
+    "newCharsMore": "另有{count}名"
   },
   "footer": {
     "creator": "製作者：",

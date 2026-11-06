@@ -28,6 +28,7 @@
     "helpSummary": "検索コマンドの使い方",
     "helpIntro": "キーワードの前に<b>項目名:</b>をつけると、その場所だけを検索できます。",
     "helpExample1": "例：「特殊:シールド 魔道具:パリィ」",
+    "helpExclude": "語の前に<b>-</b>をつけると、その語を含むキャラを除外します。例：「シールド -シャドウ」",
     "helpExample2": "ひらがな・カタカナ、全角・半角は区別せずに検索できます。",
     "cmdTraits": "特殊:",
     "cmdMagic": "魔道具:",
@@ -131,7 +132,8 @@
     "combo": "コンボ",
     "normalAttack": "通常攻撃",
     "magicItem1": "魔道具1",
-    "magicItem2": "魔道具2"
+    "magicItem2": "魔道具2",
+    "similar": "似た性能のキャラβ"
   },
   "msg": {
     "loading": "データを読み込み中...",
@@ -147,7 +149,9 @@
     "previewShow": "画像を表示しています...",
     "previewFail": "プレビューの表示に失敗しました。保存ボタンから開いてください。",
     "saveImage": "画像を保存",
-    "close": "閉じる"
+    "close": "閉じる",
+    "newChars": "新キャラを追加しました：{names}",
+    "newCharsMore": "ほか{count}体"
   },
   "footer": {
     "creator": "作成者:",

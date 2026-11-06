@@ -29,6 +29,7 @@
     "helpSummary": "Search command guide",
     "helpIntro": "Prefix a keyword with a <b>field name:</b> to search only that field.",
     "helpExample1": "Example: \"trait:shield magic:parry\"",
+    "helpExclude": "Put <b>-</b> before a word to exclude characters that contain it. Example: \"shield -Shadow\"",
     "helpExample2": "Hiragana/katakana and full/half-width characters are treated the same.",
     "cmdTraits": "trait:",
     "cmdMagic": "magic:",
@@ -132,7 +133,8 @@
     "combo": "Combo",
     "normalAttack": "Normal Attack",
     "magicItem1": "Magic Item 1",
-    "magicItem2": "Magic Item 2"
+    "magicItem2": "Magic Item 2",
+    "similar": "Similar Charactersβ"
   },
   "msg": {
     "loading": "Loading data...",
@@ -148,7 +150,9 @@
     "previewShow": "Displaying image...",
     "previewFail": "Failed to show the preview. Open it from the save button.",
     "saveImage": "Save image",
-    "close": "Close"
+    "close": "Close",
+    "newChars": "New characters added: {names}",
+    "newCharsMore": "and {count} more"
   },
   "footer": {
     "creator": "Creator:",
