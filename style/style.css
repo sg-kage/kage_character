@@ -419,6 +419,13 @@ h1 {
     outline: none;
 }
 
+/* iOS Safari は 16px 未満の入力欄にフォーカスすると画面を拡大し、戻らず横幅がずれるため、iOS だけ 16px 以上にする */
+@supports (-webkit-touch-callout: none) {
+    #filter {
+        font-size: max(16px, var(--text-base));
+    }
+}
+
 #search-clear-btn {
     position: absolute;
     right: var(--sp-1);
