@@ -92,7 +92,8 @@
       <p class="data-update" id="data-update"></p>
       <p class="ai-notice" id="ai-notice" data-i18n="msg.aiNotice" hidden>英語版・繁体字版はAIによる翻訳のため、内容が間違っている可能性があります。</p>
     </div>
-    <div class="header-controls">
+    <button id="settings-btn" class="header-btn settings-btn" type="button" aria-expanded="false" aria-controls="header-controls" data-i18n-attr="aria-label:btn.settings" aria-label="表示設定">⚙</button>
+    <div class="header-controls" id="header-controls">
       <select id="lang-select" class="header-select" data-i18n-attr="aria-label:header.langLabel" aria-label="表示言語">
         <option value="ja">日本語</option>
         <option value="en">English</option>
@@ -110,22 +111,26 @@
 
   <div id="container">
     <aside id="side">
-      <div id="filter-toggle-row"></div>
+      <button id="filter-area-btn" class="toggle-btn" type="button" aria-expanded="false" aria-controls="filter-area">絞り込み</button>
 
-      <div id="name-btns"></div>
-      <div id="group-btns"></div>
-      <div id="effect-btns"></div>
+      <div id="filter-area">
+        <div id="filter-toggle-row"></div>
 
-      <div id="attribute-row">
-        <div id="attribute-btns"></div>
+        <div id="name-btns"></div>
+        <div id="group-btns"></div>
+        <div id="effect-btns"></div>
+
+        <div id="attribute-row">
+          <div id="attribute-btns"></div>
+        </div>
+
+        <div id="role-row">
+          <div id="role-btns"></div>
+        </div>
+
+        <div id="gacha-btns"></div>
+        <div id="rarity-btns"></div>
       </div>
-
-      <div id="role-row">
-        <div id="role-btns"></div>
-      </div>
-
-      <div id="gacha-btns"></div>
-      <div id="rarity-btns"></div>
 
       <div class="search-wrapper">
         <input id="filter" type="text" data-i18n-attr="placeholder:search.placeholder;aria-label:search.ariaFilter" placeholder="キャラ名 スキル等 特殊:シールド 魔道具:パリィ など" aria-label="キャラクター検索フィルター">

@@ -45,6 +45,8 @@
     "rarity": "レア度"
   },
   "btn": {
+    "settings": "表示設定",
+    "filters": "絞り込み",
     "feedback": "要望・不具合報告",
     "sort": "ポジ順",
     "ariaSort": "ポジション順ソート切替",

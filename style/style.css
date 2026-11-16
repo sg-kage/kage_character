@@ -308,11 +308,22 @@ h1 {
     opacity: 0.85;
 }
 
-/* 属性ボタン: 未選択時は色ドットで属性を示す */
+/* 属性ボタン: 未選択でも薄い属性色、選択で属性色に塗りつぶす */
+#attribute-btns .attr-btn[data-attr="赤"] { --c: var(--attr-red); --c-rgb: 224, 97, 88; }
+#attribute-btns .attr-btn[data-attr="緑"] { --c: var(--attr-green); --c-rgb: 70, 184, 120; }
+#attribute-btns .attr-btn[data-attr="黄"] { --c: var(--attr-yellow); --c-rgb: 214, 175, 74; }
+#attribute-btns .attr-btn[data-attr="青"] { --c: var(--attr-blue); --c-rgb: 74, 138, 212; }
+
 #attribute-btns .attr-btn {
     display: inline-flex;
     align-items: center;
     gap: 7px;
+    background: rgba(var(--c-rgb), 0.12);
+    box-shadow: inset 0 0 0 1px rgba(var(--c-rgb), 0.35);
+}
+
+#attribute-btns .attr-btn:hover {
+    background: rgba(var(--c-rgb), 0.22);
 }
 
 #attribute-btns .attr-btn::before {
@@ -321,17 +332,14 @@ h1 {
     height: 8px;
     border-radius: 50%;
     flex-shrink: 0;
-    background: var(--text-muted);
+    background: var(--c);
+    box-shadow: 0 0 6px var(--c);
     transition: background var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.attr-btn[data-attr="赤"]::before { background: var(--attr-red); box-shadow: 0 0 6px var(--attr-red); }
-.attr-btn[data-attr="緑"]::before { background: var(--attr-green); box-shadow: 0 0 6px var(--attr-green); }
-.attr-btn[data-attr="黄"]::before { background: var(--attr-yellow); box-shadow: 0 0 6px var(--attr-yellow); }
-.attr-btn[data-attr="青"]::before { background: var(--attr-blue); box-shadow: 0 0 6px var(--attr-blue); }
-
-/* 選択時は属性色で塗りつぶし(背景はJSがインラインで設定)、文字とドットを黒に */
 #attribute-btns .attr-btn.is-selected {
+    background: var(--c);
+    box-shadow: none;
     color: #0c0c12;
     font-weight: 700;
 }
@@ -352,10 +360,6 @@ h1 {
     font-weight: 700;
 }
 
-.attr-red { background: var(--attr-red); color: #0c0c12; }
-.attr-green { background: var(--attr-green); color: #0c0c12; }
-.attr-yellow { background: var(--attr-yellow); color: #0c0c12; }
-.attr-blue { background: var(--attr-blue); color: #fff; }
 
 /* =========================================
    Search Input
@@ -694,6 +698,11 @@ li.selected {
 }
 
 /* Attribute color indicator dot on list items */
+.similar-item .attr-dot {
+    color: var(--attr-color);
+    background: var(--attr-color);
+}
+
 .attr-dot {
     width: 6px;
     height: 6px;
@@ -964,11 +973,11 @@ a.header-btn {
     font-size: 1.5rem;
     font-weight: 700;
     margin-bottom: var(--sp-4);
-    color: var(--gold);
+    color: var(--attr-color, var(--gold));
     text-align: center;
     letter-spacing: 0.04em;
     line-height: 1.35;
-    /* 属性色(インラインcolor)がにじむ控えめなグロー */
+    /* 属性色がにじむ控えめなグロー */
     text-shadow: 0 0 26px;
 }
 
@@ -982,6 +991,36 @@ a.header-btn {
     background: linear-gradient(90deg, transparent, currentColor, transparent);
     opacity: 0.45;
     border-radius: 2px;
+}
+
+/* 画像 ON のときは画像と名前を横に並べる */
+.char-hero.has-image {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-4);
+    margin-bottom: var(--sp-4);
+}
+
+.char-hero.has-image .char-image-container {
+    width: auto;
+    flex: 0 0 auto;
+    margin-bottom: 0;
+}
+
+.char-hero.has-image .char-image {
+    max-width: 120px;
+    max-height: 120px;
+}
+
+.char-hero.has-image .char-title {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    margin-bottom: 0;
+}
+
+.char-hero.has-image .char-title::after {
+    margin-left: 0;
 }
 
 .char-image-container {
@@ -1070,6 +1109,25 @@ a.header-btn {
     font-weight: 500;
 }
 
+/* 詳細の基本情報: 属性は属性色のバッジ、レア度は金、ポジションは控えめ */
+.char-value.attr-red { background: var(--attr-red); color: #0c0c12; font-weight: 700; }
+.char-value.attr-green { background: var(--attr-green); color: #0c0c12; font-weight: 700; }
+.char-value.attr-yellow { background: var(--attr-yellow); color: #0c0c12; font-weight: 700; }
+.char-value.attr-blue { background: var(--attr-blue); color: #fff; font-weight: 700; }
+
+.char-value-rarity {
+    background: var(--gold-dim);
+    color: var(--gold);
+    font-weight: 700;
+}
+
+.char-value-sub {
+    background: none;
+    padding: 0 var(--sp-1);
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+}
+
 .char-value-plain {
     background: none;
     padding: 0;
@@ -1132,8 +1190,9 @@ a.header-btn {
     background:
         linear-gradient(160deg, rgba(255, 255, 255, 0.018), transparent 45%),
         var(--bg-secondary);
-    /* 全周の枠線でブロックを明確に区切る（左辺はJSが属性色3pxを上書き） */
+    /* 全周の枠線でブロックを明確に区切り、左辺だけ属性色の3px */
     border: 1px solid rgba(255, 255, 255, 0.10);
+    border-left: 3px solid var(--attr-color, var(--accent));
     border-radius: var(--radius-md);
     margin-bottom: var(--sp-3);
     overflow: hidden;
@@ -1141,9 +1200,9 @@ a.header-btn {
 
 .char-section-title {
     font-weight: 700;
-    color: var(--accent);
+    color: var(--attr-color, var(--accent));
     font-size: var(--text-md);
-    /* 属性色の左ラインは .char-section 側(インラインstyle)が持つため
+    /* 属性色の左ラインは .char-section 側が持つため
        ここには付けない（二重ラインによる左端の段差防止） */
     /* 見出し帯: うっすら明るい背景＋下線でセクションの頭をはっきりさせる */
     background: rgba(255, 255, 255, 0.035);
@@ -1208,11 +1267,9 @@ a.header-btn {
 .combo-row {
     margin-bottom: var(--sp-2);
     padding-bottom: var(--sp-2);
-    border-bottom: 1px solid var(--border);
 }
 
 .combo-row:last-child {
-    border-bottom: none;
     margin-bottom: 0;
     padding-bottom: 0;
 }
@@ -1312,6 +1369,41 @@ a.header-btn {
 
 .toggle-btn:hover {
     background: rgba(142, 123, 255, 0.20);
+}
+
+.toggle-btn::after {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    margin-left: var(--sp-2);
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform var(--transition-fast);
+}
+
+.toggle-btn.is-open::after {
+    transform: translateY(1px) rotate(-135deg);
+}
+
+/* スマホでだけ使う「⚙ 表示設定」と「絞り込み」。PC では今までどおり全部見せる */
+.settings-btn,
+#filter-area-btn {
+    display: none;
+}
+
+#filter-area {
+    display: contents;
+}
+
+#filter-area-btn {
+    width: 100%;
+    padding: var(--sp-2) var(--sp-4);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    font-family: var(--font-sans);
+    cursor: pointer;
 }
 
 #effect-mode-btn {
@@ -1536,8 +1628,49 @@ a.header-btn {
         font-size: var(--text-md);
     }
 
-    .brand-sub {
+    .brand-sub,
+    .sub-desc {
         display: none;
+    }
+
+    header {
+        align-items: center;
+        padding: var(--sp-3) var(--sp-4);
+    }
+
+    .header-titles {
+        flex: 1;
+    }
+
+    .settings-btn {
+        display: inline-block;
+        flex-shrink: 0;
+        font-size: var(--text-md);
+        padding: var(--sp-1) var(--sp-3);
+    }
+
+    .header-controls {
+        display: none;
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .header-controls.is-open {
+        display: flex;
+    }
+
+    #filter-area-btn {
+        display: block;
+    }
+
+    #filter-area {
+        display: none;
+    }
+
+    #filter-area.is-open {
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-2);
     }
 
     .tabs-btn {
@@ -1618,6 +1751,15 @@ a.header-btn {
         max-height: 200px;
     }
 
+    .char-hero.has-image .char-image-container {
+        flex-direction: row;
+    }
+
+    .char-hero.has-image .char-image {
+        max-width: 88px;
+        max-height: 88px;
+    }
+
     .char-info-row-top {
         flex-wrap: wrap;
         gap: var(--sp-2);
@@ -1659,6 +1801,36 @@ a.header-btn {
 /* =========================================
    Loading & Empty States
    ========================================= */
+.loading-state.is-column {
+    flex-direction: column;
+    gap: var(--sp-1);
+}
+
+.loading-state.is-error {
+    gap: var(--sp-2);
+    color: #f88;
+}
+
+.loading-sub {
+    font-size: 0.8em;
+    opacity: 0.6;
+}
+
+.retry-btn {
+    padding: var(--sp-2) var(--sp-5);
+    background: #2c5d8a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.effect-divider {
+    border-top: 1px dashed rgba(255, 255, 255, 0.12);
+    margin: var(--sp-2) 0;
+}
+
 .loading-state {
     display: flex;
     align-items: center;

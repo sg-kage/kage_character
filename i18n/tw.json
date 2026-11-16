@@ -46,6 +46,8 @@
     "rarity": "稀有度"
   },
   "btn": {
+    "settings": "顯示設定",
+    "filters": "篩選",
     "feedback": "意見回饋",
     "sort": "位置排序",
     "ariaSort": "切換位置排序",

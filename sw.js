@@ -9,7 +9,7 @@
  *   - GET 以外（HEAD 等）は扱わない。script.js の loadCharacters() が
  *     HEAD + Last-Modified でデータ更新を判定しているため、素通しが必須。
  *   - クロスオリジン（Google Fonts / CDN / GA）は扱わない。
- *   - キャラ画像のみ stale-while-revalidate（枚数が多く即表示したいが、
+ *   - キャラ画像（原寸・縮小版）のみ stale-while-revalidate（枚数が多く即表示したいが、
  *     同名ファイルの差し替えも次回表示から反映させたいため）。
  * ==============================================================================
  */
@@ -57,7 +57,7 @@ self.addEventListener('fetch', (e) => {
     if (url.origin !== self.location.origin) return;
 
     // キャラ画像: stale-while-revalidate（キャッシュを即返し、裏で取り直して次回に反映）
-    if (url.pathname.includes('/image/characters/')) {
+    if (url.pathname.includes('/image/characters/') || url.pathname.includes('/image/thumb/')) {
         e.respondWith(
             caches.open(IMG_CACHE).then(async (cache) => {
                 const hit = await cache.match(req);

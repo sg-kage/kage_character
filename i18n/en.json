@@ -46,6 +46,8 @@
     "rarity": "Rarity"
   },
   "btn": {
+    "settings": "Display settings",
+    "filters": "Filters",
     "feedback": "Feedback",
     "sort": "Pos. order",
     "ariaSort": "Toggle position order sort",

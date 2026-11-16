@@ -235,6 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initLevelUI();
     setupStaticButtons();
     setupOptionPanel();
+    setupCompactMenus();
     setupCaptureButton();
     setupCompareButton();
     setupSimilarCharacters();
@@ -338,6 +339,13 @@ function setupImageFallback() {
         if (!t.classList.contains('list-img') &&
             !t.classList.contains('list-img-ex') &&
             !t.classList.contains('char-image')) return;
+        // 縮小版が未生成のキャラ（追加直後など）は原寸版で出し直す
+        if (t.dataset.full) {
+            const full = t.dataset.full;
+            delete t.dataset.full;
+            t.src = full;
+            return;
+        }
         if (t.dataset.ph) return; // 二重差し替え防止（プレースホルダ自体の失敗を含む）
         t.dataset.ph = '1';
         t.classList.add('img-placeholder');
@@ -507,11 +515,11 @@ function setupStaticButtons() {
     updateAttrBtnColors();
 
     // --- 各種トグル開閉ボタン ---
-    createToggleBtn("name-toggle-btn", I18N.t('toggle.name') + "▼", "name-btns");
-    createToggleBtn("group-toggle-btn", I18N.t('toggle.group') + "▼", "group-btns");
-    createToggleBtn("effect-toggle-btn", I18N.t('toggle.effect') + "▼", "effect-btns");
-    createToggleBtn("gacha-toggle-btn", I18N.t('toggle.gacha') + "▼", "gacha-btns");
-    createToggleBtn("rarity-toggle-btn", I18N.t('toggle.rarity') + "▼", "rarity-btns");
+    createToggleBtn("name-toggle-btn", I18N.t('toggle.name'), "name-btns");
+    createToggleBtn("group-toggle-btn", I18N.t('toggle.group'), "group-btns");
+    createToggleBtn("effect-toggle-btn", I18N.t('toggle.effect'), "effect-btns");
+    createToggleBtn("gacha-toggle-btn", I18N.t('toggle.gacha'), "gacha-btns");
+    createToggleBtn("rarity-toggle-btn", I18N.t('toggle.rarity'), "rarity-btns");
 
     // --- 画像ON/OFFボタン ---
     if (ELS.imgBtn) {
@@ -630,7 +638,7 @@ function createToggleBtn(id, text, targetId) {
     const panel = document.getElementById(targetId);
     btn.onclick = () => {
         panel.classList.toggle('is-open');
-        // 矢印(▼/▲)と選択件数の表示を一元管理している関数に任せる
+        // 開閉の矢印と選択件数の表示を一元管理している関数に任せる
         updateToggleBtnCounts();
     };
     ELS.toggleRow.appendChild(btn);
@@ -639,26 +647,18 @@ function createToggleBtn(id, text, targetId) {
 /**
  * ボタン群の選択状態に応じてスタイルを更新する汎用関数
  */
-function updateBtnColors(btnMap, selectedSet, colorFn) {
+function updateBtnColors(btnMap, selectedSet) {
     for (const [key, btn] of Object.entries(btnMap)) {
-        if (!btn) continue;
-        const isSelected = selectedSet.has(key);
-        btn.classList.toggle('is-selected', isSelected);
-        // 属性ボタンは動的な色が必要なためインラインスタイルを維持
-        if (colorFn && isSelected) {
-            btn.style.background = colorFn(key);
-        } else if (colorFn) {
-            btn.style.background = '';
-        }
+        if (btn) btn.classList.toggle('is-selected', selectedSet.has(key));
     }
 }
 
 function updateRoleBtnColors() {
-    updateBtnColors(roleBtnMap, selectedRoles, null);
+    updateBtnColors(roleBtnMap, selectedRoles);
 }
 
 function updateAttrBtnColors() {
-    updateBtnColors(attrBtnMap, selectedAttrs, (attr) => CONFIG.attributes[attr]);
+    updateBtnColors(attrBtnMap, selectedAttrs);
 }
 
 
@@ -978,7 +978,8 @@ function updateList(resetSelect=false) {
             imgArea1.className = 'list-img-area';
 
             const img1 = document.createElement('img');
-            img1.src = `image/characters/${charImageBase(char)}.webp`;
+            img1.src = `image/thumb/${charImageBase(char)}.webp`;
+            img1.dataset.full = `image/characters/${charImageBase(char)}.webp`;
             img1.className = 'list-img';
             img1.loading = 'lazy';
             imgArea1.appendChild(img1);
@@ -1060,7 +1061,7 @@ function updateList(resetSelect=false) {
     } else {
         // 空状態メッセージ
         if (characters.length > 0) {
-            ELS.list.innerHTML = `<li class="loading-state" style="flex-direction:column; gap:4px;">${I18N.t('msg.noResults')}<span style="font-size:0.8em; opacity:0.6;">${I18N.t('msg.noResultsSub')}</span></li>`;
+            ELS.list.innerHTML = `<li class="loading-state is-column">${I18N.t('msg.noResults')}<span class="loading-sub">${I18N.t('msg.noResultsSub')}</span></li>`;
             ELS.detail.innerHTML = `<div class="empty-state"><div class="empty-state-icon">&#128270;</div>${I18N.t('msg.noResults')}</div>`;
         }
         if (ELS.captureBtn) ELS.captureBtn.classList.add('is-hidden');
@@ -1138,16 +1139,16 @@ function comboBlock(combo) {
         res = combo
             .map(row => (typeof row === 'object') ? (row.effect ?? '') : row)
             .filter(text => text && text !== "-")
-            .map(text => `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${escapeHtml(text)}</div></div>`)
+            .map(text => `<div class="combo-row"><div class="combo-effect">${escapeHtml(text)}</div></div>`)
             .join('<hr class="skill-sep">');
     }
     else if (typeof combo === 'object' && combo !== null) {
         const effect = combo.effect ?? '';
-        if (effect && effect !== "-") res = `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${escapeHtml(effect)}</div></div>`;
+        if (effect && effect !== "-") res = `<div class="combo-row"><div class="combo-effect">${escapeHtml(effect)}</div></div>`;
     }
     else {
         const text = combo || '';
-        if (text && text !== "-") res = `<div class="combo-row" style="border:none !important;"><div class="combo-effect">${escapeHtml(text)}</div></div>`;
+        if (text && text !== "-") res = `<div class="combo-row"><div class="combo-effect">${escapeHtml(text)}</div></div>`;
     }
     return replaceDynamicValues(res, 'affinity');
 }
@@ -1173,7 +1174,7 @@ function skillBlockBothInline(arr, isMagic=false) {
             if (awakened) {
                 return `<div>${skillName ? `<b>${skillName}</b><br>` : ""}
                   <span class="effect-label normal-label">${I18N.t('label.normal')}</span>${normal}
-                  <div style="border-top:1px dashed rgba(255,255,255,0.12); margin:8px 0;"></div>
+                  <div class="effect-divider"></div>
                   <span class="effect-label awakened-label">${I18N.t('label.awakened')}</span>${awakened}
                 </div>`;
             } else {
@@ -1247,11 +1248,11 @@ function buildCharDetailHtml(char) {
     // --- 基本情報（タイトル、属性、ロールなど） ---
     // 上下の隙間(padding/margin)を調整してコンパクトに表示
     let mainContent = `
-    <div class="char-detail-wrap">
-        <div class="char-title" style="color:${attrColor};">
-            ${escapeHtml(char.name)}
+    <div class="char-detail-wrap" style="--attr-color:${attrColor};">
+        <div class="char-hero${imageHtml ? ' has-image' : ''}">
+            ${imageHtml}
+            <div class="char-title">${escapeHtml(char.name)}</div>
         </div>
-        ${imageHtml}
 
         <div class="char-info-grid">
             <div class="char-info-row-top">
@@ -1265,11 +1266,11 @@ function buildCharDetailHtml(char) {
                 </div>
                 <div class="char-info-item">
                     <span class="char-label">${I18N.t('label.position')}</span>
-                    <span class="char-value">${escapeHtml(char.position)}</span>
+                    <span class="char-value char-value-sub">${escapeHtml(char.position)}</span>
                 </div>
                 <div class="char-info-item">
                     <span class="char-label">${I18N.t('label.rarity')}</span>
-                    <span class="char-value">${escapeHtml(tData('rarity', char.rarity))}</span>
+                    <span class="char-value char-value-rarity">${escapeHtml(tData('rarity', char.rarity))}</span>
                 </div>
                 <div class="char-info-item">
                     <span class="char-label">${I18N.t('label.gacha')}</span>
@@ -1299,8 +1300,8 @@ function buildCharDetailHtml(char) {
 
         if (!content) return "";
         return `
-        <div class="char-section" data-field="${field}" style="border-left:3px solid ${attrColor};">
-            <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">${I18N.t(titleKey)}</div>
+        <div class="char-section" data-field="${field}">
+            <div class="char-section-title">${I18N.t(titleKey)}</div>
             <div class="char-section-content">${content}</div>
         </div>`;
     };
@@ -1308,8 +1309,8 @@ function buildCharDetailHtml(char) {
     // --- 各スキルの結合 ---
     const comboContent = comboBlock(char.combo);
     const comboSection = comboContent ? `
-        <div class="char-section" data-field="combo" style="border-left:3px solid ${attrColor};">
-            <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">${I18N.t('section.combo')}</div>
+        <div class="char-section" data-field="combo">
+            <div class="char-section-title">${I18N.t('section.combo')}</div>
             <div class="char-section-content">${comboContent}</div>
         </div>` : "";
 
@@ -1323,7 +1324,7 @@ function buildCharDetailHtml(char) {
         ${sect('normal_attack', 'section.normalAttack')}
         ${sect('magic_item1', 'section.magicItem1', true)}
         ${sect('magic_item2', 'section.magicItem2', true)}
-        ${similarSection(char, attrColor)}
+        ${similarSection(char)}
     </div>`;
 
     return mainContent;
@@ -1362,21 +1363,21 @@ function findSimilarCharacters(char) {
 /**
  * 詳細の最後に出す「似た性能のキャラ」。押したときの処理は setupSimilarCharacters
  */
-function similarSection(char, attrColor) {
+function similarSection(char) {
     const similar = findSimilarCharacters(char);
     if (!similar.length) return "";
     const items = similar.map(({ char: c, shared }) => {
         const dotColor = CONFIG.attributes[c.attribute] || '#888';
         return `
             <button type="button" class="similar-item" data-pos="${escapeHtml(String(c.position))}">
-                <span class="attr-dot" style="color:${dotColor}; background:${dotColor};"></span>
+                <span class="attr-dot" style="--attr-color:${dotColor};"></span>
                 <span class="similar-name">${escapeHtml(c.name)}</span>
                 <span class="similar-shared">${shared.map(escapeHtml).join(' / ')}</span>
             </button>`;
     }).join('');
     return `
-        <div class="char-section similar-section" style="border-left:3px solid ${attrColor};">
-            <div class="char-section-title" style="color:${attrColor}; border-left-color:${attrColor};">${I18N.t('section.similar')}</div>
+        <div class="char-section similar-section">
+            <div class="char-section-title">${I18N.t('section.similar')}</div>
             <div class="char-section-content similar-list">${items}</div>
         </div>`;
 }
@@ -1613,9 +1614,9 @@ async function loadCharacters() {
         console.error("Failed to load characters:", err);
 
         if (ELS.list) {
-            ELS.list.innerHTML = `<li class="loading-state" style="flex-direction:column; gap:8px; color:#f88;">
+            ELS.list.innerHTML = `<li class="loading-state is-column is-error">
                 <div>${I18N.t('msg.loadFail')}</div>
-                <button id="retry-load-btn" style="padding:8px 20px; background:#2c5d8a; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:0.9em;">${I18N.t('msg.retry')}</button>
+                <button id="retry-load-btn" class="retry-btn" type="button">${I18N.t('msg.retry')}</button>
             </li>`;
             const retryBtn = document.getElementById('retry-load-btn');
             if (retryBtn) retryBtn.onclick = () => {
@@ -2316,8 +2317,8 @@ function setupCaptureButton() {
                 align-items: flex-start !important;
             }
             .capture-target .char-image {
-                max-width: 35% !important;
-                max-height: 150px !important;
+                max-width: 120px !important;
+                max-height: 120px !important;
             }
             .capture-target .char-title {
                 font-size: 1.5rem !important;
@@ -2635,6 +2636,36 @@ function setupOptionPanel() {
         }
     }
     document.addEventListener('click', handlePanelOutsideClick);
+}
+
+/**
+ * スマホで畳む「⚙ 表示設定」と「絞り込み」の開閉。ボタンは CSS でスマホ幅のときだけ見せる
+ */
+function setupCompactMenus() {
+    const settingsBtn = document.getElementById('settings-btn');
+    const controls = document.getElementById('header-controls');
+    const setSettingsOpen = (open) => {
+        controls.classList.toggle('is-open', open);
+        settingsBtn.classList.toggle('active', open);
+        settingsBtn.setAttribute('aria-expanded', String(open));
+    };
+    if (settingsBtn && controls) {
+        settingsBtn.onclick = () => setSettingsOpen(!controls.classList.contains('is-open'));
+        document.addEventListener('click', (e) => {
+            if (!controls.classList.contains('is-open')) return;
+            if (!settingsBtn.contains(e.target) && !controls.contains(e.target)) setSettingsOpen(false);
+        });
+    }
+
+    const filterBtn = document.getElementById('filter-area-btn');
+    const filterArea = document.getElementById('filter-area');
+    if (filterBtn && filterArea) {
+        filterBtn.onclick = () => {
+            filterArea.classList.toggle('is-open');
+            updateToggleBtnCounts();
+        };
+    }
+    updateToggleBtnCounts();
 }
 
 /**
@@ -3086,7 +3117,21 @@ function updateToggleBtnCounts() {
     ].forEach(([id, key, panel, set]) => {
         const btn = document.getElementById(id);
         if (!btn) return;
-        const arrow = panel.classList.contains('is-open') ? '▲' : '▼';
-        btn.textContent = `${I18N.t(key)}${arrow}` + (set.size > 0 ? ` (${set.size})` : '');
+        const open = panel.classList.contains('is-open');
+        btn.textContent = I18N.t(key) + (set.size > 0 ? ` (${set.size})` : '');
+        btn.classList.toggle('is-open', open);
+        btn.setAttribute('aria-expanded', String(open));
     });
+
+    const filterBtn = document.getElementById('filter-area-btn');
+    const filterArea = document.getElementById('filter-area');
+    if (filterBtn && filterArea) {
+        const total = [selectedAttrs, selectedRoles, selectedNames, selectedGroups,
+            selectedEffects, selectedGachas, selectedRarities].reduce((n, s) => n + s.size, 0)
+            + (effectTarget ? 1 : 0);
+        const open = filterArea.classList.contains('is-open');
+        filterBtn.textContent = I18N.t('btn.filters') + (total > 0 ? ` (${total})` : '');
+        filterBtn.classList.toggle('is-open', open);
+        filterBtn.setAttribute('aria-expanded', String(open));
+    }
 }
