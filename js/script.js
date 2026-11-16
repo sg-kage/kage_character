@@ -1232,7 +1232,7 @@ function buildCharDetailHtml(char) {
         <div class="char-image-container">
             ${imgData.map(img => `
                 <img
-                    src="${img.src}"
+                    src="${escapeHtml(img.src)}"
                     alt="${escapeHtml(char.name)}${img.suffix}"
                     class="char-image"
                     crossorigin="anonymous"
