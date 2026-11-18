@@ -96,7 +96,10 @@
     "fontSize": "Font size",
     "fontSmall": "Font S",
     "fontMedium": "Font M",
-    "fontLarge": "Font L"
+    "fontLarge": "Font L",
+    "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light"
   },
   "effect": {
     "modeAnd": "Effect search: AND",

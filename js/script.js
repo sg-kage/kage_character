@@ -239,8 +239,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupCaptureButton();
     setupCompareButton();
     setupSimilarCharacters();
+    setupHistoryNavigation();
     setupFavoriteTransfer();
     setupLangControl();
+    setupThemeControl();
     setupFontSizeControl();
     setupListHeightControl();
     setupKeyboardNavigation();
@@ -339,7 +341,7 @@ function setupImageFallback() {
         if (!t.classList.contains('list-img') &&
             !t.classList.contains('list-img-ex') &&
             !t.classList.contains('char-image')) return;
-        // 縮小版が未生成のキャラ（追加直後など）は原寸版で出し直す
+        // 縮小版・詳細用が未生成のキャラ（追加直後など）は原寸版で出し直す
         if (t.dataset.full) {
             const full = t.dataset.full;
             delete t.dataset.full;
@@ -1024,13 +1026,15 @@ function updateList(resetSelect=false) {
         // JSON の has_ex フラグで出し分け、無駄な 404 を防止
         if (showImages && char.has_ex) {
             const img2 = document.createElement('img');
-            img2.src = `image/characters/${charImageBase(char)}_Ex.webp`;
+            img2.src = `image/thumb/${charImageBase(char)}_Ex.webp`;
+            img2.dataset.full = `image/characters/${charImageBase(char)}_Ex.webp`;
             img2.className = 'list-img-ex';
             img2.loading = 'lazy';
             li.appendChild(img2);
         }
 
         li.onclick = () => { 
+            pushHistoryForCharacter(char.position);
             tabMode = 0; 
             showDetail(char, highlightKeywords); 
             selectedIdx = idx; 
@@ -1222,18 +1226,18 @@ function buildCharDetailHtml(char) {
     // Ex画像は has_ex が true のキャラだけ出力して 404 を防ぐ
     let imageHtml = "";
     if (showImages) {
-        const base = "image/characters/";
         const imgBase = charImageBase(char);
-        const imgData = [{ src: `${base}${imgBase}.webp`, suffix: "" }];
+        const imgData = [{ file: `${imgBase}.webp`, suffix: "" }];
         if (char.has_ex) {
-            imgData.push({ src: `${base}${imgBase}_Ex.webp`, suffix: " Ex" });
+            imgData.push({ file: `${imgBase}_Ex.webp`, suffix: " Ex" });
         }
 
         imageHtml = `
         <div class="char-image-container">
             ${imgData.map(img => `
                 <img
-                    src="${escapeHtml(img.src)}"
+                    src="image/detail/${escapeHtml(img.file)}"
+                    data-full="image/characters/${escapeHtml(img.file)}"
                     alt="${escapeHtml(char.name)}${img.suffix}"
                     class="char-image"
                     crossorigin="anonymous"
@@ -1393,9 +1397,33 @@ function setupSimilarCharacters() {
 }
 
 /**
+ * 別のキャラを開く直前に、今の URL を履歴に1つ積む（ブラウザの「戻る」で今のキャラに戻れる）。
+ * 積んだ方の URL は、この後の showDetail・絞り込みの replaceState で開いたキャラ用に書き換わる
+ */
+function pushHistoryForCharacter(pos) {
+    const current = new URLSearchParams(window.location.search).get('pos');
+    if (current && current !== String(pos)) window.history.pushState({}, '', window.location.href);
+}
+
+/**
+ * ブラウザの「戻る」「進む」で、その履歴のキャラを開き直す。
+ * 絞り込み条件は履歴に残していない（replaceState）ので今の条件のままにし、URL もそれに合わせ直す
+ */
+function setupHistoryNavigation() {
+    window.addEventListener('popstate', () => {
+        const pos = new URLSearchParams(window.location.search).get('pos');
+        if (pos && characters.length && String(lastFiltered[selectedIdx]?.position) !== pos) {
+            openCharacterByPosition(pos, false);
+        }
+        syncUrlWithFilters();
+    });
+}
+
+/**
  * position のキャラを一覧で選んで詳細を開く。今の絞り込みで一覧に無ければ絞り込みを解除してから開く
  */
-function openCharacterByPosition(pos) {
+function openCharacterByPosition(pos, push = true) {
+    if (push) pushHistoryForCharacter(pos);
     const indexOf = () => lastFiltered.findIndex(c => String(c.position) === String(pos));
     let idx = indexOf();
     if (idx === -1) {
@@ -2309,6 +2337,15 @@ function setupCaptureButton() {
                 --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.28) !important;
                 --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
                 --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.22) !important;
+                --tint-rgb: 255, 255, 255 !important;
+                --accent-text: #b3a6ff !important;
+                --hit-color: #ff8a80 !important;
+                --hit-effect-color: #7fdbff !important;
+                --error-color: #f88 !important;
+                --text-placeholder: #7c87a0 !important;
+                --brand-from: #c4b8ff !important;
+                --brand-to: #6ea8e8 !important;
+                color-scheme: dark;
             }
 
             /* モバイル時のメディアクエリを打ち消してデスクトップ見た目に固定 */
@@ -2321,7 +2358,12 @@ function setupCaptureButton() {
                 max-height: 120px !important;
             }
             .capture-target .char-title {
+                color: var(--attr-color, var(--gold)) !important;
+                text-shadow: 0 0 26px !important;
                 font-size: 1.5rem !important;
+            }
+            .capture-target .char-section-title {
+                color: var(--attr-color, var(--accent)) !important;
             }
             .capture-target .char-section-content {
                 font-size: 0.875rem !important;
@@ -2684,6 +2726,27 @@ function setupLangControl() {
     ELS.langSelect.value = I18N.locale;
     ELS.langSelect.addEventListener('change', () => {
         I18N.setLocale(ELS.langSelect.value);
+    });
+}
+
+/**
+ * ダーク / ライトの切り替え。初回の描画前の適用は index.html 先頭のスクリプトが行う
+ */
+function setupThemeControl() {
+    const select = document.getElementById('theme-select');
+    if (!select) return;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    const apply = (theme) => {
+        if (theme === 'light') document.documentElement.dataset.theme = 'light';
+        else delete document.documentElement.dataset.theme;
+        if (meta) meta.content = theme === 'light' ? '#f3f3f8' : '#0a0a0f';
+    };
+    const initial = localStorage.getItem('kage_theme') === 'light' ? 'light' : 'dark';
+    select.value = initial;
+    apply(initial);
+    select.addEventListener('change', () => {
+        safeSetItem('kage_theme', select.value);
+        apply(select.value);
     });
 }
 

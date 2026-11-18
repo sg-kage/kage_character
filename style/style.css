@@ -72,6 +72,67 @@
     /* --- Fonts --- */
     --font-sans: 'Inter', 'Noto Sans JP', 'Segoe UI', 'Meiryo', 'Hiragino Sans', sans-serif;
     --font-mono: 'JetBrains Mono', 'Consolas', 'Menlo', monospace;
+
+    /* --- テーマで切り替える色（ライトは :root[data-theme="light"]） --- */
+    --tint-rgb: 255, 255, 255;
+    --accent-text: #b3a6ff;
+    --hit-color: #ff8a80;
+    --hit-effect-color: #7fdbff;
+    --error-color: #f88;
+    --text-placeholder: #7c87a0;
+    --brand-from: #c4b8ff;
+    --brand-to: #6ea8e8;
+    color-scheme: dark;
+}
+
+/* ライトテーマ。js/script.js の setupThemeControl と index.html 先頭のスクリプトが data-theme を付ける */
+:root[data-theme="light"] {
+    --bg-primary: #f3f3f8;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f0eefc;
+    --bg-input: #f1f1f6;
+    --bg-elevated: #e9e9f1;
+
+    --text-primary: #1b1d27;
+    --text-secondary: #4b5366;
+    --text-muted: #747c90;
+
+    --accent: #6b56e8;
+    --accent-glow: rgba(107, 86, 232, 0.12);
+    --accent-dim: #5d4fc0;
+    --accent-subtle: rgba(107, 86, 232, 0.06);
+    --gold: #94701c;
+    --gold-dim: rgba(148, 112, 28, 0.12);
+    --orange: #b5601c;
+
+    --border: rgba(0, 0, 0, 0.07);
+    --border-light: rgba(0, 0, 0, 0.12);
+    --border-accent: rgba(107, 86, 232, 0.22);
+
+    --shadow-sm: 0 1px 4px rgba(20, 20, 40, 0.08);
+    --shadow-md: 0 4px 16px rgba(20, 20, 40, 0.10);
+    --shadow-lg: 0 8px 28px rgba(20, 20, 40, 0.14);
+    --shadow-card: 0 1px 6px rgba(20, 20, 40, 0.08);
+
+    --tint-rgb: 0, 0, 0;
+    --accent-text: #5a45d6;
+    --hit-color: #d32f2f;
+    --hit-effect-color: #0670b0;
+    --error-color: #c62828;
+    --text-placeholder: #8a92a6;
+    --brand-from: #7a63f0;
+    --brand-to: #2f6fb8;
+    color-scheme: light;
+}
+
+/* 属性色（特に黄）は白地で薄いので、文字に使うところだけ濃くする */
+:root[data-theme="light"] .char-title {
+    color: color-mix(in srgb, var(--attr-color, var(--gold)) 65%, #000);
+    text-shadow: none;
+}
+:root[data-theme="light"] .char-section-title {
+    color: color-mix(in srgb, var(--attr-color, var(--accent)) 65%, #000);
 }
 
 /* =========================================
@@ -174,7 +235,7 @@ h1 {
     font-size: 1.25rem;
     font-weight: 700;
     letter-spacing: 0.04em;
-    background: linear-gradient(95deg, #c4b8ff 0%, var(--accent) 55%, #6ea8e8 100%);
+    background: linear-gradient(95deg, var(--brand-from) 0%, var(--accent) 55%, var(--brand-to) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -461,7 +522,7 @@ h1 {
 }
 
 #filter::placeholder {
-    color: #7c87a0;
+    color: var(--text-placeholder);
 }
 
 /* =========================================
@@ -607,9 +668,9 @@ h1 {
     list-style: none;
     font-size: var(--text-base);
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+    scrollbar-color: rgba(var(--tint-rgb), 0.08) transparent;
     border: 1px solid var(--border);
-    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(var(--tint-rgb), 0.03);
 }
 
 #list::-webkit-scrollbar {
@@ -621,7 +682,7 @@ h1 {
 }
 
 #list::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(var(--tint-rgb), 0.08);
     border-radius: 4px;
 }
 
@@ -936,7 +997,7 @@ a.header-btn {
     min-height: 200px;
     border: 1px solid var(--border);
     /* 上端にrazor-thinなハイライトを乗せて面の立体感を出す */
-    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    box-shadow: var(--shadow-card), inset 0 1px 0 rgba(var(--tint-rgb), 0.03);
     font-size: var(--text-base);
     width: 100%;
 }
@@ -1099,7 +1160,7 @@ a.header-btn {
 }
 
 .char-value {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(var(--tint-rgb), 0.04);
     border-radius: 5px;
     padding: 2px var(--sp-3);
     color: var(--text-primary);
@@ -1172,7 +1233,7 @@ a.header-btn {
 
 .tabs-btn:hover:not(.active) {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(var(--tint-rgb), 0.04);
 }
 
 .tabs-btn.active {
@@ -1188,10 +1249,10 @@ a.header-btn {
 .char-section {
     /* 左上からごく薄い光を落としてカードに質感を出す */
     background:
-        linear-gradient(160deg, rgba(255, 255, 255, 0.018), transparent 45%),
+        linear-gradient(160deg, rgba(var(--tint-rgb), 0.018), transparent 45%),
         var(--bg-secondary);
     /* 全周の枠線でブロックを明確に区切り、左辺だけ属性色の3px */
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    border: 1px solid rgba(var(--tint-rgb), 0.10);
     border-left: 3px solid var(--attr-color, var(--accent));
     border-radius: var(--radius-md);
     margin-bottom: var(--sp-3);
@@ -1205,7 +1266,7 @@ a.header-btn {
     /* 属性色の左ラインは .char-section 側が持つため
        ここには付けない（二重ラインによる左端の段差防止） */
     /* 見出し帯: うっすら明るい背景＋下線でセクションの頭をはっきりさせる */
-    background: rgba(255, 255, 255, 0.035);
+    background: rgba(var(--tint-rgb), 0.035);
     border-bottom: 1px solid var(--border);
     padding: var(--sp-1) var(--sp-3);
     margin: 0;
@@ -1304,7 +1365,7 @@ a.header-btn {
 
 .skill-sep {
     border: 0;
-    border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+    border-bottom: 1px dashed rgba(var(--tint-rgb), 0.06);
     margin: var(--sp-2) 0;
 }
 
@@ -1362,7 +1423,7 @@ a.header-btn {
 
 .toggle-btn {
     background: var(--accent-glow);
-    color: #b3a6ff;
+    color: var(--accent-text);
     border: 1px solid var(--border-accent);
     border-radius: var(--radius-sm);
 }
@@ -1458,7 +1519,7 @@ a.header-btn {
    Search Highlight
    ========================================= */
 .hit {
-    color: #ff8a80;
+    color: var(--hit-color);
     font-weight: 700;
     background: rgba(255, 138, 128, 0.12);
     border-radius: 3px;
@@ -1467,7 +1528,7 @@ a.header-btn {
 
 /* 効果名（防御力ダウン 等）で本文の「防御力を…%ダウン」に当たった部分。数値の要素で分割されるので隙間を空けない */
 .hit.hit-effect {
-    color: #7fdbff;
+    color: var(--hit-effect-color);
     background: rgba(127, 219, 255, 0.12);
     border-radius: 0;
     padding: 0;
@@ -1496,7 +1557,7 @@ a.header-btn {
 }
 
 .creator-link a:hover {
-    color: #b3a6ff;
+    color: var(--accent-text);
 }
 
 .creator-link small {
@@ -1808,7 +1869,7 @@ a.header-btn {
 
 .loading-state.is-error {
     gap: var(--sp-2);
-    color: #f88;
+    color: var(--error-color);
 }
 
 .loading-sub {
@@ -1827,7 +1888,7 @@ a.header-btn {
 }
 
 .effect-divider {
-    border-top: 1px dashed rgba(255, 255, 255, 0.12);
+    border-top: 1px dashed rgba(var(--tint-rgb), 0.12);
     margin: var(--sp-2) 0;
 }
 
@@ -1950,7 +2011,7 @@ a.header-btn {
     border-radius: 20px;
     padding: 3px var(--sp-2) 3px var(--sp-3);
     font-size: var(--text-xs);
-    color: #b3a6ff;
+    color: var(--accent-text);
     white-space: nowrap;
     transition: background var(--transition-fast);
     font-weight: 500;

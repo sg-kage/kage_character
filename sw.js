@@ -57,7 +57,8 @@ self.addEventListener('fetch', (e) => {
     if (url.origin !== self.location.origin) return;
 
     // キャラ画像: stale-while-revalidate（キャッシュを即返し、裏で取り直して次回に反映）
-    if (url.pathname.includes('/image/characters/') || url.pathname.includes('/image/thumb/')) {
+    if (url.pathname.includes('/image/characters/') || url.pathname.includes('/image/thumb/') ||
+        url.pathname.includes('/image/detail/')) {
         e.respondWith(
             caches.open(IMG_CACHE).then(async (cache) => {
                 const hit = await cache.match(req);

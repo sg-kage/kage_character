@@ -95,7 +95,10 @@
     "fontSize": "文字サイズ",
     "fontSmall": "文字小",
     "fontMedium": "文字中",
-    "fontLarge": "文字大"
+    "fontLarge": "文字大",
+    "theme": "テーマ",
+    "themeDark": "ダーク",
+    "themeLight": "ライト"
   },
   "effect": {
     "modeAnd": "効果検索: AND",

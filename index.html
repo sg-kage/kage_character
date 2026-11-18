@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="meta.title">【カゲマス】カゲマスキャラ検索 | 陰の実力者になりたくて！マスターオブガーデン</title>
   <script>
+    // テーマは描画前に当てる（ダークで一瞬表示されてから切り替わるのを防ぐ）
+    try { if (localStorage.getItem('kage_theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (e) {}
+  </script>
+  <script>
     // 起動に必要なデータの取得を HTML の解析中に開始する（js/ の到着を待たない）。
     // ロケール判定は i18n.js の resolveLocale と同じ規則。ずれても URL が一致しない取得が使われないだけ。
     (function () {
@@ -103,6 +107,10 @@
         <option value="small" data-i18n="level.fontSmall">文字小</option>
         <option value="medium" data-i18n="level.fontMedium">文字中</option>
         <option value="large" data-i18n="level.fontLarge">文字大</option>
+      </select>
+      <select id="theme-select" class="header-select" data-i18n-attr="aria-label:level.theme" aria-label="テーマ">
+        <option value="dark" data-i18n="level.themeDark">ダーク</option>
+        <option value="light" data-i18n="level.themeLight">ライト</option>
       </select>
       <button id="toggle-img-btn" class="header-btn" data-i18n="btn.imgOff" data-i18n-attr="aria-label:btn.ariaImg" aria-label="キャラクター画像の表示切替">画像: OFF</button>
       <a id="feedback-btn" class="header-btn" href="https://forms.gle/SjuPpfrTffUKpQ4e6" target="_blank" rel="noopener" data-i18n="btn.feedback">要望・不具合報告</a>

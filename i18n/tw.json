@@ -96,7 +96,10 @@
     "fontSize": "文字大小",
     "fontSmall": "字級小",
     "fontMedium": "字級中",
-    "fontLarge": "字級大"
+    "fontLarge": "字級大",
+    "theme": "主題",
+    "themeDark": "深色",
+    "themeLight": "淺色"
   },
   "effect": {
     "modeAnd": "效果搜尋: AND",
